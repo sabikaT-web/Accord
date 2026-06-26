@@ -1,0 +1,55 @@
+<%- include('partials/head') %>
+<style>main>.wrap{max-width:1160px}.bar-in{max-width:1160px}</style>
+
+<nav class="admin-nav">
+  <a href="/admin">Dashboard</a>
+  <a href="/admin/users" class="on">Users</a>
+  <a href="/admin/cases">Cases</a>
+</nav>
+
+<div class="admin-head">
+  <h1 class="page serif">Users <span class="count">(<%= users.length %>)</span></h1>
+  <a class="btn btn-ghost" href="/admin/users.csv">Export CSV</a>
+</div>
+
+<form class="search" method="GET" action="/admin/users">
+  <input type="text" name="q" value="<%= q %>" placeholder="Search name or email…" />
+  <button class="btn btn-primary" type="submit">Search</button>
+  <% if (q) { %><a class="muted" href="/admin/users">clear</a><% } %>
+</form>
+
+<div class="table-wrap">
+  <table class="grid">
+    <thead><tr>
+      <th>Name</th><th>Email</th><th>Joined</th><th>Status</th><th>Last login</th><th>Cases</th><th>Actions</th>
+    </tr></thead>
+    <tbody>
+      <% if (users.length === 0) { %>
+        <tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No users found.</td></tr>
+      <% } %>
+      <% users.forEach(function(u){ %>
+        <tr>
+          <td><%= u.name %><% if (u.email && u.email.toLowerCase() === ADMIN_EMAIL) { %> <span class="tag-admin">admin</span><% } %></td>
+          <td><%= u.email %></td>
+          <td><%= fmtDay(u.created_at) %></td>
+          <td><% if (u.suspended) { %><span class="badge red">Suspended</span><% } else { %><span class="badge green">Active</span><% } %></td>
+          <td><%= fmtDate(u.last_login) %></td>
+          <td><%= u.case_count %></td>
+          <td class="actions">
+            <% if (u.suspended) { %>
+              <form method="POST" action="/admin/users/<%= u.id %>/unsuspend"><button class="mini">Unsuspend</button></form>
+            <% } else { %>
+              <form method="POST" action="/admin/users/<%= u.id %>/suspend"><button class="mini">Suspend</button></form>
+            <% } %>
+            <form method="POST" action="/admin/users/<%= u.id %>/reset"><button class="mini">Reset PW</button></form>
+            <% if (!(u.email && u.email.toLowerCase() === ADMIN_EMAIL)) { %>
+              <form method="POST" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Delete this user and all their cases? This cannot be undone.')"><button class="mini danger">Delete</button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,111 @@
+<%- include('partials/head') %>
+
+<h1 class="page serif"><%= c.title %></h1>
+<p class="sub">£<%= fmt(c.amount) %> in dispute · you are the party who <strong><%= role === 'claim' ? 'is owed money' : 'owes money' %></strong>.</p>
+
+<% if (c.status === 'awaiting_other') { %>
+  <div class="banner">Waiting for the other party to join. Send them this private link:
+    <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
+    <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.7rem">Copy link</button>
+  </div>
+<% } %>
+
+<div class="card">
+  <div class="scale-wrap">
+    <div class="scale-fig" id="figDisplay">£<span id="figNum"><%= status.myValue == null ? fmt(Math.round(c.amount/2)) : fmt(status.myValue) %></span></div>
+    <div class="scale-role"><%= role === 'claim' ? 'The least you will accept' : 'The most you will pay' %></div>
+
+    <div class="track" id="track">
+      <div class="mark <%= role %>" id="myMark"></div>
+    </div>
+    <div class="ticks"><span>£0</span><span>£<%= fmt(Math.round(c.amount/2)) %></span><span>£<%= fmt(c.amount) %></span></div>
+
+    <input type="range" id="slider" min="0" max="<%= c.amount %>" step="<%= Math.max(1, Math.round(c.amount/160)) %>"
+           value="<%= status.myValue == null ? Math.round(c.amount/2) : status.myValue %>"
+           <%= c.status === 'settled' ? 'disabled' : '' %> />
+  </div>
+
+  <div class="status <%= status.colour === 'close' ? 'close' : (status.colour === 'deal' ? 'deal' : '') %>" id="statusBox">
+    <div class="g" id="statusGlyph"><%= status.colour === 'deal' ? '✓' : (status.colour === 'close' ? '→' : 'i') %></div>
+    <div><b id="statusTitle"><%= status.title %></b><span id="statusSub"><%= status.sub %></span></div>
+  </div>
+
+  <% if (c.status !== 'settled') { %>
+    <button class="btn btn-primary" type="button" id="saveBtn">Save my figure</button>
+    <span class="muted" id="saveHint" style="margin-left:.7rem"></span>
+  <% } %>
+
+  <p class="note">🔒&nbsp; Your figure is stored privately. The other side is never shown your number or the gap between you — only the same colour you see.</p>
+</div>
+
+<p><a href="/dashboard">← Back to my cases</a></p>
+
+<script>
+  var AMOUNT = <%= c.amount %>;
+  var CASE_ID = <%= c.id %>;
+  var slider = document.getElementById('slider');
+  var figNum = document.getElementById('figNum');
+  var myMark = document.getElementById('myMark');
+  var track = document.getElementById('track');
+  var box = document.getElementById('statusBox');
+  var gT = document.getElementById('statusTitle');
+  var gS = document.getElementById('statusSub');
+  var glyph = document.getElementById('statusGlyph');
+  var saveBtn = document.getElementById('saveBtn');
+  var saveHint = document.getElementById('saveHint');
+
+  function gbp(n){ return Number(n).toLocaleString('en-GB'); }
+
+  function placeMark(v){
+    var pct = AMOUNT > 0 ? (v / AMOUNT * 100) : 0;
+    myMark.style.left = pct + '%';
+    figNum.textContent = gbp(v);
+  }
+  if (slider) {
+    placeMark(+slider.value);
+    slider.addEventListener('input', function(){ placeMark(+slider.value); });
+  }
+
+  function applyStatus(s){
+    track.classList.remove('close','deal');
+    box.classList.remove('close','deal');
+    if (s.colour === 'close'){ track.classList.add('close'); box.classList.add('close'); glyph.textContent='→'; }
+    else if (s.colour === 'deal'){ track.classList.add('deal'); box.classList.add('deal'); glyph.textContent='✓'; }
+    else { glyph.textContent='i'; }
+    gT.textContent = s.title;
+    gS.textContent = s.sub;
+    if (s.state === 'settled' && slider){
+      slider.disabled = true;
+      if (saveBtn) saveBtn.style.display='none';
+    }
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function(){
+      saveBtn.disabled = true; saveHint.textContent = 'Saving…';
+      fetch('/cases/' + CASE_ID + '/bid', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'value=' + encodeURIComponent(slider.value)
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(s){ applyStatus(s); saveBtn.disabled=false; saveHint.textContent='Saved.'; setTimeout(function(){saveHint.textContent='';},1500); })
+      .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not save — try again.'; });
+    });
+  }
+
+  // Poll so you see it the moment the OTHER side's move changes your colour.
+  setInterval(function(){
+    fetch('/cases/' + CASE_ID + '/status')
+      .then(function(r){ return r.json(); })
+      .then(function(s){ if (s && s.title) applyStatus(s); })
+      .catch(function(){});
+  }, 4000);
+
+  var copyBtn = document.getElementById('copyBtn');
+  if (copyBtn) copyBtn.addEventListener('click', function(){
+    var t = document.getElementById('inviteBox').textContent.trim();
+    navigator.clipboard.writeText(t).then(function(){ copyBtn.textContent='Copied!'; setTimeout(function(){copyBtn.textContent='Copy link';},1500); });
+  });
+</script>
+<%- include('partials/foot') %>

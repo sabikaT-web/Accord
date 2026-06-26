@@ -1,0 +1,70 @@
+<%- include('partials/head') %>
+<style>main>.wrap{max-width:1160px}.bar-in{max-width:1160px}</style>
+
+<nav class="admin-nav">
+  <a href="/admin" class="on">Dashboard</a>
+  <a href="/admin/users">Users</a>
+  <a href="/admin/cases">Cases</a>
+</nav>
+
+<h1 class="page serif">Dashboard</h1>
+<p class="sub">A live view of MidBid — sign-ups, disputes, and settlements.</p>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="sn"><%= counts.users %></div><div class="sl">Total users</div></div>
+  <div class="stat-card"><div class="sn"><%= counts.cases %></div><div class="sl">Total cases</div></div>
+  <div class="stat-card"><div class="sn"><%= counts.waiting %></div><div class="sl">Cases in progress</div></div>
+  <div class="stat-card"><div class="sn"><%= counts.settled %></div><div class="sl">Settled cases</div></div>
+  <div class="stat-card"><div class="sn"><%= settlementRate %>%</div><div class="sl">Settlement rate</div></div>
+  <div class="stat-card"><div class="sn" style="font-size:1.5rem"><%= avgSettle %></div><div class="sl">Avg. time to settle</div></div>
+  <div class="stat-card muted-card"><div class="sn">£0</div><div class="sl">Revenue · payments not live yet</div></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h2>Sign-ups (last 14 days)</h2>
+    <% var maxU = Math.max(1, ...usersDay.map(function(r){return r.n;}).concat([1])); %>
+    <% if (usersDay.length === 0) { %><p class="muted">No sign-ups yet.</p><% } else { %>
+      <div class="bars">
+        <% usersDay.forEach(function(r){ %>
+          <div class="bar" title="<%= r.d %>: <%= r.n %>">
+            <div class="bar-fill" style="height:<%= Math.round(r.n/maxU*100) %>%"></div>
+            <div class="bar-x"><%= r.d.slice(8) %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+  <div class="card">
+    <h2>Cases created (last 14 days)</h2>
+    <% var maxC = Math.max(1, ...casesDay.map(function(r){return r.n;}).concat([1])); %>
+    <% if (casesDay.length === 0) { %><p class="muted">No cases yet.</p><% } else { %>
+      <div class="bars">
+        <% casesDay.forEach(function(r){ %>
+          <div class="bar" title="<%= r.d %>: <%= r.n %>">
+            <div class="bar-fill gold" style="height:<%= Math.round(r.n/maxC*100) %>%"></div>
+            <div class="bar-x"><%= r.d.slice(8) %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Recent activity</h2>
+  <% if (recent.length === 0) { %><p class="muted">Nothing yet.</p><% } else { %>
+    <ul class="activity">
+      <% recent.forEach(function(e){ %>
+        <li>
+          <span class="ev ev-<%= e.kind %>"><%= e.kind %></span>
+          <a href="/admin/cases/<%= e.case_id %>"><%= e.title || ('Case #' + e.case_id) %></a>
+          <span class="muted"><%= e.detail || '' %></span>
+          <span class="ts"><%= fmtDate(e.created_at) %></span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

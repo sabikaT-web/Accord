@@ -1,0 +1,18 @@
+<%- include('partials/head') %>
+<h1 class="page serif">Create your account</h1>
+<p class="sub">Already have one? <a href="/login">Log in</a>.</p>
+<div class="card">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="POST" action="/signup">
+    <input type="hidden" name="next" value="<%= next %>" />
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" required />
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" required />
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" minlength="6" required />
+    <div class="help">At least 6 characters.</div>
+    <div class="btn-block"><button class="btn btn-primary" type="submit">Create account</button></div>
+  </form>
+</div>
+<%- include('partials/foot') %>

@@ -1,0 +1,14 @@
+<%- include('partials/head') %>
+<h1 class="page serif">You've been invited to settle</h1>
+<p class="sub">Someone wants to resolve a dispute with you on MidBid.</p>
+<div class="card">
+  <h2><%= c.title %></h2>
+  <p class="muted" style="margin:.3rem 0 1rem">£<%= fmt(c.amount) %> in dispute</p>
+  <p>By joining, you'll privately set the figure you can live with —
+    <strong><%= c.claimant_id == null ? 'the least you will accept' : 'the most you will pay' %></strong>.
+    The other side never sees your number.</p>
+  <form method="POST" action="/join/<%= c.invite_token %>">
+    <div class="btn-block"><button class="btn btn-primary" type="submit">Join this case</button></div>
+  </form>
+</div>
+<%- include('partials/foot') %>

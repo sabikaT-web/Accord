@@ -1,0 +1,75 @@
+<%- include('partials/head') %>
+<style>main>.wrap{max-width:1000px}</style>
+
+<nav class="admin-nav">
+  <a href="/admin">Dashboard</a>
+  <a href="/admin/users">Users</a>
+  <a href="/admin/cases" class="on">Cases</a>
+</nav>
+
+<p><a href="/admin/cases" class="muted">← All cases</a></p>
+<div class="admin-head">
+  <h1 class="page serif">MB-<%= c.id %> · <%= c.title %></h1>
+  <span class="badge <%= c.status==='settled'?'green':(c.status==='closed'?'grey':'blue') %>"><%= statusText(c) %></span>
+</div>
+
+<div class="prog big"><div class="prog-fill" style="width:<%= progressFor(c) %>%"></div></div>
+<p class="muted" style="margin-bottom:1.4rem"><%= progressFor(c) %>% complete</p>
+
+<div class="two-col">
+  <div class="card">
+    <h2>Claimant <span class="muted">(owed money)</span></h2>
+    <p><strong><%= c.claimant_acc_email || '—' %></strong><br>
+       <span class="muted"><%= c.claimant_name || (c.claimant_acc_email ? '' : 'not joined — invited: ' + c.other_email) %></span></p>
+    <p class="figure">Least they'll accept: <strong><%= c.claim_value != null ? '£' + fmt(c.claim_value) : '— not entered' %></strong></p>
+  </div>
+  <div class="card">
+    <h2>Respondent <span class="muted">(owes money)</span></h2>
+    <p><strong><%= c.respondent_acc_email || '—' %></strong><br>
+       <span class="muted"><%= c.respondent_name || (c.respondent_acc_email ? '' : 'not joined — invited: ' + c.other_email) %></span></p>
+    <p class="figure">Most they'll pay: <strong><%= c.resp_value != null ? '£' + fmt(c.resp_value) : '— not entered' %></strong></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Case details</h2>
+  <table class="kv">
+    <tr><td>Amount in dispute</td><td>£<%= fmt(c.amount) %></td></tr>
+    <tr><td>Settlement amount</td><td><%= c.settled_value != null ? '£' + fmt(c.settled_value) : '—' %></td></tr>
+    <tr><td>Created</td><td><%= fmtDate(c.created_at) %></td></tr>
+    <tr><td>Settled</td><td><%= fmtDate(c.settled_at) %></td></tr>
+  </table>
+  <p class="note-figs muted">Figures are shown here for your operational oversight only. The two parties never see each other's number inside the product.</p>
+</div>
+
+<div class="card">
+  <h2>Timeline</h2>
+  <% if (events.length === 0) { %><p class="muted">No events yet.</p><% } else { %>
+    <ul class="timeline">
+      <% events.forEach(function(e){ %>
+        <li class="tl-<%= e.kind %>">
+          <div class="tl-dot"></div>
+          <div class="tl-body">
+            <div class="tl-kind"><%= e.kind.replace('_',' ') %></div>
+            <% if (e.detail) { %><div class="muted"><%= e.detail %></div><% } %>
+            <div class="ts"><%= fmtDate(e.created_at) %></div>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>Actions</h2>
+  <div class="actions-row">
+    <a class="btn btn-ghost" href="/admin/cases/<%= c.id %>/settlement.txt">Download settlement</a>
+    <% if (c.status === 'closed') { %>
+      <form method="POST" action="/admin/cases/<%= c.id %>/reopen"><button class="btn btn-primary" type="submit">Reopen case</button></form>
+    <% } else { %>
+      <form method="POST" action="/admin/cases/<%= c.id %>/close" onsubmit="return confirm('Close this case?')"><button class="btn btn-ghost" type="submit">Close case</button></form>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

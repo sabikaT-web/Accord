@@ -1,0 +1,24 @@
+<%- include('partials/head') %>
+<h1 class="page serif">Your cases</h1>
+<p class="sub">Open a new dispute, or continue one you're already part of.</p>
+
+<a class="btn btn-primary" href="/cases/new" style="margin-bottom:1.6rem">+ Start a new case</a>
+
+<% if (cases.length === 0) { %>
+  <div class="card"><p class="muted">No cases yet. Start one to invite the other party.</p></div>
+<% } else { %>
+  <ul class="case-list">
+    <% cases.forEach(function(c){ %>
+      <li class="case-row">
+        <div>
+          <div class="t"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
+          <div class="muted">£<%= fmt(c.amount) %> in dispute</div>
+        </div>
+        <span class="pill <%= c.status === 'settled' ? 'settled' : (c.status === 'active' ? 'active' : '') %>">
+          <%= c.status === 'awaiting_other' ? 'Awaiting other party' : (c.status === 'active' ? 'In progress' : 'Settled') %>
+        </span>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+<%- include('partials/foot') %>
