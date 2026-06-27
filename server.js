@@ -9,6 +9,34 @@ const bcrypt = require('bcryptjs');
 const { pool, db, init } = require('./db');
 const mailer = require('./mailer');
 
+// --- Self-heal folder layout -------------------------------------------------
+// The app expects templates in views/ (+ views/partials/) and the stylesheet in
+// public/. If those folders are missing (e.g. files were uploaded flat to GitHub),
+// rebuild the structure from the flat files at startup. Safe to keep; once the
+// real folders exist in the repo this simply copies identical files over them.
+const fs = require('node:fs');
+(function ensureLayout() {
+  const viewsDir = path.join(__dirname, 'views');
+  const partialsDir = path.join(viewsDir, 'partials');
+  const publicDir = path.join(__dirname, 'public');
+  fs.mkdirSync(partialsDir, { recursive: true });
+  fs.mkdirSync(publicDir, { recursive: true });
+  const pages = ['admin-case','admin-cases','admin-users','admin','case',
+    'dashboard','home','join','login','message','new-case','signup'];
+  for (const p of pages) {
+    const src = path.join(__dirname, p + '.ejs');
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
+  }
+  for (const part of ['head','foot']) {
+    const src = path.join(__dirname, part + '.ejs');
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(partialsDir, part + '.ejs'));
+  }
+  const css = path.join(__dirname, 'styles.css');
+  if (fs.existsSync(css)) fs.copyFileSync(css, path.join(publicDir, 'styles.css'));
+  console.log('[layout] views/ and public/ are ready');
+})();
+// -----------------------------------------------------------------------------
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CLOSE_THRESHOLD = 0.10;                                   // "within 10% of the amount in dispute"
