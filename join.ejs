@@ -1,21 +1,42 @@
 <%- include('partials/head') %>
-<h1 class="page serif">You've been invited to settle</h1>
-<p class="sub">Someone wants to resolve a dispute with you on MidBid. Review the details, then accept to join — or decline.</p>
+<% var joinerOwes = (c.claimant_id != null); var mid = Math.round(c.amount/2); %>
+<h1 class="page serif">You're invited to settle — your way</h1>
+<p class="sub">No haggling, no lawyers. You choose your own private number to begin.</p>
 <div class="card">
   <h2><%= c.title %></h2>
-  <p class="muted" style="margin:.3rem 0 1rem">Case MB-<%= c.id %> · £<%= fmt(c.amount) %> in dispute</p>
-  <p>If you accept, you'll privately set the figure you can live with —
-    <strong><%= c.claimant_id == null ? 'the least you will accept' : 'the most you will pay' %></strong>.
-    The other side never sees your number; you only get a signal when you're close, and it settles
-    in the middle if your figures cross.</p>
-  <div class="btn-block">
-    <form method="POST" action="/join/<%= c.invite_token %>" style="display:inline">
-      <button class="btn btn-primary" type="submit">Accept &amp; join this case</button>
-    </form>
-    <form method="POST" action="/decline/<%= c.invite_token %>" style="display:inline;margin-left:.5rem"
-          onsubmit="return confirm('Decline this case? The other party will be told you declined.');">
-      <button class="btn" type="submit">Decline</button>
-    </form>
-  </div>
+  <p class="muted" style="margin:.3rem 0 1rem">Case MB-<%= c.id %> · £<%= fmt(c.amount) %> in question</p>
+
+  <p style="margin-bottom:.4rem"><strong>You're in control of your number.</strong>
+    Slide to <%= joinerOwes ? "the most you'd be willing to pay" : "the least you'd be willing to accept" %>.
+    It stays private — the other side never sees it, and you only get a nudge when you're close.</p>
+
+  <form method="POST" action="/join/<%= c.invite_token %>/accept">
+    <div style="background:#F6F8FF;border-radius:12px;padding:16px;margin:1rem 0">
+      <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#667">
+        <span>£0</span><span>It's your call</span><span>£<%= fmt(c.amount) %></span>
+      </div>
+      <input id="figure" name="value" type="range" min="0" max="<%= c.amount %>" value="<%= mid %>"
+             step="1" style="width:100%;margin:.5rem 0;accent-color:#2F6BFF" />
+      <div style="text-align:center;font-weight:600;color:#16306B">
+        <%= joinerOwes ? "You'd pay up to" : "You'd accept from" %> <span id="figureVal">£<%= fmt(mid) %></span>
+      </div>
+    </div>
+    <div class="btn-block">
+      <button class="btn btn-primary" type="submit" id="goBtn">Continue with £<%= fmt(mid) %></button>
+    </div>
+  </form>
+  <p class="muted" style="font-size:.85rem;margin-top:.6rem">Choosing your figure creates your account and joins the case. You can change the number any time afterwards.</p>
 </div>
+<script>
+  (function () {
+    var s = document.getElementById('figure'),
+        out = document.getElementById('figureVal'),
+        btn = document.getElementById('goBtn');
+    function money(v) { return '£' + Number(v).toLocaleString('en-GB'); }
+    if (s) s.addEventListener('input', function () {
+      out.textContent = money(s.value);
+      btn.textContent = 'Continue with ' + money(s.value);
+    });
+  })();
+</script>
 <%- include('partials/foot') %>

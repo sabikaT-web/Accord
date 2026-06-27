@@ -80,30 +80,69 @@ async function notifyNewCase(c, claimantEmail, respondentEmail) {
     btn(APP_URL + '/admin/cases/' + c.id, 'Open case'));
 }
 
-// 4) OTHER PARTY: you've been invited to a case — full details + a button to respond
+// 4) OTHER PARTY: branded, graphics-led, two-tone (blue + gold) invitation.
 //    opts: { creatorEmail, recipientPosition ('owe'|'owed'), inviteUrl }
+function brandHeader() {
+  return (
+    '<div style="text-align:center;padding:4px 0 2px">' +
+      '<span style="display:inline-block;width:20px;height:20px;border-radius:50%;' +
+        'border:2.5px solid #2F6BFF;vertical-align:middle"></span>' +
+      '<span style="display:inline-block;width:20px;height:20px;border-radius:50%;' +
+        'border:2.5px solid #F5B312;vertical-align:middle;margin-left:-8px"></span>' +
+      '<span style="font-family:Georgia,\'Times New Roman\',serif;font-size:22px;' +
+        'color:#1E2A45;vertical-align:middle;margin-left:8px;letter-spacing:-.01em">MidBid</span>' +
+      '<div style="width:24px;height:2px;background:#2F6BFF;border-radius:2px;margin:12px auto 0"></div>' +
+    '</div>'
+  );
+}
+function scaleGraphic(amount, recipientPosition, href) {
+  const cap = recipientPosition === 'owe' ? 'the most you\'ll pay' : 'the least you\'ll accept';
+  return (
+    '<a href="' + href + '" style="text-decoration:none;color:inherit;display:block">' +
+    '<div style="background:#FBF8F0;border:1px solid #EFE3C8;border-radius:14px;padding:20px 18px;margin:6px 0 4px">' +
+      '<div style="text-align:center;font-family:Arial,sans-serif;font-size:13px;color:#586079;margin-bottom:12px">' +
+        'You choose your figure — <strong style="color:#16306B">' + cap + '</strong></div>' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>' +
+        '<td style="height:12px;background:#2F6BFF;border-radius:7px 0 0 7px" width="52%"></td>' +
+        '<td width="26" align="center" style="vertical-align:middle">' +
+          '<div style="width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid #16306B;margin:0 auto"></div>' +
+        '</td>' +
+        '<td style="height:12px;background:#DCE7FF;border-radius:0 7px 7px 0"></td>' +
+      '</tr></table>' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:8px">' +
+        '<tr style="font-family:Arial,sans-serif;font-size:12px;color:#586079">' +
+          '<td align="left">£0</td>' +
+          '<td align="center" style="color:#16306B;font-weight:bold">drag to set yours →</td>' +
+          '<td align="right">' + gbp(amount) + '</td>' +
+        '</tr></table>' +
+    '</div></a>'
+  );
+}
 async function notifyCaseInvite(c, opts) {
   const o = opts || {};
-  const youAre = o.recipientPosition === 'owe'
-    ? 'You are named as the party who <strong>owes</strong> money.'
-    : 'You are named as the party who is <strong>owed</strong> money.';
-  await send(c.other_email, 'You\'ve been invited to settle a dispute on MidBid: ' + c.title,
-    '<h2 style="font-family:sans-serif">You\'ve been invited to settle a dispute</h2>' +
-    '<p style="font-family:sans-serif">' + esc(o.creatorEmail || 'Someone') +
-    ' has opened a private case with you on MidBid and wants to resolve it.</p>' +
-    '<p style="font-family:sans-serif">' +
-    '<strong>Case ID:</strong> MB-' + c.id + '<br>' +
-    '<strong>What it\'s about:</strong> ' + esc(c.title) + '<br>' +
-    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '<br>' +
-    '<strong>Your position:</strong> ' + youAre + '</p>' +
-    '<p style="font-family:sans-serif">MidBid is a private, blind-bid settlement room: each side ' +
-    'enters the figure they can live with, and neither side ever sees the other\'s number — you only ' +
-    'get a signal when you\'re close, and it settles in the middle if your figures cross.</p>' +
-    '<p style="font-family:sans-serif">On the next screen you can <strong>accept and join</strong> the ' +
-    'case, or <strong>decline</strong> it.</p>' +
-    btn(o.inviteUrl, 'Review the case &amp; respond') +
-    '<p style="font-family:sans-serif;color:#667">If the button doesn\'t work, paste this link into your browser:<br>' +
-    esc(o.inviteUrl) + '</p>');
+  const href = o.inviteUrl;
+  await send(c.other_email,
+    'You\'re invited to settle "' + c.title + '" on MidBid',
+    '<div style="background:#F3EFE4;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">' +
+    '<table role="presentation" align="center" width="100%" style="max-width:520px;margin:0 auto;' +
+      'background:#fff;border:1px solid #E8DFC9;border-radius:16px;border-collapse:separate"><tr><td style="padding:26px 26px 24px">' +
+      brandHeader() +
+      '<h1 style="font-family:Georgia,serif;font-weight:500;color:#1E2A45;font-size:24px;' +
+        'text-align:center;margin:18px 0 6px;letter-spacing:-.01em">You\'re invited to settle</h1>' +
+      '<p style="text-align:center;font-family:Arial,sans-serif;color:#586079;font-size:15px;margin:0 0 18px">' +
+        esc(o.creatorEmail || 'Someone') + ' &nbsp;·&nbsp; ' + esc(c.title) + ' &nbsp;·&nbsp; <strong style="color:#1E2A45">' + gbp(c.amount) + '</strong></p>' +
+      scaleGraphic(c.amount, o.recipientPosition, href) +
+      '<div style="text-align:center;margin:22px 0 6px">' +
+        '<a href="' + href + '" style="display:inline-block;background:#F5B312;color:#16306B;' +
+          'text-decoration:none;padding:14px 30px;border-radius:10px;font-family:Arial,sans-serif;' +
+          'font-size:16px;font-weight:bold">Set your figure &amp; sign up →</a>' +
+      '</div>' +
+      '<p style="text-align:center;font-family:Arial,sans-serif;color:#9099Ad;font-size:12px;margin:16px 0 0">' +
+        'Private &amp; blind — the other side never sees your number.</p>' +
+    '</td></tr></table>' +
+    '<p style="text-align:center;font-family:Arial,sans-serif;color:#A39B86;font-size:11px;margin:14px auto 0;max-width:520px">' +
+      'If the button doesn\'t work, open: <a href="' + href + '" style="color:#2F6BFF">' + esc(href) + '</a></p>' +
+    '</div>');
 }
 
 // 4b) Admin: a case settled

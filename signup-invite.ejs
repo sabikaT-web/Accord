@@ -1,0 +1,33 @@
+<%- include('partials/head') %>
+<% var joinerOwes = (c.claimant_id != null); %>
+<h1 class="page serif">You're in — just set a password</h1>
+<p class="sub">One quick step to save your figure and join the case. Your number stays completely private.</p>
+<div class="card">
+  <h2><%= c.title %></h2>
+  <p class="muted" style="margin:.3rem 0 1rem">Case MB-<%= c.id %> · £<%= fmt(c.amount) %> in question</p>
+
+  <div style="background:#F6F8FF;border-radius:12px;padding:14px 16px;margin:0 0 1rem">
+    Your figure: <strong>£<%= fmt(value && value > 0 ? Math.min(value, c.amount) : 0) %></strong>
+    <span class="muted">— <%= joinerOwes ? "the most you'll pay" : "the least you'll accept" %>. You can change it any time once you're in.</span>
+  </div>
+
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="POST" action="/invite/<%= c.invite_token %>/signup">
+    <input type="hidden" name="value" value="<%= value %>" />
+
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" placeholder="Your name" required />
+
+    <label for="email">Your email</label>
+    <input id="email" name="email" type="email" value="<%= c.other_email %>" required />
+
+    <label for="password">Choose a password</label>
+    <input id="password" name="password" type="password" placeholder="At least 6 characters" required />
+
+    <div class="btn-block"><button class="btn btn-primary" type="submit">Create account &amp; join</button></div>
+  </form>
+  <p class="muted" style="font-size:.85rem;margin-top:.6rem">
+    Already have an account? <a href="/login?next=<%= encodeURIComponent('/join/' + c.invite_token) %>">Log in</a>, then open this invite to join.
+  </p>
+</div>
+<%- include('partials/foot') %>

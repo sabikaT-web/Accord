@@ -22,7 +22,7 @@ const fs = require('node:fs');
   fs.mkdirSync(partialsDir, { recursive: true });
   fs.mkdirSync(publicDir, { recursive: true });
   const pages = ['admin-case','admin-cases','admin-users','admin','case',
-    'dashboard','home','join','login','message','new-case','signup'];
+    'dashboard','home','join','login','message','new-case','signup','signup-invite'];
   for (const p of pages) {
     const src = path.join(__dirname, p + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
@@ -202,8 +202,8 @@ app.post('/cases/new', requireLogin, wrap(async (req, res) => {
 app.get('/join/:token', wrap(async (req, res) => {
   const c = await db.caseByToken(req.params.token);
   if (!c) return res.status(404).render('message', { title: 'Invitation not found', body: 'This invitation link is not valid.' });
-  if (!req.session.userId) return res.redirect('/login?next=' + encodeURIComponent('/join/' + req.params.token));
-  if (roleOf(c, req.session.userId)) return res.redirect('/cases/' + c.id);
+  if (req.session.userId && roleOf(c, req.session.userId)) return res.redirect('/cases/' + c.id);
+  if (c.status === 'settled' || c.status === 'closed') return res.render('message', { title: 'This case is closed', body: 'This invitation is no longer open.' });
   res.render('join', { c });
 }));
 app.post('/join/:token', requireLogin, wrap(async (req, res) => {
@@ -219,6 +219,73 @@ app.post('/join/:token', requireLogin, wrap(async (req, res) => {
   const full = await db.caseDetail(c.id);
   const creatorEmail = c.claimant_id != null ? full.claimant_acc_email : full.respondent_acc_email;
   mailer.notifyCaseAccepted({ id: c.id, title: c.title, amount: c.amount }, creatorEmail).catch(() => {});
+  res.redirect('/cases/' + c.id);
+}));
+
+// Settle if both figures are in and they have crossed (shared by bid + join-with-figure).
+async function maybeSettle(id) {
+  const u = await db.caseById(id);
+  if (u.claim_value != null && u.resp_value != null && u.resp_value >= u.claim_value) {
+    const settled = Math.round((u.claim_value + u.resp_value) / 2 / 100) * 100;
+    await db.settle('settled', settled, u.id);
+    await db.addEvent(u.id, 'settled', 'Settled at £' + fmt(settled));
+    const full = await db.caseDetail(u.id);
+    mailer.notifySettled({ id: full.id, title: full.title, settled_value: settled, other_email: full.other_email }, full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
+  }
+}
+
+// Put a user into the open slot AND record their opening figure in one step.
+async function joinWithFigure(c, userId, userEmail, rawValue) {
+  let role;
+  if (c.claimant_id == null) { await db.setClaimant(userId, 'active', c.id); role = 'claim'; await db.addEvent(c.id, 'joined', 'Claimant joined (' + userEmail + ')'); }
+  else if (c.respondent_id == null) { await db.setRespondent(userId, 'active', c.id); role = 'resp'; await db.addEvent(c.id, 'joined', 'Respondent joined (' + userEmail + ')'); }
+  else return { full: true };
+  let v = parseInt(rawValue, 10);
+  if (!(v >= 0)) v = 0;
+  if (v > c.amount) v = c.amount;
+  if (role === 'claim') await db.setClaimValue(v, c.id); else await db.setRespValue(v, c.id);
+  await db.addEvent(c.id, 'bid', (role === 'claim' ? 'Claimant' : 'Respondent') + ' set an opening figure');
+  const full = await db.caseDetail(c.id);
+  const creatorEmail = c.claimant_id != null ? full.claimant_acc_email : full.respondent_acc_email;
+  mailer.notifyCaseAccepted({ id: c.id, title: c.title, amount: c.amount }, creatorEmail).catch(() => {});
+  await maybeSettle(c.id);
+  return { role };
+}
+
+// The slider's "Continue with £X" button posts here. Choosing a figure = accepting.
+app.post('/join/:token/accept', wrap(async (req, res) => {
+  const c = await db.caseByToken(req.params.token);
+  if (!c) return res.status(404).render('message', { title: 'Invitation not found', body: 'This invitation link is not valid.' });
+  if (c.status === 'settled' || c.status === 'closed') return res.render('message', { title: 'This case is closed', body: 'This invitation is no longer open.' });
+  const value = req.body.value;
+  if (req.session.userId) {
+    if (roleOf(c, req.session.userId)) return res.redirect('/cases/' + c.id);
+    const meEmail = res.locals.me ? res.locals.me.email : '';
+    const r = await joinWithFigure(c, req.session.userId, meEmail, value);
+    if (r.full) return res.status(403).render('message', { title: 'Case is full', body: 'Both sides of this case are already taken.' });
+    return res.redirect('/cases/' + c.id);
+  }
+  // Not logged in: carry their figure into a quick "set a password" finish-signup step.
+  res.render('signup-invite', { c, value: value, error: null });
+}));
+
+// Finish signup from an invite, then join + record the figure in one go.
+app.post('/invite/:token/signup', wrap(async (req, res) => {
+  const c = await db.caseByToken(req.params.token);
+  if (!c) return res.status(404).render('message', { title: 'Invitation not found', body: 'This invitation link is not valid.' });
+  if (c.status === 'settled' || c.status === 'closed') return res.render('message', { title: 'This case is closed', body: 'This invitation is no longer open.' });
+  const name = (req.body.name || '').trim();
+  const email = (req.body.email || '').trim().toLowerCase();
+  const pw = req.body.password || '';
+  const value = req.body.value;
+  if (!name || !email || pw.length < 6) return res.render('signup-invite', { c, value, error: 'Enter your name and a password of at least 6 characters.' });
+  if (await db.userByEmail(email)) return res.render('signup-invite', { c, value, error: 'An account with that email already exists. Please log in first, then open this invite again to join.' });
+  const hash = bcrypt.hashSync(pw, 10);
+  const id = await db.createUser(email, name, hash);
+  mailer.notifyNewSignup({ name, email }).catch(() => {});
+  req.session.userId = id;
+  const r = await joinWithFigure(c, id, email, value);
+  if (r.full) return res.status(403).render('message', { title: 'Case is full', body: 'Both sides of this case are already taken.' });
   res.redirect('/cases/' + c.id);
 }));
 
