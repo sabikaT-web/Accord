@@ -3,13 +3,17 @@
 // Email via Resend (https://resend.com). OPTIONAL: with no RESEND_API_KEY the app
 // still works — it logs instead of emailing, so nothing ever breaks on a failed email.
 //
-// NOTE on Resend test mode: until you verify a domain, Resend can only deliver to the
-// email address you signed up with. So ADMIN emails (to NOTIFY_EMAIL) work right away,
-// but the user-facing WELCOME email only delivers once you verify a domain.
+// DELIVERY NOTE (important): in Resend "test mode" (no verified domain), Resend will
+// ONLY deliver to the email address that owns the Resend account. So:
+//   - Admin alerts to NOTIFY_EMAIL deliver right away IF your Resend account is that
+//     same address (midbid.settle@gmail.com).
+//   - The invite email to the OTHER party (any address) only delivers once you verify
+//     a sending domain in Resend and set MAIL_FROM to an address on that domain.
+// Until then, the invite link is still shown on the case screen to copy/paste.
 
-const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'saabika.tyagi@gmail.com';
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'midbid.settle@gmail.com';
 const MAIL_FROM = process.env.MAIL_FROM || 'MidBid <onboarding@resend.dev>';
-const APP_URL = process.env.APP_URL || 'https://midbid.onrender.com';
+const APP_URL = process.env.APP_URL || 'https://midbid-wdpc.onrender.com';
 
 let resendClient = null;
 if (process.env.RESEND_API_KEY) {
@@ -76,7 +80,33 @@ async function notifyNewCase(c, claimantEmail, respondentEmail) {
     btn(APP_URL + '/admin/cases/' + c.id, 'Open case'));
 }
 
-// 4) Admin: a case settled
+// 4) OTHER PARTY: you've been invited to a case — full details + a button to respond
+//    opts: { creatorEmail, recipientPosition ('owe'|'owed'), inviteUrl }
+async function notifyCaseInvite(c, opts) {
+  const o = opts || {};
+  const youAre = o.recipientPosition === 'owe'
+    ? 'You are named as the party who <strong>owes</strong> money.'
+    : 'You are named as the party who is <strong>owed</strong> money.';
+  await send(c.other_email, 'You\'ve been invited to settle a dispute on MidBid: ' + c.title,
+    '<h2 style="font-family:sans-serif">You\'ve been invited to settle a dispute</h2>' +
+    '<p style="font-family:sans-serif">' + esc(o.creatorEmail || 'Someone') +
+    ' has opened a private case with you on MidBid and wants to resolve it.</p>' +
+    '<p style="font-family:sans-serif">' +
+    '<strong>Case ID:</strong> MB-' + c.id + '<br>' +
+    '<strong>What it\'s about:</strong> ' + esc(c.title) + '<br>' +
+    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '<br>' +
+    '<strong>Your position:</strong> ' + youAre + '</p>' +
+    '<p style="font-family:sans-serif">MidBid is a private, blind-bid settlement room: each side ' +
+    'enters the figure they can live with, and neither side ever sees the other\'s number — you only ' +
+    'get a signal when you\'re close, and it settles in the middle if your figures cross.</p>' +
+    '<p style="font-family:sans-serif">On the next screen you can <strong>accept and join</strong> the ' +
+    'case, or <strong>decline</strong> it.</p>' +
+    btn(o.inviteUrl, 'Review the case &amp; respond') +
+    '<p style="font-family:sans-serif;color:#667">If the button doesn\'t work, paste this link into your browser:<br>' +
+    esc(o.inviteUrl) + '</p>');
+}
+
+// 4b) Admin: a case settled
 async function notifySettled(c, claimantEmail, respondentEmail) {
   await send(NOTIFY_EMAIL, 'MidBid case settled: ' + c.title,
     '<h2 style="font-family:sans-serif">Case settled 🎉</h2>' +
@@ -88,4 +118,31 @@ async function notifySettled(c, claimantEmail, respondentEmail) {
     btn(APP_URL + '/admin/cases/' + c.id, 'View case'));
 }
 
-module.exports = { notifyNewSignup, sendWelcome, notifyNewCase, notifySettled };
+// 5) CREATOR: the other party accepted and joined
+async function notifyCaseAccepted(c, toEmail) {
+  if (!toEmail) return;
+  await send(toEmail, 'Your MidBid case was accepted: ' + c.title,
+    '<h2 style="font-family:sans-serif">The other party joined your case 🎉</h2>' +
+    '<p style="font-family:sans-serif"><strong>Case:</strong> ' + esc(c.title) + ' (MB-' + c.id + ')<br>' +
+    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '</p>' +
+    '<p style="font-family:sans-serif">Both sides are now in. Open the case and set your private figure.</p>' +
+    btn(APP_URL + '/cases/' + c.id, 'Open the case'));
+}
+
+// 6) CREATOR + admin: the other party declined
+async function notifyCaseDeclined(c, toEmail) {
+  const subject = 'A MidBid case was declined: ' + c.title;
+  const html =
+    '<h2 style="font-family:sans-serif">The other party declined</h2>' +
+    '<p style="font-family:sans-serif"><strong>Case:</strong> ' + esc(c.title) + ' (MB-' + c.id + ')<br>' +
+    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '<br>' +
+    '<strong>Declined by:</strong> ' + esc(c.other_email || '—') + '</p>' +
+    '<p style="font-family:sans-serif">No figures were exchanged. You can open a fresh case if you\'d like to try again.</p>';
+  if (toEmail) await send(toEmail, subject, html);
+  await send(NOTIFY_EMAIL, subject, html);
+}
+
+module.exports = {
+  notifyNewSignup, sendWelcome, notifyNewCase, notifySettled,
+  notifyCaseInvite, notifyCaseAccepted, notifyCaseDeclined
+};

@@ -16,11 +16,11 @@ services:
           name: midbid-db
           property: connectionString
       - key: ADMIN_EMAIL
-        value: saabika.tyagi@gmail.com    # this account sees the Admin portal
+        value: midbid.settle@gmail.com    # this account sees the Admin portal
       - key: NOTIFY_EMAIL
-        value: saabika.tyagi@gmail.com    # where alert emails are sent
+        value: midbid.settle@gmail.com    # where alert emails are sent
       - key: APP_URL
-        value: https://midbid.onrender.com
+        value: https://midbid-wdpc.onrender.com
       - key: RESEND_API_KEY
         sync: false                        # you paste this in the Render dashboard
 

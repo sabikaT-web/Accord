@@ -40,7 +40,7 @@ const fs = require('node:fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CLOSE_THRESHOLD = 0.10;                                   // "within 10% of the amount in dispute"
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'saabika.tyagi@gmail.com').toLowerCase();
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com').toLowerCase();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -61,7 +61,7 @@ const fmtDate = (ts) => ts ? new Date(ts).toLocaleString('en-GB') : '—';
 const fmtDay = (ts) => ts ? new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 function progressFor(c) {
-  if (c.status === 'settled' || c.status === 'closed') return 100;
+  if (c.status === 'settled' || c.status === 'closed' || c.status === 'declined') return 100;
   if (c.status === 'awaiting_other') return 10;
   const cb = c.claim_value != null, rb = c.resp_value != null;
   if (!cb && !rb) return 30;
@@ -72,6 +72,7 @@ function progressFor(c) {
 function statusText(c) {
   if (c.status === 'settled') return 'Settled at £' + fmt(c.settled_value);
   if (c.status === 'closed') return 'Closed';
+  if (c.status === 'declined') return 'Declined by the other party';
   if (c.status === 'awaiting_other') return 'Waiting for the other party';
   const cb = c.claim_value != null, rb = c.resp_value != null;
   if (!cb && !rb) return 'Both sides to enter a figure';
@@ -188,7 +189,13 @@ app.post('/cases/new', requireLogin, wrap(async (req, res) => {
   const respondentEmail = role === 'owe' ? meEmail : otherEmail;
   await db.addEvent(id, 'created', 'Case created by ' + meEmail + ' (' + (role === 'owed' ? 'claimant' : 'respondent') + ')');
   await db.addEvent(id, 'invited', 'Invited ' + otherEmail);
+  const inviteUrl = req.protocol + '://' + req.get('host') + '/join/' + token;
+  // Admin alert + invite the other party with the case details and accept/decline options
   mailer.notifyNewCase({ id, title, amount, other_email: otherEmail }, claimantEmail, respondentEmail).catch(() => {});
+  mailer.notifyCaseInvite(
+    { id, title, amount, other_email: otherEmail },
+    { creatorEmail: meEmail, recipientPosition: role === 'owed' ? 'owe' : 'owed', inviteUrl }
+  ).catch(() => {});
   res.redirect('/cases/' + id);
 }));
 
@@ -208,7 +215,25 @@ app.post('/join/:token', requireLogin, wrap(async (req, res) => {
   if (c.claimant_id == null) { await db.setClaimant(me, 'active', c.id); await db.addEvent(c.id, 'joined', 'Claimant joined (' + meEmail + ')'); }
   else if (c.respondent_id == null) { await db.setRespondent(me, 'active', c.id); await db.addEvent(c.id, 'joined', 'Respondent joined (' + meEmail + ')'); }
   else return res.status(403).render('message', { title: 'Case is full', body: 'Both sides of this case are already taken.' });
+  // Tell the person who created the case that the other party accepted
+  const full = await db.caseDetail(c.id);
+  const creatorEmail = c.claimant_id != null ? full.claimant_acc_email : full.respondent_acc_email;
+  mailer.notifyCaseAccepted({ id: c.id, title: c.title, amount: c.amount }, creatorEmail).catch(() => {});
   res.redirect('/cases/' + c.id);
+}));
+
+// Decline an invitation. Uses POST (a confirmation button on the join page), so email
+// link-prefetchers can never decline a case by accident.
+app.post('/decline/:token', wrap(async (req, res) => {
+  const c = await db.caseByToken(req.params.token);
+  if (!c) return res.status(404).render('message', { title: 'Invitation not found', body: 'This invitation link is not valid.' });
+  if (c.status === 'settled' || c.status === 'closed') return res.render('message', { title: 'Already closed', body: 'This case is no longer open.' });
+  await db.setStatus('declined', c.id);
+  await db.addEvent(c.id, 'declined', 'Invitation declined by ' + (c.other_email || 'the other party'));
+  const full = await db.caseDetail(c.id);
+  const creatorEmail = c.claimant_id != null ? full.claimant_acc_email : full.respondent_acc_email;
+  mailer.notifyCaseDeclined({ id: c.id, title: c.title, amount: c.amount, other_email: c.other_email }, creatorEmail).catch(() => {});
+  res.render('message', { title: 'Invitation declined', body: 'Thanks — we\'ve let the other party know that you\'ve declined this case. Nothing further will happen.' });
 }));
 
 app.get('/cases/:id', requireLogin, wrap(async (req, res) => {

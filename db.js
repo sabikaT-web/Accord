@@ -151,7 +151,7 @@ const db = {
       SELECT
         (SELECT count(*) FROM users) AS users,
         (SELECT count(*) FROM cases) AS cases,
-        (SELECT count(*) FROM cases WHERE status <> 'settled' AND status <> 'closed') AS waiting,
+        (SELECT count(*) FROM cases WHERE status NOT IN ('settled','closed','declined')) AS waiting,
         (SELECT count(*) FROM cases WHERE status='settled') AS settled`);
     return r.rows[0];
   },
