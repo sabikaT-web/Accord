@@ -69,6 +69,7 @@
   .hero h1 .mid{position:relative;white-space:nowrap;color:var(--teal-deep)}
   .hero h1 .mid::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.10em;background:var(--ochre-soft);border-radius:2px;z-index:-1;opacity:.55}
   .hero p.lead{max-width:620px;margin:0 auto 2rem}
+  .hero-tagline{font-family:"Fraunces",serif;font-style:italic;font-size:clamp(1.05rem,2.1vw,1.35rem);color:var(--teal-deep);margin:.2rem auto 1.4rem;letter-spacing:-.01em}
   .hero-actions{display:flex;gap:.85rem;justify-content:center;flex-wrap:wrap}
   .hero-note{margin-top:1.6rem;font-size:.9rem;color:var(--ink-soft);display:flex;gap:.5em;align-items:center;justify-content:center}
   .hero-note .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(47,107,255,.15)}
@@ -247,7 +248,7 @@
 <header class="nav" id="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="#top" aria-label="MidBid home">
-      <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="11" cy="16" r="8.5" stroke="#2F6BFF" stroke-width="2.4"/><circle cx="21" cy="16" r="8.5" stroke="#F5B312" stroke-width="2.4"/></svg>
+      <svg class="mark" viewBox="14 14 72 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><filter id="gHn" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.2"/></filter><clipPath id="mkHn"><circle cx="44" cy="50" r="18"/></clipPath></defs><circle cx="50" cy="50" r="4" fill="#15B877" filter="url(#gHn)" opacity="0"><animate attributeName="r" values="2;20;2;20;2" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.8;0;0.8;0" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/></circle><g><circle cx="44" cy="50" r="18" fill="#2F6BFF"/><circle cx="56" cy="50" r="18" fill="#F5B312"/><g clip-path="url(#mkHn)"><circle cx="56" cy="50" r="18" fill="#15B877"/></g></g><g><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3.4s" repeatCount="indefinite"/><circle cx="50" cy="24" r="4" fill="#2F6BFF" filter="url(#gHn)"/></g><g><animateTransform attributeName="transform" type="rotate" from="180 50 50" to="540 50 50" dur="3.4s" repeatCount="indefinite"/><circle cx="50" cy="24" r="4" fill="#F5B312" filter="url(#gHn)"/></g></svg>
       MidBid
     </a>
     <nav class="nav-links" aria-label="Primary">
@@ -275,6 +276,7 @@
     <div class="hero-content">
       <span class="eyebrow">Online mediation for stuck money</span>
       <h1 class="display">Get back what you're owed —<br><span class="mid">without showing your hand</span>.</h1>
+      <p class="hero-tagline">Negotiate on your terms.</p>
       <p class="lead">When money's stuck between two parties, each side privately names a figure they can live with. MidBid never reveals it. We only light up the scale when you're within reach of a deal.</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="/signup">Create account <span class="arrow">→</span></a>
@@ -451,7 +453,7 @@
   <div class="wrap">
     <div class="foot-grid">
       <div class="foot-brand">
-        <a class="brand" href="#top"><svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="11" cy="16" r="8.5" stroke="#2F6BFF" stroke-width="2.4"/><circle cx="21" cy="16" r="8.5" stroke="#F5B312" stroke-width="2.4"/></svg> MidBid</a>
+        <a class="brand" href="#top"><svg class="mark" viewBox="14 14 72 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><filter id="gHf" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.2"/></filter><clipPath id="mkHf"><circle cx="44" cy="50" r="18"/></clipPath></defs><circle cx="50" cy="50" r="4" fill="#15B877" filter="url(#gHf)" opacity="0"><animate attributeName="r" values="2;20;2;20;2" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.8;0;0.8;0" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/></circle><g><circle cx="44" cy="50" r="18" fill="#2F6BFF"/><circle cx="56" cy="50" r="18" fill="#F5B312"/><g clip-path="url(#mkHf)"><circle cx="56" cy="50" r="18" fill="#15B877"/></g></g><g><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3.4s" repeatCount="indefinite"/><circle cx="50" cy="24" r="4" fill="#2F6BFF" filter="url(#gHf)"/></g><g><animateTransform attributeName="transform" type="rotate" from="180 50 50" to="540 50 50" dur="3.4s" repeatCount="indefinite"/><circle cx="50" cy="24" r="4" fill="#F5B312" filter="url(#gHf)"/></g></svg> MidBid</a>
         <p>Online mediation for stuck money. Two sides, two private figures, one fair settlement — without showing your hand.</p>
       </div>
       <div class="foot-col"><h4>Settle</h4><a href="#start">Start a settlement</a><a href="#scale">The settlement scale</a><a href="#how">How it works</a><a href="#">Pricing</a></div>
@@ -460,7 +462,7 @@
     </div>
     <div class="foot-bottom">
       <span>© 2026 MidBid.</span>
-      <span>Settle what you're owed — blind.</span>
+      <span>Negotiate on your terms.</span>
     </div>
   </div>
 </footer>

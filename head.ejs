@@ -13,7 +13,18 @@
 <header class="bar">
   <div class="bar-in">
     <a class="brand" href="/">
-      <svg viewBox="0 0 32 32" fill="none"><circle cx="11" cy="16" r="8.5" stroke="#2F6BFF" stroke-width="2.4"/><circle cx="21" cy="16" r="8.5" stroke="#F5B312" stroke-width="2.4"/></svg>
+      <svg style="width:32px;height:32px;flex:none" viewBox="14 14 72 72" xmlns="http://www.w3.org/2000/svg"><defs>
+   <filter id="gH" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.2"/></filter>
+   <clipPath id="mkH"><circle cx="44.0" cy="50" r="18"/></clipPath><circle cx="44.0" cy="50" r="18" fill="#2F6BFF"/><circle cx="56.0" cy="50" r="18" fill="#F5B312"/><g clip-path="url(#mkH)"><circle cx="56.0" cy="50" r="18" fill="#15B877"/></g></defs>
+ <circle cx="50" cy="50" r="4" fill="#15B877" filter="url(#gH)" opacity="0">
+   <animate attributeName="r" values="2;20;2;20;2" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/>
+   <animate attributeName="opacity" values="0;0.8;0;0.8;0" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/></circle>
+ <g><circle cx="44" cy="50" r="18" fill="#2F6BFF"/><circle cx="56" cy="50" r="18" fill="#F5B312"/>
+   <g clip-path="url(#mkH)"><circle cx="56" cy="50" r="18" fill="#15B877"/></g></g>
+ <g><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3.4s" repeatCount="indefinite"/>
+   <circle cx="50" cy="24" r="4" fill="#2F6BFF" filter="url(#gH)"/></g>
+ <g><animateTransform attributeName="transform" type="rotate" from="180 50 50" to="540 50 50" dur="3.4s" repeatCount="indefinite"/>
+   <circle cx="50" cy="24" r="4" fill="#F5B312" filter="url(#gH)"/></g></svg>
       MidBid
     </a>
     <div class="bar-right">
