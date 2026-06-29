@@ -1,5 +1,43 @@
 <%- include('partials/head') %>
 
+<style>
+  .mb-card{margin-top:1rem}
+  .mb-figwrap{margin:1.4rem 0 .4rem}
+  .mb-fig{font-size:1.7rem;font-weight:600}
+  .mb-figrole{font-size:.85rem;color:#5a5f6b;margin-bottom:1.4rem}
+  .mb-track{position:relative;height:8px;border-radius:6px;background:#eef0f4;border:0.5px solid #dfe3ea;margin:2rem 0 1.8rem}
+  .mb-you{position:absolute;top:50%;left:50%;width:52px;height:52px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;outline:none;z-index:3}
+  .mb-you:active{cursor:grabbing}
+  .hub{position:absolute;top:50%;left:50%;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid #2b54e6;transform:translate(-50%,-50%);z-index:2;box-shadow:0 0 8px 1px rgba(43,84,230,.35)}
+  .ring{position:absolute;inset:0;animation:mb-spin 3.4s linear infinite}
+  @keyframes mb-spin{to{transform:rotate(360deg)}}
+  .od-blue{position:absolute;top:50%;left:50%;width:14px;height:14px;border-radius:50%;background:#2b54e6;transform:translate(-50%,-50%) translateX(-18px);box-shadow:0 0 11px 3px rgba(43,84,230,.5)}
+  .mb-you:focus-visible .hub{box-shadow:0 0 0 4px rgba(43,84,230,.3)}
+  .mb-snake{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:1;transition:opacity .5s ease}
+  .seg{position:absolute;border-radius:50%;transform:translate(-50%,-50%)}
+  .mb-pops{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2}
+  .pp{position:absolute;width:9px;height:9px;border-radius:50%;will-change:transform,opacity}
+  .mb-scale{display:flex;justify-content:space-between;font-size:.72rem;color:#8a8f99;margin-top:.5rem}
+  .coach{display:flex;gap:.55rem;align-items:flex-start;margin:1rem 0 0;padding:.7rem .9rem;border-radius:14px;background:#f3f6ff;border:1px solid #e0e7fb;color:#1e2a4a;font-size:.95rem;line-height:1.45}
+  .coach .coach-badge{flex:0 0 auto;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#fff;background:linear-gradient(135deg,#2647d6,#13205c);padding:.3rem .46rem;border-radius:7px;margin-top:.05rem}
+  .coach.tone-warning{background:#fff6ec;border-color:#f2dcc1;color:#5a3a17}
+  .coach.tone-close,.coach.tone-success{background:#eef9f1;border-color:#cce9d4;color:#1d4a2c}
+  .coach.pop{animation:mb-bpop .34s ease}
+  @keyframes mb-bpop{0%{transform:translateY(7px) scale(.98);opacity:.45}100%{transform:translateY(0) scale(1);opacity:1}}
+  .mb-actions{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
+  .mb-approve{position:relative;border:none;border-radius:999px;padding:.55rem .7rem;cursor:pointer;opacity:.72;background:linear-gradient(90deg,#2b54e6 0 50%,#f5b400 50% 100%);transition:opacity .4s ease,background .5s ease,box-shadow .5s ease}
+  .mb-approve .lbl{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:.9rem;font-weight:600;color:#fff;background:rgba(0,0,0,.32);padding:.3rem .85rem;border-radius:999px;transition:background .5s ease}
+  .mb-approve.ready{opacity:1;animation:mb-pulse 1.7s ease-in-out infinite}
+  @keyframes mb-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,180,0,0)}50%{box-shadow:0 0 16px 4px rgba(245,180,0,.45)}}
+  .mb-approve.is-green{opacity:1;animation:none;background:#23a259;box-shadow:0 0 22px 6px rgba(35,162,89,.5)}
+  .mb-approve.is-green .lbl{background:transparent}
+  .mb-med-wrap{margin-top:1.4rem;padding-top:1.1rem;border-top:0.5px solid #e3e6ec;opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;pointer-events:none}
+  .mb-med-wrap.show{opacity:1;transform:none;pointer-events:auto}
+  .mb-med{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:#13205c;background:transparent;border:0.5px solid #c7cdda;border-radius:999px;padding:.55rem 1.05rem;cursor:pointer;text-decoration:none}
+  .mb-med:hover{background:#f3f6ff}
+  .mb-med-cap{display:block;font-size:.78rem;color:#8a8f99;margin-top:.5rem}
+</style>
+
 <h1 class="page serif"><%= c.title %></h1>
 <p class="sub">£<%= fmt(c.amount) %> in dispute · you are the party who <strong><%= role === 'claim' ? 'is owed money' : 'owes money' %></strong>.</p>
 
@@ -10,102 +48,228 @@
   </div>
 <% } %>
 
-<div class="card">
-  <div class="scale-wrap">
-    <div class="scale-fig" id="figDisplay">£<span id="figNum"><%= status.myValue == null ? fmt(Math.round(c.amount/2)) : fmt(status.myValue) %></span></div>
-    <div class="scale-role"><%= role === 'claim' ? 'The least you will accept' : 'The most you will pay' %></div>
-
-    <div class="track" id="track">
-      <div class="mark <%= role %>" id="myMark"></div>
-    </div>
-    <div class="ticks"><span>£0</span><span>£<%= fmt(Math.round(c.amount/2)) %></span><span>£<%= fmt(c.amount) %></span></div>
-
-    <input type="range" id="slider" min="0" max="<%= c.amount %>" step="<%= Math.max(1, Math.round(c.amount/160)) %>"
-           value="<%= status.myValue == null ? Math.round(c.amount/2) : status.myValue %>"
-           <%= c.status === 'settled' ? 'disabled' : '' %> />
+<div class="card mb-card">
+  <div class="mb-figwrap">
+    <div class="mb-fig">£<span id="figNum"><%= status.myValue == null ? fmt(Math.round(c.amount/2)) : fmt(status.myValue) %></span></div>
+    <div class="mb-figrole"><%= role === 'claim' ? 'The least you will accept' : 'The most you will pay' %></div>
   </div>
 
-  <div class="status <%= status.colour === 'close' ? 'close' : (status.colour === 'deal' ? 'deal' : '') %>" id="statusBox">
-    <div class="g" id="statusGlyph"><%= status.colour === 'deal' ? '✓' : (status.colour === 'close' ? '→' : 'i') %></div>
-    <div><b id="statusTitle"><%= status.title %></b><span id="statusSub"><%= status.sub %></span></div>
+  <div class="mb-track" id="track">
+    <div class="mb-you" id="you"><span class="hub"></span><span class="ring" id="ring"><span class="od-blue"></span></span></div>
+    <div class="mb-pops" id="pops"></div>
+  </div>
+  <div class="mb-scale"><span>£0</span><span>£<%= fmt(Math.round(c.amount/2)) %></span><span>£<%= fmt(c.amount) %></span></div>
+
+  <div class="coach tone-<%= status.coach ? status.coach.tone : 'idle' %>" id="coachBox" <%= status.coach ? '' : 'style="display:none"' %>>
+    <span class="coach-badge">midbid</span>
+    <span class="coach-text" id="coachText"><%= status.coach ? status.coach.text : '' %></span>
   </div>
 
-  <% if (c.status !== 'settled') { %>
+  <div class="mb-actions">
     <button class="btn btn-primary" type="button" id="saveBtn">Save my figure</button>
-    <span class="muted" id="saveHint" style="margin-left:.7rem"></span>
-  <% } %>
+    <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Approve settlement</span></button>
+    <span class="muted" id="saveHint"></span>
+  </div>
 
-  <p class="note">🔒&nbsp; Your figure is stored privately. The other side is never shown your number or the gap between you — only the same colour you see.</p>
+  <p class="note">🔒&nbsp; Blue is your figure. The other side never sees your number — the coach only tells you when you are within 10%.</p>
+
+  <div class="mb-med-wrap" id="medWrap">
+    <a class="mb-med" id="mediation" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener"><span>Create mediation agreement</span><span aria-hidden="true" style="margin-left:3px">↗</span></a>
+    <span class="mb-med-cap">Turn the agreed figure into an enforceable settlement.</span>
+  </div>
 </div>
 
-<p><a href="/dashboard">← Back to my cases</a></p>
+<p style="margin-top:1.2rem"><a href="/dashboard">← Back to my cases</a></p>
 
 <script>
   var AMOUNT = <%= c.amount %>;
   var CASE_ID = <%= c.id %>;
-  var slider = document.getElementById('slider');
-  var figNum = document.getElementById('figNum');
-  var myMark = document.getElementById('myMark');
-  var track = document.getElementById('track');
-  var box = document.getElementById('statusBox');
-  var gT = document.getElementById('statusTitle');
-  var gS = document.getElementById('statusSub');
-  var glyph = document.getElementById('statusGlyph');
-  var saveBtn = document.getElementById('saveBtn');
-  var saveHint = document.getElementById('saveHint');
+  var INIT = <%- JSON.stringify({ myValue: status.myValue, close: !!status.close, mineApproved: !!status.mineApproved, otherApproved: !!status.otherApproved, state: status.state }) %>;
+
+  var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
+  var figNum=document.getElementById('figNum'), pops=document.getElementById('pops');
+  var saveBtn=document.getElementById('saveBtn'), saveHint=document.getElementById('saveHint');
+  var btn=document.getElementById('approve'), approveLbl=document.getElementById('approveLbl');
+  var coachBox=document.getElementById('coachBox'), coachText=document.getElementById('coachText');
+  var medWrap=document.getElementById('medWrap');
+
+  var yourPct = (INIT.myValue!=null) ? INIT.myValue/AMOUNT : 0.5;
+  var dragging=false, lastPopX=null, started=false, locked=false;
+  var gClose=INIT.close, phase='negotiate', t=0, btnX=0, btnY=0, btnW=120, btnH=36, circleStart=0;
 
   function gbp(n){ return Number(n).toLocaleString('en-GB'); }
+  function money(n){ return Number(Math.round(n)).toLocaleString('en-GB'); }
 
-  function placeMark(v){
-    var pct = AMOUNT > 0 ? (v / AMOUNT * 100) : 0;
-    myMark.style.left = pct + '%';
-    figNum.textContent = gbp(v);
+  function makeSnake(hex, glow){
+    var layer=document.createElement('div'); layer.className='mb-snake'; track.appendChild(layer);
+    var segs=[];
+    for(var i=0;i<8;i++){
+      var s=document.createElement('span'); s.className='seg'; var size=14-i;
+      s.style.width=size+'px'; s.style.height=size+'px'; s.style.background=hex; s.style.opacity=(1-i*0.1).toFixed(2);
+      s.style.boxShadow='0 0 '+(10-i)+'px '+Math.max(0.5,(3-i*0.25)).toFixed(2)+'px '+glow.replace('A',(0.5-i*0.045).toFixed(2));
+      layer.appendChild(s); segs.push(s);
+    }
+    return {layer:layer, segs:segs, hist:[], x:0.5*520, y:0};
   }
-  if (slider) {
-    placeMark(+slider.value);
-    slider.addEventListener('input', function(){ placeMark(+slider.value); });
+  var yellow=makeSnake('#f5b400','rgba(245,180,0,A)');
+  var blue=makeSnake('#2b54e6','rgba(43,84,230,A)'); blue.layer.style.display='none';
+
+  function placeFig(){ figNum.textContent=gbp(Math.round(yourPct*AMOUNT)); you.style.left=(yourPct*100)+'%'; you.setAttribute('aria-valuenow',Math.round(yourPct*AMOUNT)); }
+  function setCoach(tone,text){
+    if(!coachBox)return;
+    if(!text){ coachBox.style.display='none'; return; }
+    var changed=coachText.textContent!==text;
+    coachText.textContent=text; coachBox.className='coach tone-'+(tone||'idle'); coachBox.style.display='flex';
+    if(changed){ coachBox.classList.remove('pop'); void coachBox.offsetWidth; coachBox.classList.add('pop'); }
+  }
+  function setApprove(state){
+    btn.classList.remove('ready');
+    if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Approve settlement'; }
+    else if(state==='waiting'){ approveLbl.textContent='Waiting for the other side…'; }
+    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.textContent='✓ Agreed!'; }
+    else { approveLbl.textContent='Approve settlement'; }
   }
 
   function applyStatus(s){
-    track.classList.remove('close','deal');
-    box.classList.remove('close','deal');
-    if (s.colour === 'close'){ track.classList.add('close'); box.classList.add('close'); glyph.textContent='→'; }
-    else if (s.colour === 'deal'){ track.classList.add('deal'); box.classList.add('deal'); glyph.textContent='✓'; }
-    else { glyph.textContent='i'; }
-    gT.textContent = s.title;
-    gS.textContent = s.sub;
-    if (s.state === 'settled' && slider){
-      slider.disabled = true;
-      if (saveBtn) saveBtn.style.display='none';
+    if(!s) return;
+    gClose = !!s.close;
+    if(locked) return;
+    if(s.state==='settled'){ runSeal(); return; }
+    if(s.mineApproved){ phase='mine'; setApprove('waiting'); setCoach('success',"You've approved — waiting for the other side to accept."); ring.style.animationDuration='2.4s'; return; }
+    phase='negotiate';
+    if(s.close && s.otherApproved){ setApprove('ready'); setCoach('success',"The other side has approved — approve to lock it in."); }
+    else if(s.close){ setApprove('ready'); setCoach('success',"You're within 10% of each other — either side can approve to settle."); }
+    else { setApprove('idle'); if(s.coach) setCoach(s.coach.tone, s.coach.text); }
+  }
+
+  function step(sn,tx,ty,e){ sn.x+=(tx-sn.x)*e; sn.y+=(ty-sn.y)*e; sn.hist.unshift({x:sn.x,y:sn.y}); if(sn.hist.length>70)sn.hist.pop(); }
+  function draw(sn){ for(var i=0;i<sn.segs.length;i++){ var h=sn.hist[Math.min(i*5,sn.hist.length-1)]; if(!h)continue; sn.segs[i].style.left=h.x+'px'; sn.segs[i].style.top='calc(50% + '+h.y+'px)'; } }
+
+  function frame(){
+    t+=0.025; var W=track.clientWidth||520;
+    if(phase==='travel'){
+      var Rx=btnW/2+12;
+      step(blue, btnX-Rx, btnY, 0.05); draw(blue);
+      step(yellow, btnX+Rx, btnY, 0.05); draw(yellow);
+    } else if(phase==='circle'){
+      var rx=btnW/2+12, ry=btnH/2+12, a=(performance.now()-circleStart)/1000*4.0;
+      var wB=Math.sin(a*3)*3, wY=Math.sin(a*3+1.2)*3, ba=Math.PI+a, ya=a;
+      step(blue, btnX+(rx+wB)*Math.cos(ba), btnY+(ry+wB)*Math.sin(ba), 0.42); draw(blue);
+      step(yellow, btnX+(rx+wY)*Math.cos(ya), btnY+(ry+wY)*Math.sin(ya), 0.42); draw(yellow);
+    } else if(phase!=='agreed'){
+      var nx=Math.max(0.02,Math.min(0.98, 0.5 + Math.sin(t*0.32)*0.42));
+      step(yellow, nx*W, Math.sin(nx*W*0.05 + t*1.4)*7, 0.12); draw(yellow);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function spawnPop(px){
+    for(var i=0;i<2;i++){
+      var d=document.createElement('span'); d.className='pp'; var bl=Math.random()<0.5;
+      d.style.background=bl?'#2b54e6':'#f5b400'; d.style.boxShadow='0 0 7px 1px '+(bl?'rgba(43,84,230,.5)':'rgba(245,180,0,.5)');
+      d.style.left=(px+(Math.random()*16-8))+'px'; d.style.top='50%'; d.style.transform='translate(-50%,-50%)'; pops.appendChild(d);
+      (function(el){var up=18+Math.random()*10;
+        requestAnimationFrame(function(){el.style.transition='transform .3s cubic-bezier(.3,1.25,.5,1)';el.style.transform='translate(-50%,calc(-50% - '+up+'px))';});
+        setTimeout(function(){el.style.transform='translate(-50%,calc(-50% - 9px))';},320);
+        setTimeout(function(){el.style.transition='opacity .45s';el.style.opacity='0';},980);
+        setTimeout(function(){el.remove();},1480);})(d);
+    }
+  }
+  function burstAt(cx,cy){
+    for(var i=0;i<22;i++){
+      var d=document.createElement('span'); d.className='pp'; var bl=(i%2)===0;
+      d.style.background=bl?'#2b54e6':'#23a259'; d.style.boxShadow='0 0 8px 2px '+(bl?'rgba(43,84,230,.5)':'rgba(35,162,89,.55)');
+      d.style.left=cx+'px'; d.style.top='calc(50% + '+cy+'px)'; d.style.transform='translate(-50%,-50%)'; pops.appendChild(d);
+      (function(el){var ang=Math.random()*Math.PI*2,dist=30+Math.random()*55;var tx=Math.cos(ang)*dist,ty=Math.sin(ang)*dist;
+        requestAnimationFrame(function(){el.style.transition='transform .9s cubic-bezier(.2,.7,.3,1), opacity .9s';el.style.transform='translate(calc(-50% + '+tx+'px),calc(-50% + '+(cy+ty)+'px)) scale(.5)';el.style.opacity='0';});
+        setTimeout(function(){el.remove();},950);})(d);
     }
   }
 
-  if (saveBtn) {
-    saveBtn.addEventListener('click', function(){
-      saveBtn.disabled = true; saveHint.textContent = 'Saving…';
-      fetch('/cases/' + CASE_ID + '/bid', {
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'value=' + encodeURIComponent(slider.value)
-      })
-      .then(function(r){ return r.json(); })
-      .then(function(s){ applyStatus(s); saveBtn.disabled=false; saveHint.textContent='Saved.'; setTimeout(function(){saveHint.textContent='';},1500); })
-      .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not save — try again.'; });
-    });
+  function measureBtn(){
+    var tr=track.getBoundingClientRect(), br=btn.getBoundingClientRect();
+    btnX=(br.left+br.width/2)-tr.left; btnY=(br.top+br.height/2)-(tr.top+tr.height/2); btnW=br.width; btnH=br.height;
+  }
+  function runSeal(){
+    if(locked) return; locked=true;
+    saveBtn.style.display='none';
+    measureBtn();
+    var W=track.clientWidth||520;
+    you.style.display='none';
+    blue.layer.style.display='block'; blue.x=yourPct*W; blue.y=0; blue.hist=[];
+    setCoach('success',"Both sides approved — sealing the deal…");
+    phase='travel';
+    setTimeout(function(){ phase='circle'; circleStart=performance.now(); },1100);
+    setTimeout(finalizeAgreed,2700);
+  }
+  function finalizeAgreed(){
+    phase='agreed';
+    setApprove('green');
+    burstAt(btnX,btnY);
+    setCoach('success',"Agreed! The figure is locked in by both sides.");
+    setTimeout(function(){ blue.layer.style.opacity='0'; yellow.layer.style.opacity='0'; },350);
+    medWrap.classList.add('show');
+  }
+  function finalizeNow(){
+    locked=true; phase='agreed';
+    saveBtn.style.display='none';
+    you.style.display='none'; yellow.layer.style.display='none'; blue.layer.style.display='none';
+    setApprove('green');
+    setCoach('success',"Agreed. This figure is locked in by both sides.");
+    medWrap.classList.add('show');
   }
 
-  // Poll so you see it the moment the OTHER side's move changes your colour.
-  setInterval(function(){
-    fetch('/cases/' + CASE_ID + '/status')
-      .then(function(r){ return r.json(); })
-      .then(function(s){ if (s && s.title) applyStatus(s); })
-      .catch(function(){});
-  }, 4000);
+  function postForm(url,body){ return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body}).then(function(r){return r.json();}); }
 
-  var copyBtn = document.getElementById('copyBtn');
-  if (copyBtn) copyBtn.addEventListener('click', function(){
-    var t = document.getElementById('inviteBox').textContent.trim();
-    navigator.clipboard.writeText(t).then(function(){ copyBtn.textContent='Copied!'; setTimeout(function(){copyBtn.textContent='Copy link';},1500); });
+  function saveFigure(){
+    saveBtn.disabled=true; saveHint.textContent='Saving…';
+    postForm('/cases/'+CASE_ID+'/bid','value='+encodeURIComponent(Math.round(yourPct*AMOUNT)))
+      .then(function(s){ applyStatus(s); saveBtn.disabled=false; saveHint.textContent='Saved.'; setTimeout(function(){saveHint.textContent='';},1500); })
+      .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not save — try again.'; });
+  }
+  function approve(){
+    if(phase!=='negotiate'||locked) return;
+    if(!gClose){ started=true; setCoach('warning',"You're not within 10% yet — save a closer figure first."); return; }
+    btn.classList.remove('ready'); setApprove('waiting'); setCoach('success',"You've approved — letting the other side know…");
+    postForm('/cases/'+CASE_ID+'/approve','')
+      .then(function(s){ applyStatus(s); })
+      .catch(function(){ setCoach('warning',"Could not record your approval — try again."); setApprove('ready'); });
+  }
+
+  function setFromClientX(clientX){
+    var r=track.getBoundingClientRect(); var p=Math.max(0,Math.min(1,(clientX-r.left)/r.width)); var px=p*r.width;
+    if(lastPopX===null||Math.abs(px-lastPopX)>26){ spawnPop(px); lastPopX=px; }
+    yourPct=p; placeFig();
+  }
+  function down(e){ if(locked||phase==='agreed') return; dragging=true; started=true; lastPopX=null; if(you.setPointerCapture&&e.pointerId!=null){try{you.setPointerCapture(e.pointerId);}catch(_){}} setFromClientX(e.clientX); e.preventDefault(); }
+  function move(e){ if(dragging) setFromClientX(e.clientX); }
+  function up(){ dragging=false; lastPopX=null; }
+  you.addEventListener('pointerdown',down);
+  track.addEventListener('pointerdown',down);
+  window.addEventListener('pointermove',move);
+  window.addEventListener('pointerup',up);
+  you.tabIndex=0; you.setAttribute('role','slider'); you.setAttribute('aria-label','Your figure'); you.setAttribute('aria-valuemin',0); you.setAttribute('aria-valuemax',AMOUNT);
+  you.addEventListener('keydown',function(e){
+    if(locked)return;
+    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ started=true; yourPct=Math.max(0,yourPct-0.02); spawnPop(yourPct*track.clientWidth); placeFig(); e.preventDefault(); }
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ started=true; yourPct=Math.min(1,yourPct+0.02); spawnPop(yourPct*track.clientWidth); placeFig(); e.preventDefault(); }
   });
+
+  if(saveBtn) saveBtn.addEventListener('click',saveFigure);
+  btn.addEventListener('click',approve);
+
+  var copyBtn=document.getElementById('copyBtn');
+  if(copyBtn) copyBtn.addEventListener('click',function(){ var x=document.getElementById('inviteBox').textContent.trim(); navigator.clipboard.writeText(x).then(function(){ copyBtn.textContent='Copied!'; setTimeout(function(){copyBtn.textContent='Copy link';},1500); }); });
+
+  // Poll so the other side's moves and approval show up here.
+  setInterval(function(){
+    if(locked) return;
+    fetch('/cases/'+CASE_ID+'/status').then(function(r){return r.json();}).then(function(s){ if(s&&s.state) applyStatus(s); }).catch(function(){});
+  },4000);
+
+  placeFig();
+  if(INIT.state==='settled'){ finalizeNow(); }
+  else { applyStatus({state:INIT.state, close:INIT.close, mineApproved:INIT.mineApproved, otherApproved:INIT.otherApproved, coach:null}); }
+  requestAnimationFrame(frame);
 </script>
 <%- include('partials/foot') %>

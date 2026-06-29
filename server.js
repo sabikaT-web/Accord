@@ -118,16 +118,84 @@ function roleOf(c, userId) {
 }
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+// Friendly coach: picks a short nudge based on how extreme YOUR figure is
+// and how far the two sides are apart. Runs server-side, so it can see both
+// numbers — but it NEVER returns the other side's figure or the actual gap,
+// only a gentle message. Blindness stays intact.
+function coachNudge(c, role) {
+  const A = c.amount || 0;
+  const claim = c.claim_value;            // claimant: the least they'll accept
+  const resp  = c.resp_value;             // respondent: the most they'll pay
+  const mine  = role === 'claim' ? claim : resp;
+  const bothIn = claim != null && resp != null;
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  // --- Before both figures are in: coach on YOUR position only ---
+  if (!bothIn) {
+    if (mine == null) {
+      return role === 'claim'
+        ? { tone: 'idle', text: pick([
+            "A common opening is around 80% of the amount — it leaves room to move.",
+            "Tip: start near 80% of the value rather than the very top. It signals you're here to settle."
+          ]) }
+        : { tone: 'idle', text: pick([
+            "A common opening is around 20–40% of the amount — low, but not so low it stalls things.",
+            "Tip: open with a little room to climb. Offers that start too low tend to freeze the other side."
+          ]) };
+    }
+    if (role === 'claim' && mine >= 0.9 * A)
+      return { tone: 'warn', text: "You're aiming near the very top. Most cases that settle start closer to 80% — worth a thought." };
+    if (role === 'resp' && mine <= 0.1 * A)
+      return { tone: 'warn', text: "That's a very low opening. Nudging it up a little tends to get things moving." };
+    return { tone: 'idle', text: "You're in. Sit tight — nothing about your figure is shared." };
+  }
+
+  // --- Both in: coach on the GAP (this never reveals their number) ---
+  const gap = claim - resp;               // > 0 means still apart
+  if (gap <= 0) return { tone: 'deal', text: "You've met in the middle. Nice work." };
+
+  const g = gap / (A || 1);               // gap as a share of the amount in dispute
+  if (g <= 0.10) return { tone: 'close', text: pick([
+    "You're nearly there — a small move closes this.",
+    "So close. A lawyer would take more than this gap in fees anyway — worth finishing here."
+  ]) };
+  if (g <= 0.30) return { tone: 'close', text: pick([
+    "You're within reach. Want to meet somewhere in the middle?",
+    "Not far now — one step from each side and you're done."
+  ]) };
+  if (g <= 0.60) return { tone: 'warn', text: pick([
+    "You might still be a fair way from each other's number.",
+    "Some distance left — try a slightly bigger move this round."
+  ]) };
+  return { tone: 'warn', text: pick([
+    "You might be stretching this a little — big gaps rarely settle on their own.",
+    "Quite far apart right now. A bolder move could be what unlocks it."
+  ]) };
+}
+
 // The blind-bid brain: returns ONLY what the asking side may see.
 function viewerStatus(c, role) {
   const myValue = role === 'claim' ? c.claim_value : c.resp_value;
   const bothIn = c.claim_value != null && c.resp_value != null;
-  if (c.status === 'settled') return { state: 'settled', colour: 'deal', myValue, settled: c.settled_value, title: 'Settled at £' + fmt(c.settled_value), sub: 'Your figures met. This is recorded as your agreed settlement.' };
-  if (myValue == null) return { state: 'need_bid', colour: 'idle', myValue: null, title: 'Set your figure to begin', sub: role === 'claim' ? 'Enter the least you will accept.' : 'Enter the most you will pay.' };
-  if (!bothIn) return { state: 'waiting', colour: 'idle', myValue, title: 'Waiting for the other side', sub: 'You are in. Nothing is revealed until your figures are close.' };
-  const gap = c.claim_value - c.resp_value;
-  if (gap <= CLOSE_THRESHOLD * c.amount) return { state: 'close', colour: 'close', myValue, title: "Within 10% — you're close", sub: 'A small move could close the gap. Keep going.' };
-  return { state: 'far', colour: 'idle', myValue, title: 'No signal yet', sub: 'Keep adjusting — nothing leaks while you are apart.' };
+  const gap = bothIn ? Math.abs(c.claim_value - c.resp_value) : null;
+  const close = bothIn && gap <= CLOSE_THRESHOLD * c.amount;
+  const mineApproved = role === 'claim' ? !!c.claim_approved : !!c.resp_approved;
+  const otherApproved = role === 'claim' ? !!c.resp_approved : !!c.claim_approved;
+  let s;
+  if (c.status === 'settled') s = { state: 'settled', colour: 'deal', title: 'Agreed at £' + fmt(c.settled_value), sub: 'Both sides approved. This is your agreed settlement.' };
+  else if (myValue == null) s = { state: 'need_bid', colour: 'idle', title: 'Set your figure to begin', sub: role === 'claim' ? 'Enter the least you will accept.' : 'Enter the most you will pay.' };
+  else if (!bothIn) s = { state: 'waiting', colour: 'idle', title: 'Waiting for the other side', sub: 'You are in. Nothing is revealed until your figures are close.' };
+  else if (close) s = { state: 'close', colour: 'close', title: "Within 10% — you can approve", sub: 'Either side can approve to settle.' };
+  else s = { state: 'far', colour: 'idle', title: 'No signal yet', sub: 'Keep adjusting — nothing leaks while you are apart.' };
+  s.myValue = myValue;
+  s.amount = c.amount;
+  s.bothIn = bothIn;
+  s.close = close;
+  s.mineApproved = mineApproved;
+  s.otherApproved = otherApproved;
+  s.settledValue = c.settled_value != null ? c.settled_value : null;
+  s.coach = coachNudge(c, role);          // friendly nudge, safe for this viewer to see
+  return s;
 }
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
@@ -323,12 +391,31 @@ app.post('/cases/:id/bid', requireLogin, wrap(async (req, res) => {
   if (!(value >= 0)) value = 0;
   if (value > c.amount) value = c.amount;
   if (role === 'claim') await db.setClaimValue(value, c.id); else await db.setRespValue(value, c.id);
+  // A changed figure changes the terms, so any earlier approval no longer holds.
+  await db.resetApprovals(c.id);
   await db.addEvent(c.id, 'bid', (role === 'claim' ? 'Claimant' : 'Respondent') + ' submitted a figure');
+  const fresh = await db.caseById(c.id);
+  res.json(viewerStatus(fresh, role));
+}));
+
+// Either side may approve once both figures are in and within 10%. The case
+// only settles when BOTH sides have approved — that is the agreement.
+app.post('/cases/:id/approve', requireLogin, wrap(async (req, res) => {
+  const c = await db.caseById(Number(req.params.id));
+  if (!c) return res.status(404).json({ error: 'not found' });
+  const role = roleOf(c, req.session.userId);
+  if (!role) return res.status(403).json({ error: 'forbidden' });
+  if (c.status === 'settled' || c.status === 'closed') return res.json(viewerStatus(c, role));
+  const bothIn = c.claim_value != null && c.resp_value != null;
+  const close = bothIn && Math.abs(c.claim_value - c.resp_value) <= CLOSE_THRESHOLD * c.amount;
+  if (!close) return res.status(400).json(viewerStatus(c, role));
+  await db.setApproval(role, c.id);
+  await db.addEvent(c.id, 'approved', (role === 'claim' ? 'Claimant' : 'Respondent') + ' approved the settlement');
   const updated = await db.caseById(c.id);
-  if (updated.claim_value != null && updated.resp_value != null && updated.resp_value >= updated.claim_value) {
+  if (updated.claim_approved && updated.resp_approved) {
     const settled = Math.round((updated.claim_value + updated.resp_value) / 2 / 100) * 100;
     await db.settle('settled', settled, updated.id);
-    await db.addEvent(updated.id, 'settled', 'Settled at £' + fmt(settled));
+    await db.addEvent(updated.id, 'settled', 'Agreed at £' + fmt(settled) + ' — both sides approved');
     const full = await db.caseDetail(updated.id);
     mailer.notifySettled({ id: full.id, title: full.title, settled_value: settled, other_email: full.other_email }, full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
   }
@@ -342,6 +429,80 @@ app.get('/cases/:id/status', requireLogin, wrap(async (req, res) => {
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).json({ error: 'forbidden' });
   res.json(viewerStatus(c, role));
+}));
+
+// A printable mediation settlement agreement, available to either party once
+// the case is agreed. Built as a standalone page so it prints / saves to PDF.
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
+function agreementHtml(c) {
+  const claimant = c.claimant_name || c.claimant_acc_email || 'Claimant';
+  const respondent = c.respondent_name || c.respondent_acc_email || c.other_email || 'Respondent';
+  const amount = '£' + fmt(c.amount);
+  const agreed = '£' + fmt(c.settled_value);
+  const today = fmtDay(c.settled_at || new Date());
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mediation Settlement Agreement — MB-${c.id}</title>
+<style>
+  body{font-family:Georgia,'Times New Roman',serif;color:#1b1b1b;max-width:760px;margin:2.5rem auto;padding:0 1.5rem;line-height:1.6}
+  h1{font-size:1.5rem;text-align:center;margin-bottom:.2rem}
+  .ref{text-align:center;color:#555;margin-bottom:2rem;font-size:.9rem}
+  h2{font-size:1.05rem;margin-top:1.8rem;border-bottom:1px solid #ddd;padding-bottom:.3rem}
+  .parties p{margin:.3rem 0}
+  ol li{margin:.5rem 0}
+  .sign{display:flex;gap:2rem;margin-top:3rem;flex-wrap:wrap}
+  .sign div{flex:1;min-width:220px}
+  .line{border-top:1px solid #333;margin-top:2.5rem;padding-top:.3rem;font-size:.85rem;color:#444}
+  .note{margin-top:2.5rem;font-size:.8rem;color:#777;border-top:1px dashed #ccc;padding-top:1rem}
+  .btns{margin:1.5rem 0;text-align:center}
+  button,a.btn{font-family:Arial,sans-serif;font-size:.9rem;padding:.5rem 1rem;border:1px solid #888;border-radius:6px;background:#f4f4f4;cursor:pointer;text-decoration:none;color:#222}
+  @media print{.btns{display:none}}
+</style></head><body>
+  <div class="btns"><button onclick="window.print()">Print / Save as PDF</button> <a class="btn" href="/cases/${c.id}">← Back to case</a></div>
+  <h1>Mediation Settlement Agreement</h1>
+  <div class="ref">Case reference MB-${c.id} — ${escapeHtml(c.title)}</div>
+
+  <p>This agreement is made on <strong>${escapeHtml(today)}</strong> between:</p>
+  <div class="parties">
+    <p><strong>${escapeHtml(claimant)}</strong> (the "Claimant"), and</p>
+    <p><strong>${escapeHtml(respondent)}</strong> (the "Respondent"),</p>
+    <p>together the "Parties".</p>
+  </div>
+
+  <h2>1. Background</h2>
+  <p>The Parties were in dispute over a sum of up to ${amount}. They have used MidBid's blind-bid process to negotiate, and each Party has independently approved the settlement figure set out below.</p>
+
+  <h2>2. Settlement</h2>
+  <ol>
+    <li>The Parties agree to settle the dispute in full for the sum of <strong>${agreed}</strong> (the "Settlement Sum"), payable by the Respondent to the Claimant.</li>
+    <li>The Settlement Sum is to be paid within 14 days of the date of this agreement, unless the Parties agree otherwise in writing.</li>
+    <li>On payment of the Settlement Sum, the Parties release and discharge one another from all claims arising out of or in connection with the matters described above.</li>
+  </ol>
+
+  <h2>3. General</h2>
+  <ol>
+    <li>This agreement is in full and final settlement of the dispute and may be relied upon by either Party.</li>
+    <li>This agreement is governed by the law of England and Wales and the Parties submit to the exclusive jurisdiction of its courts.</li>
+    <li>This agreement may be signed in counterparts, each of which is an original.</li>
+  </ol>
+
+  <div class="sign">
+    <div><div class="line">Signed by the Claimant — ${escapeHtml(claimant)}</div></div>
+    <div><div class="line">Signed by the Respondent — ${escapeHtml(respondent)}</div></div>
+  </div>
+
+  <p class="note">This document is a draft produced automatically from the agreed figure to help the Parties record their settlement. It is not legal advice. Both Parties should review it, and seek independent legal advice, before signing.</p>
+</body></html>`;
+}
+
+app.get('/cases/:id/agreement', requireLogin, wrap(async (req, res) => {
+  const c = await db.caseDetail(Number(req.params.id));
+  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
+  const role = roleOf(c, req.session.userId);
+  if (!role && !res.locals.isAdmin) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
+  if (c.status !== 'settled') return res.status(400).render('message', { title: 'Not yet agreed', body: 'A mediation agreement can be created once both sides have approved the figure.' });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(agreementHtml(c));
 }));
 
 // ============================ ADMIN PORTAL ============================

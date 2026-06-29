@@ -51,6 +51,8 @@ async function init() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_approved BOOLEAN NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_approved BOOLEAN NOT NULL DEFAULT false;`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -105,6 +107,11 @@ const db = {
   async setClaimValue(value, id) { await pool.query('UPDATE cases SET claim_value=$1 WHERE id=$2', [value, id]); },
   async setRespValue(value, id) { await pool.query('UPDATE cases SET resp_value=$1 WHERE id=$2', [value, id]); },
   async settle(status, value, id) { await pool.query('UPDATE cases SET status=$1, settled_value=$2, settled_at=now() WHERE id=$3', [status, value, id]); },
+  async setApproval(role, id) {
+    const col = role === 'claim' ? 'claim_approved' : 'resp_approved';
+    await pool.query('UPDATE cases SET ' + col + '=true WHERE id=$1', [id]);
+  },
+  async resetApprovals(id) { await pool.query('UPDATE cases SET claim_approved=false, resp_approved=false WHERE id=$1', [id]); },
   async setStatus(status, id) { await pool.query('UPDATE cases SET status=$1 WHERE id=$2', [status, id]); },
 
   async allCases(search) {
