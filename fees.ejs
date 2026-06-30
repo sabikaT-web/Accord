@@ -1,0 +1,118 @@
+<%- include('partials/head') %>
+
+<style>
+  .legal{color:var(--ink)}
+  .legal .lead{color:var(--ink-soft);font-size:1rem;line-height:1.7;margin-bottom:.4rem}
+  .legal-meta{font-size:.82rem;color:var(--ink-soft);margin:.2rem 0 1.6rem}
+  .legal h2.sec{font-family:"Fraunces",serif;font-weight:500;font-size:1.28rem;color:var(--ink);margin:2.2rem 0 .5rem;letter-spacing:-.01em}
+  .legal h2.sec .n{color:var(--teal);font-weight:500;margin-right:.5rem}
+  .legal p{font-size:.95rem;line-height:1.72;margin:.55rem 0;color:#33405e}
+  .legal ul{margin:.4rem 0 .8rem;padding-left:1.3rem}
+  .legal li{font-size:.95rem;line-height:1.66;margin:.32rem 0;color:#33405e}
+  .legal strong{color:var(--ink)}
+  .fillme{background:rgba(245,179,18,.18);border-bottom:1.5px dashed var(--ochre);padding:0 .25em;border-radius:3px;font-weight:600;color:#7a5320}
+
+  /* fee tier cards */
+  .tier{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;margin:1rem 0 1.4rem}
+  .tier-head{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin-bottom:.4rem}
+  .tier-tag{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#fff;padding:.28rem .5rem;border-radius:7px}
+  .tier-a .tier-tag{background:var(--teal)}
+  .tier-b .tier-tag{background:var(--teal-deep)}
+  .tier-cond{font-family:"Fraunces",serif;font-weight:500;font-size:1.08rem;color:var(--ink)}
+  .fee-rows{display:grid;grid-template-columns:1fr auto;gap:0;margin-top:.7rem;border-top:1px solid var(--line)}
+  .fee-rows .when{padding:.7rem 0;font-size:.93rem;color:#33405e;border-bottom:1px solid var(--line)}
+  .fee-rows .what{padding:.7rem 0;font-size:.98rem;font-weight:700;color:var(--ink);text-align:right;border-bottom:1px solid var(--line)}
+  .fee-rows .when b,.fee-rows .what b{font-weight:700}
+  .fee-rows .fast{color:var(--go-strong,#1c7a4f)}
+  .pillrow{display:inline-flex;align-items:center;gap:.4rem}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .dot.go{background:var(--go)} .dot.slow{background:var(--ochre)}
+  .examples{background:var(--ground);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:1rem 0}
+  .examples h3{font-size:.82rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:0 0 .5rem}
+  .examples li{font-size:.9rem;margin:.3rem 0}
+  .legal-foot{margin-top:2.6rem;padding-top:1.4rem;border-top:1px solid var(--line);display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.9rem}
+  .legal-foot a{font-weight:600}
+  .legal-disc{font-size:.82rem;color:var(--ink-soft);margin-top:1rem;font-style:italic}
+</style>
+
+<div class="legal">
+  <h1 class="page serif">Fee Schedule</h1>
+  <p class="legal-meta">Last updated <span class="fillme">[date]</span> · Effective <span class="fillme">[date]</span></p>
+
+  <p class="lead">This Fee Schedule sets out the fees payable for using MidBid. It forms part of, and should be read with, the MidBid <a href="/terms">Terms &amp; Conditions</a> and <a href="/privacy">Privacy Policy</a>.</p>
+
+  <h2 class="sec"><span class="n">1.</span>How MidBid charges</h2>
+  <p>MidBid charges a <strong>success-based fee</strong>: a fee becomes payable only when a Case results in a <strong>Settlement</strong> — a figure that both parties have approved through the Platform. If a Case does not settle, no success fee is payable. Creating or joining a Case, setting figures, and using the negotiation tools are not separately charged.</p>
+  <p>The fee that applies depends on two things: the <strong>amount in dispute</strong> for the Case, and <strong>how quickly</strong> a Settlement is reached.</p>
+
+  <h2 class="sec"><span class="n">2.</span>The fees</h2>
+
+  <div class="tier tier-a">
+    <div class="tier-head">
+      <span class="tier-tag">Tier A</span>
+      <span class="tier-cond">Amount in dispute below ₹2,00,000 (₹2 lakh)</span>
+    </div>
+    <div class="fee-rows">
+      <div class="when"><span class="pillrow"><span class="dot go"></span> Settles <b>within 30 days</b> of the Case being created</span></div>
+      <div class="what">10% <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">of settlement</span></div>
+      <div class="when"><span class="pillrow"><span class="dot slow"></span> Settles <b>after 30 days</b></span></div>
+      <div class="what">15% <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">of settlement</span></div>
+    </div>
+  </div>
+
+  <div class="tier tier-b">
+    <div class="tier-head">
+      <span class="tier-tag">Tier B</span>
+      <span class="tier-cond">Amount in dispute ₹2,00,000 (₹2 lakh) or more</span>
+    </div>
+    <div class="fee-rows">
+      <div class="when"><span class="pillrow"><span class="dot go"></span> Settles <b>within 20 days</b> of the Case being created</span></div>
+      <div class="what">₹5,000 <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">flat</span></div>
+      <div class="when"><span class="pillrow"><span class="dot slow"></span> Settles <b>after 20 days</b></span></div>
+      <div class="what">5% <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">of amount in dispute</span></div>
+    </div>
+  </div>
+
+  <div class="examples">
+    <h3>Worked examples (illustrative)</h3>
+    <ul>
+      <li>₹1,50,000 case that settles on day 12 → Tier A, within 30 days → <strong>10% of the settlement</strong>.</li>
+      <li>₹1,50,000 case that settles on day 45 → Tier A, after 30 days → <strong>15% of the settlement</strong>.</li>
+      <li>₹5,00,000 case that settles on day 8 → Tier B, within 20 days → <strong>₹5,000 flat</strong>.</li>
+      <li>₹5,00,000 case that settles on day 30 → Tier B, after 20 days → <strong>5% of ₹5,00,000 = ₹25,000</strong>.</li>
+    </ul>
+  </div>
+
+  <h2 class="sec"><span class="n">3.</span>The fee base and the timing clock</h2>
+  <p>3.1 <strong>Amount in dispute</strong> means the value entered when the Case was created. It decides which tier applies.</p>
+  <p>3.2 <strong>Settlement amount</strong> means the figure both parties approve.</p>
+  <p>3.3 The clock <strong>starts</strong> on the date the Case is created and <strong>stops</strong> on the date a Settlement is recorded (the moment the second party approves). The elapsed days decide whether the “within” or “after” rate applies.</p>
+
+  <h2 class="sec"><span class="n">4.</span>Who pays, and when</h2>
+  <p>4.1 The success fee is payable when a Settlement is recorded.</p>
+  <p>4.2 Unless the parties agree otherwise in writing, the success fee is <strong>shared equally between the two parties</strong>.</p>
+  <p>4.3 We will notify the parties of the fee payable and provide payment instructions when a Settlement is recorded.</p>
+
+  <h2 class="sec"><span class="n">5.</span>Payment, currency and refunds</h2>
+  <p>5.1 Payments are processed by a third-party provider; we do not store full payment-card details.</p>
+  <p>5.2 Fees are charged in Indian rupees (₹). The Platform does not facilitate payment in other currencies.</p>
+  <p>5.3 Because the success fee is earned only when a Settlement is reached, fees once paid are <strong>non-refundable</strong>, except where required by law or where we have charged you in error.</p>
+
+  <h2 class="sec"><span class="n">6.</span>Taxes</h2>
+  <p>All fees are exclusive of taxes. You are responsible for any applicable taxes (for example <span class="fillme">[GST]</span>), which will be added where required by law.</p>
+
+  <h2 class="sec"><span class="n">7.</span>Changes to this Fee Schedule</h2>
+  <p>We may revise this Fee Schedule from time to time. Changes take effect when published and apply to Cases created on or after the effective date of the change. The fees applicable to a Case are those in force on the date the Case is created.</p>
+
+  <h2 class="sec"><span class="n">8.</span>Contact</h2>
+  <p>For any question about fees, email <a href="mailto:hello@midbid.org">hello@midbid.org</a>.</p>
+
+  <div class="legal-foot">
+    <a href="/terms">Terms &amp; Conditions →</a>
+    <a href="/privacy">Privacy Policy →</a>
+    <a href="/">Back to home</a>
+  </div>
+  <p class="legal-disc">MidBid is not a law firm and does not provide legal advice. Fees are for use of the Platform and are not legal fees.</p>
+</div>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,91 @@
+<%- include('partials/head') %>
+
+<style>
+  .legal{color:var(--ink)}
+  .legal .lead{color:var(--ink-soft);font-size:1rem;line-height:1.7;margin-bottom:.4rem}
+  .legal-meta{font-size:.82rem;color:var(--ink-soft);margin:.2rem 0 1.6rem}
+  .legal-note{display:flex;gap:.6rem;background:rgba(47,107,255,.07);border:1px solid rgba(47,107,255,.22);color:var(--teal-deep);padding:.85rem 1rem;border-radius:12px;font-size:.9rem;line-height:1.5;margin:1.2rem 0 2rem}
+  .legal-note .b{flex:0 0 auto;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--teal-deep);padding:.28rem .46rem;border-radius:7px;margin-top:.05rem}
+  .legal h2.sec{font-family:"Fraunces",serif;font-weight:500;font-size:1.28rem;color:var(--ink);margin:2.2rem 0 .5rem;letter-spacing:-.01em}
+  .legal h2.sec .n{color:var(--teal);font-weight:500;margin-right:.5rem}
+  .legal p{font-size:.95rem;line-height:1.72;margin:.55rem 0;color:#33405e}
+  .legal ul{margin:.4rem 0 .8rem;padding-left:1.3rem}
+  .legal li{font-size:.95rem;line-height:1.66;margin:.32rem 0;color:#33405e}
+  .legal strong{color:var(--ink)}
+  .fillme{background:rgba(245,179,18,.18);border-bottom:1.5px dashed var(--ochre);padding:0 .25em;border-radius:3px;font-weight:600;color:#7a5320}
+  .legal-foot{margin-top:2.6rem;padding-top:1.4rem;border-top:1px solid var(--line);display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.9rem}
+  .legal-foot a{font-weight:600}
+  .legal-disc{font-size:.82rem;color:var(--ink-soft);margin-top:1rem;font-style:italic}
+</style>
+
+<div class="legal">
+  <h1 class="page serif">Privacy Policy</h1>
+  <p class="legal-meta">Last updated <span class="fillme">[date]</span> · Effective <span class="fillme">[date]</span></p>
+
+  <p class="lead">This Privacy Policy explains how <strong>MidBid</strong> (“we”, “us”, “our”) collects, uses, shares and protects personal information when you use the MidBid platform at midbid.org (the “Platform”). It should be read with our <a href="/terms">Terms &amp; Conditions</a> and <a href="/fees">Fee Schedule</a>.</p>
+  <p class="lead">By using the Platform, you confirm that you have read and understood this Policy. We may update it from time to time; changes take effect when published.</p>
+
+  <div class="legal-note"><span class="b">In short</span><span>The confidential figures you set — your Ideal, Target and Walk-away — are compared on our servers only and are <strong>never shown to the other party</strong>. They are not used for marketing, profiling, or sent to any AI model.</span></div>
+
+  <h2 class="sec"><span class="n">1.</span>Who we are</h2>
+  <p>MidBid is the controller of the personal information described in this Policy. Our contact details are in Section 12.</p>
+
+  <h2 class="sec"><span class="n">2.</span>The information we collect</h2>
+  <p>2.1 <strong>Account information.</strong> When you register, we collect your name, email address and a password. Passwords are stored only in hashed (encrypted) form and are never accessible to us in plain text.</p>
+  <p>2.2 <strong>Case information.</strong> When you create or join a Case, we collect the Case title, the amount in dispute, the email address of the other party you invite, and your role (Claimant or Respondent).</p>
+  <p>2.3 <strong>Your confidential figures.</strong> When you set your Ideal, Target and Walk-away figures, we store and process them so the Platform can function. These figures are treated as confidential and are <strong>never disclosed to the other party</strong> (see Section 4).</p>
+  <p>2.4 <strong>Communications.</strong> If you contact us for support, we keep a record of that correspondence.</p>
+  <p>2.5 <strong>Usage and device information.</strong> We automatically collect limited technical information when you use the Platform — such as your IP address, browser and device type, and actions within the Platform — for security, troubleshooting and improvement.</p>
+  <p>2.6 <strong>Cookies.</strong> We use a small number of cookies necessary for the Platform to work, for example to keep you signed in.</p>
+
+  <h2 class="sec"><span class="n">3.</span>How we use your information, and our lawful basis</h2>
+  <p>We use your information to: create and manage your account and authenticate you; operate the Case workflow (invitations, recording figures, proximity signals, settlements, and the draft settlement document); process fees when a Settlement is reached; communicate with you about your Cases and respond to support; keep the Platform secure and prevent abuse; and comply with our legal obligations.</p>
+  <p>Our lawful bases, as applicable, are performance of our contract with you, our legitimate interests in securing and improving the Platform, compliance with legal obligations, and your consent where we ask for it. <span class="fillme">[Tailor the lawful-basis wording to your governing law — UK/EU GDPR or India’s DPDP Act 2023.]</span></p>
+
+  <h2 class="sec"><span class="n">4.</span>How the blind process protects your figures</h2>
+  <p>A core feature of MidBid is that a party’s figures are never shown to the other party. Figures are compared on our servers only. From that comparison, the Platform shows each party neutral signals — such as whether the parties are “within range” or “nearly there” — but it does not reveal the other party’s figures, the exact gap, or any number derived from them beyond a concluded settlement figure. We do not use your figures for marketing or profiling.</p>
+
+  <h2 class="sec"><span class="n">5.</span>When we share information</h2>
+  <p>We do not sell your personal information. We share it only as follows:</p>
+  <ul>
+    <li><strong>Service providers.</strong> Trusted third parties that run the Platform — for example <span class="fillme">[hosting provider]</span>, <span class="fillme">[email provider]</span>, and our payment processor — who may process information only on our instructions and under confidentiality and security obligations.</li>
+    <li><strong>The other party to your Case.</strong> Only the information necessary for the Case is visible — the Case title, the amount in dispute, and (once reached) the agreed settlement figure. Your individual figures are not shared.</li>
+    <li><strong>Legal and regulatory.</strong> Where required by law, regulation, a court or a competent authority, or to establish, exercise or defend legal claims, or to protect rights, safety or property.</li>
+    <li><strong>Business transfers.</strong> In a merger, acquisition or sale of assets, subject to this Policy.</li>
+  </ul>
+
+  <h2 class="sec"><span class="n">6.</span>Use of artificial-intelligence tools</h2>
+  <p>6.1 We use third-party AI tools for internal purposes only, such as software development and drafting internal documents.</p>
+  <p>6.2 AI tools are <strong>not used to decide, assess or influence any dispute</strong>. The coaching messages and proximity signals on the Platform are produced by fixed, rule-based logic, not by an AI model. No decision about your dispute, your rights or your settlement is made by an AI system.</p>
+  <p>6.3 We do not submit users’ personal information or confidential case figures to any third-party AI tool.</p>
+
+  <h2 class="sec"><span class="n">7.</span>How long we keep information</h2>
+  <p>We keep personal information for as long as your account is active and as needed to provide the Service, and afterwards only as long as necessary to comply with our legal, accounting and reporting obligations, to resolve disputes, and to enforce our agreements. When no longer needed, we delete or anonymise it.</p>
+
+  <h2 class="sec"><span class="n">8.</span>Security</h2>
+  <p>We use appropriate technical and organisational measures to protect your information, including hashing of passwords, encryption in transit, access controls, and reputable hosting and payment providers. No method of transmission or storage is completely secure, however, and we cannot guarantee absolute security. Please notify us at <a href="mailto:hello@midbid.org">hello@midbid.org</a> if you believe your account or any information has been compromised.</p>
+
+  <h2 class="sec"><span class="n">9.</span>Children</h2>
+  <p>The Platform is intended for adults (18 and over) dealing with commercial or financial disputes. We do not knowingly collect personal information from anyone under 18. If you believe a minor has provided us with personal information, contact us and we will take appropriate steps to delete it, subject to any legal retention requirements.</p>
+
+  <h2 class="sec"><span class="n">10.</span>Your rights</h2>
+  <p>Depending on where you are and the law that applies, you may have rights to access the information we hold about you; have inaccurate information corrected; request deletion; object to or restrict certain processing; withdraw consent where processing is based on consent; request a portable copy; and lodge a complaint with the relevant data-protection authority. To exercise any of these rights, contact us at <a href="mailto:hello@midbid.org">hello@midbid.org</a>. <span class="fillme">[Tailor this list to your governing law.]</span></p>
+
+  <h2 class="sec"><span class="n">11.</span>International transfers</h2>
+  <p>Our service providers may process information in countries other than your own. Where information is transferred across borders, we take steps to ensure it is protected by appropriate safeguards consistent with applicable law.</p>
+
+  <h2 class="sec"><span class="n">12.</span>Contact and complaints</h2>
+  <p>For any privacy question or to exercise your rights, contact our <span class="fillme">[Data Protection / Grievance Officer]</span>:</p>
+  <p>MidBid<br>
+  <span class="fillme">[registered address]</span><br>
+  Email: <a href="mailto:hello@midbid.org">hello@midbid.org</a></p>
+
+  <div class="legal-foot">
+    <a href="/terms">Terms &amp; Conditions →</a>
+    <a href="/fees">Fee Schedule →</a>
+    <a href="/">Back to home</a>
+  </div>
+  <p class="legal-disc">MidBid is not a law firm and does not provide legal advice.</p>
+</div>
+
+<%- include('partials/foot') %>

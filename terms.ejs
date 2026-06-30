@@ -1,0 +1,171 @@
+<%- include('partials/head') %>
+
+<style>
+  .legal{color:var(--ink)}
+  .legal .lead{color:var(--ink-soft);font-size:1rem;line-height:1.7;margin-bottom:.4rem}
+  .legal-meta{font-size:.82rem;color:var(--ink-soft);margin:.2rem 0 1.6rem;letter-spacing:.01em}
+  .legal-note{display:flex;gap:.6rem;background:rgba(47,107,255,.07);border:1px solid rgba(47,107,255,.22);color:var(--teal-deep);padding:.85rem 1rem;border-radius:12px;font-size:.9rem;line-height:1.5;margin:1.2rem 0 2rem}
+  .legal-note .b{flex:0 0 auto;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--teal-deep);padding:.28rem .46rem;border-radius:7px;margin-top:.05rem}
+  .toc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin:0 0 2.4rem}
+  .toc h2{font-family:"Fraunces",serif;font-weight:500;font-size:1rem;margin:0 0 .7rem;color:var(--ink)}
+  .toc ol{margin:0;padding-left:1.2rem;columns:2;column-gap:1.6rem}
+  .toc li{font-size:.86rem;margin:.18rem 0;break-inside:avoid}
+  .toc a{color:var(--ink-soft)}
+  .toc a:hover{color:var(--teal)}
+  .legal h2.sec{font-family:"Fraunces",serif;font-weight:500;font-size:1.28rem;color:var(--ink);margin:2.2rem 0 .5rem;scroll-margin-top:80px;letter-spacing:-.01em}
+  .legal h2.sec .n{color:var(--teal);font-weight:500;margin-right:.5rem}
+  .legal h3.sub{font-size:.96rem;font-weight:700;color:var(--ink);margin:1.1rem 0 .3rem}
+  .legal p{font-size:.95rem;line-height:1.72;margin:.55rem 0;color:#33405e}
+  .legal ul,.legal ol.list{margin:.4rem 0 .8rem;padding-left:1.3rem}
+  .legal li{font-size:.95rem;line-height:1.66;margin:.32rem 0;color:#33405e}
+  .legal strong{color:var(--ink)}
+  .fillme{background:rgba(245,179,18,.18);border-bottom:1.5px dashed var(--ochre);padding:0 .25em;border-radius:3px;font-weight:600;color:#7a5320;font-style:normal}
+  .legal-foot{margin-top:2.6rem;padding-top:1.4rem;border-top:1px solid var(--line);display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.9rem}
+  .legal-foot a{font-weight:600}
+  .legal-disc{font-size:.82rem;color:var(--ink-soft);margin-top:1rem;font-style:italic}
+</style>
+
+<div class="legal">
+  <h1 class="page serif">Terms &amp; Conditions</h1>
+  <p class="legal-meta">Last updated <span class="fillme">[date]</span> · Effective <span class="fillme">[date]</span></p>
+
+  <p class="lead">These Terms &amp; Conditions (the “Terms”) govern your access to and use of the MidBid platform at midbid.org and any related applications, features and services (together, the “Platform” or the “Service”), operated by <strong>MidBid</strong> (“MidBid”, “we”, “us”, “our”). “You” and “your” refer to any person or organisation that accesses or uses the Platform and is legally able to enter into a binding contract.</p>
+  <p class="lead">By creating an account, opening or joining a case, or otherwise using the Platform, you confirm that you have read, understood and agree to be bound by these Terms and by our <a href="/privacy">Privacy Policy</a> and <a href="/fees">Fee Schedule</a>, each incorporated by reference. If you do not agree, please do not use the Platform.</p>
+
+  <div class="legal-note"><span class="b">Note</span><span>MidBid is a technology platform that helps two parties negotiate a settlement privately. <strong>MidBid is not a law firm, does not provide legal advice, and is not an arbitration service.</strong> Nothing on the Platform is a substitute for advice from a qualified legal practitioner.</span></div>
+
+  <div class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#s1">What MidBid is</a></li>
+      <li><a href="#s2">Definitions</a></li>
+      <li><a href="#s3">Eligibility</a></li>
+      <li><a href="#s4">Your account</a></li>
+      <li><a href="#s5">How the Service works</a></li>
+      <li><a href="#s6">Confidentiality &amp; the blind process</a></li>
+      <li><a href="#s7">Fees</a></li>
+      <li><a href="#s8">Acceptable use</a></li>
+      <li><a href="#s9">Intellectual property</a></li>
+      <li><a href="#s10">Third-party services</a></li>
+      <li><a href="#s11">Disclaimers</a></li>
+      <li><a href="#s12">Limitation of liability</a></li>
+      <li><a href="#s13">Indemnity</a></li>
+      <li><a href="#s14">Suspension &amp; termination</a></li>
+      <li><a href="#s15">Electronic communications</a></li>
+      <li><a href="#s16">Governing law</a></li>
+      <li><a href="#s17">General</a></li>
+      <li><a href="#s18">Contact &amp; grievances</a></li>
+    </ol>
+  </div>
+
+  <h2 class="sec" id="s1"><span class="n">1.</span>What MidBid is — and what it is not</h2>
+  <p>1.1 MidBid is an <strong>online, blind-bid negotiation and mediation support tool</strong>. It gives two parties to a dispute a private, structured way to exchange confidential settlement figures and to discover whether a settlement is achievable, without either party revealing their figures to the other.</p>
+  <p>1.2 In a typical case, one party (the “Claimant”, who is owed money) creates a case and invites the other party (the “Respondent”, who owes money). Each party privately sets three confidential figures — their <strong>Ideal</strong> outcome, their <strong>Target</strong>, and their <strong>Walk-away</strong> point. The Platform compares these figures on the server only and tells each party, through neutral signals, how close the two positions are. Neither party ever sees the other’s figures or the precise gap between them. A settlement is reached only when <strong>both</strong> parties have approved.</p>
+  <p>1.3 <strong>MidBid is technology, not a person, a representative, or a decision-maker.</strong> It does not negotiate on your behalf, take sides, or determine any party’s rights or liabilities. Any settlement is reached by the parties themselves.</p>
+  <p>1.4 <strong>MidBid is not an arbitration service and issues no arbitral award or binding determination.</strong> Where the Platform generates a draft settlement agreement from an agreed figure, that document is a draft record produced automatically for the parties’ convenience. It is not legal advice, not a court order or arbitral award, and has no legal effect unless and until the parties review it, agree its terms, and execute it in accordance with applicable law.</p>
+  <p>1.5 <strong>MidBid is not a law firm and does not provide legal advice.</strong> Using the Platform does not create any solicitor–client, attorney–client, or other professional relationship. We recommend you obtain independent legal advice before creating a case, submitting any figure, or signing any settlement document.</p>
+
+  <h2 class="sec" id="s2"><span class="n">2.</span>Definitions</h2>
+  <ul>
+    <li><strong>“Case”</strong> — a single dispute created on the Platform, identified by a title and an amount in dispute.</li>
+    <li><strong>“Amount in dispute”</strong> — the monetary value entered when creating a Case, against which figures are set.</li>
+    <li><strong>“Figure” / “Anchor”</strong> — a confidential monetary value submitted by a party (Ideal, Target, or Walk-away).</li>
+    <li><strong>“Settlement”</strong> — a figure that both parties have approved through the Platform.</li>
+    <li><strong>“Blind process”</strong> — the principle that a party’s Figures are never disclosed to the other party.</li>
+  </ul>
+
+  <h2 class="sec" id="s3"><span class="n">3.</span>Eligibility</h2>
+  <p>3.1 The Platform is available only to persons who are at least <strong>18 years old</strong> and who have the legal capacity to enter into binding contracts.</p>
+  <p>3.2 By using the Platform you represent that you meet these requirements and that any information you provide is true, accurate, current and complete. The Platform is not intended for, and must not be used by, minors.</p>
+
+  <h2 class="sec" id="s4"><span class="n">4.</span>Your account</h2>
+  <p>4.1 To use most features you must register using a valid email address and a password. You are responsible for keeping your credentials confidential and for all activity under your account.</p>
+  <p>4.2 Notify us promptly at <a href="mailto:hello@midbid.org">hello@midbid.org</a> if you suspect unauthorised use of your account, discover a security vulnerability, or lose access to your credentials.</p>
+  <p>4.3 You agree to keep your account information up to date.</p>
+
+  <h2 class="sec" id="s5"><span class="n">5.</span>How the Service works</h2>
+  <p>5.1 <strong>Creating and joining a case.</strong> A party creates a Case by entering a title, the amount in dispute, and the other party’s email address, then shares a private invitation link. The other party joins by following that link and registering or signing in.</p>
+  <p>5.2 <strong>Setting figures.</strong> Each party privately sets their Ideal, Target and Walk-away figures. These are visible only to the party who set them and are processed confidentially as described in clause 6 and in the Privacy Policy.</p>
+  <p>5.3 <strong>Signals, not numbers.</strong> The Platform may display neutral coaching messages and a proximity indicator describing, in general terms, how close the parties are. These signals are generated automatically and <strong>never disclose the other party’s figures or the exact gap.</strong></p>
+  <p>5.4 <strong>Reaching a settlement.</strong> Where the parties’ positions meet or fall within the applicable threshold, either party may approve. A Settlement is recorded only when <strong>both</strong> parties have approved. Changing your figure after approving withdraws that approval.</p>
+  <p>5.5 <strong>Settlement figure.</strong> Where a Settlement is reached, the recorded figure is calculated automatically by the Platform (for example, as the midpoint of the parties’ binding figures) and rounded as the Service specifies. Please review the recorded figure before relying on it.</p>
+  <p>5.6 <strong>Draft settlement agreement.</strong> Once a Settlement is recorded, the Platform may make available a draft settlement agreement reflecting the agreed figure. Clause 1.4 applies. It is your responsibility, and the other party’s, to review it, take independent legal advice, make any necessary amendments, and execute it.</p>
+  <p>5.7 <strong>Availability.</strong> We aim to keep the Platform available but do not guarantee that it will be uninterrupted, timely, secure or error-free, and we may modify, suspend or discontinue any part of the Service at any time.</p>
+
+  <h2 class="sec" id="s6"><span class="n">6.</span>Confidentiality and the blind process</h2>
+  <p>6.1 <strong>Your figures are confidential.</strong> We do not disclose a party’s Ideal, Target or Walk-away figures to the other party. Only the neutral signals described in clause 5.3 are shared.</p>
+  <p>6.2 <strong>Without prejudice.</strong> Settlement discussions through the Platform are intended to be confidential and conducted on a without-prejudice basis, so far as applicable law allows. You agree not to rely on, disclose, or seek to introduce in any proceedings the figures, signals or communications generated through the Platform, except a concluded and executed settlement agreement, or as required by law.</p>
+  <p>6.3 These obligations do not prevent disclosure required by law, regulation, a court, or a competent authority.</p>
+
+  <h2 class="sec" id="s7"><span class="n">7.</span>Fees</h2>
+  <p>7.1 Use of certain features is subject to fees set out in our <a href="/fees">Fee Schedule</a>, which forms part of these Terms. The fees, the events that trigger them, and the time periods that apply are described there.</p>
+  <p>7.2 You agree to pay all applicable fees. Payments are processed by a third-party provider; we do not store your full payment-card details. Except as stated in the Fee Schedule or required by law, fees are non-refundable.</p>
+
+  <h2 class="sec" id="s8"><span class="n">8.</span>Acceptable use</h2>
+  <p>You agree that you will not:</p>
+  <ul>
+    <li>provide false, misleading or fraudulent information, or impersonate any person or entity;</li>
+    <li>use the Platform for any unlawful purpose, including money laundering, fraud or harassment;</li>
+    <li>upload or transmit content that is defamatory, obscene, infringing, harmful to minors, or otherwise unlawful;</li>
+    <li>attempt to discover, infer or extract another party’s confidential figures, or interfere with the blind process;</li>
+    <li>introduce malware, attempt to gain unauthorised access, or probe, scan or test the vulnerability of the Platform;</li>
+    <li>copy, scrape, reverse-engineer, resell or create derivative works from the Platform or its content, except as expressly permitted; or</li>
+    <li>use the Platform in any way that could damage, disable or impair it, or interfere with another party’s use.</li>
+  </ul>
+
+  <h2 class="sec" id="s9"><span class="n">9.</span>Intellectual property</h2>
+  <p>9.1 The Platform and all software, design, text, graphics, logos and other content we provide (excluding your content) are owned by MidBid or our licensors and protected by intellectual-property laws. We grant you a limited, non-exclusive, non-transferable, revocable licence to use the Platform for its intended purpose.</p>
+  <p>9.2 You retain ownership of the content and information you submit, and grant us a licence to host, store and process it solely to provide the Service and as described in the Privacy Policy.</p>
+
+  <h2 class="sec" id="s10"><span class="n">10.</span>Third-party services and links</h2>
+  <p>The Platform relies on third-party providers (for example, hosting, email delivery and payment processing) and may contain links to third-party sites. We are not responsible for the content, policies or practices of any third party, and your use of third-party services is governed by their own terms.</p>
+
+  <h2 class="sec" id="s11"><span class="n">11.</span>Disclaimers</h2>
+  <p>11.1 The Platform is provided on an <strong>“as is”</strong> and <strong>“as available”</strong> basis, without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose, accuracy or non-infringement, except those that cannot be excluded by law.</p>
+  <p>11.2 We do not warrant any particular outcome. We make no promise that any case will settle, that any settlement is fair or adequate, or that any draft document is enforceable. Any decision to settle, and on what terms, is yours alone.</p>
+
+  <h2 class="sec" id="s12"><span class="n">12.</span>Limitation of liability</h2>
+  <p>12.1 To the maximum extent permitted by law, MidBid and its directors, officers, employees and agents will not be liable for any indirect, incidental, special, consequential, exemplary or punitive damages, or for any loss of profits, revenue, data, goodwill or business, arising out of or in connection with your use of the Platform.</p>
+  <p>12.2 To the maximum extent permitted by law, our total aggregate liability arising out of or in connection with the Platform and these Terms will not exceed the total fees you paid to us in respect of the case giving rise to the claim.</p>
+  <p>12.3 Nothing in these Terms excludes or limits any liability that cannot be excluded or limited under applicable law.</p>
+
+  <h2 class="sec" id="s13"><span class="n">13.</span>Indemnity</h2>
+  <p>You agree to indemnify and hold harmless MidBid and its directors, officers, employees and agents from any claims, losses, liabilities, damages, costs and expenses (including reasonable legal fees) arising out of your breach of these Terms, your misuse of the Platform, or your violation of any law or the rights of any third party.</p>
+
+  <h2 class="sec" id="s14"><span class="n">14.</span>Suspension and termination</h2>
+  <p>14.1 You may stop using the Platform at any time.</p>
+  <p>14.2 We may suspend or terminate your access at any time, with or without notice, if we reasonably believe you have breached these Terms, if required by law, or to protect the Platform or other users.</p>
+  <p>14.3 Termination does not affect any rights, obligations or liabilities that accrued before termination, including any concluded settlement or fees payable.</p>
+
+  <h2 class="sec" id="s15"><span class="n">15.</span>Notices and electronic communications</h2>
+  <p>You consent to receive communications from us electronically, including by email and through the Platform. Notices we provide electronically satisfy any legal requirement that such communications be in writing.</p>
+
+  <h2 class="sec" id="s16"><span class="n">16.</span>Governing law and dispute resolution</h2>
+  <p>16.1 These Terms are governed by the laws of <span class="fillme">[governing law / jurisdiction]</span>, and the courts of <span class="fillme">[jurisdiction]</span> will have jurisdiction, subject to clause 16.2.</p>
+  <p>16.2 In keeping with the purpose of the Platform, the parties will first attempt in good faith to resolve any dispute arising out of or relating to these Terms through negotiation or mediation before commencing court proceedings.</p>
+
+  <h2 class="sec" id="s17"><span class="n">17.</span>General</h2>
+  <p>17.1 <strong>Entire agreement.</strong> These Terms, with the Privacy Policy and Fee Schedule, constitute the entire agreement between you and us regarding the Platform.</p>
+  <p>17.2 <strong>Severability.</strong> If any provision is unenforceable, the remaining provisions continue in full force.</p>
+  <p>17.3 <strong>Waiver.</strong> Our failure to enforce any provision is not a waiver of our right to do so later.</p>
+  <p>17.4 <strong>Force majeure.</strong> We are not liable for any failure or delay caused by events beyond our reasonable control.</p>
+  <p>17.5 <strong>Assignment.</strong> You may not assign these Terms without our consent. We may assign them in connection with a merger, acquisition or sale of assets.</p>
+  <p>17.6 <strong>Headings</strong> are for convenience only and have no legal effect.</p>
+
+  <h2 class="sec" id="s18"><span class="n">18.</span>Contact and grievances</h2>
+  <p>For any question, complaint or concern about these Terms or the Platform, contact:</p>
+  <p><span class="fillme">[Grievance / Contact Officer name]</span><br>
+  MidBid<br>
+  <span class="fillme">[registered address]</span><br>
+  Email: <a href="mailto:hello@midbid.org">hello@midbid.org</a></p>
+  <p>We aim to acknowledge complaints promptly and to resolve them within the timeframe required by applicable law.</p>
+
+  <div class="legal-foot">
+    <a href="/fees">Fee Schedule →</a>
+    <a href="/privacy">Privacy Policy →</a>
+    <a href="/">Back to home</a>
+  </div>
+  <p class="legal-disc">MidBid is not a law firm and does not provide legal advice. The Platform and any document it generates are not a substitute for advice from a qualified legal practitioner.</p>
+</div>
+
+<%- include('partials/foot') %>
