@@ -3,21 +3,56 @@
 <style>
   .mb-card{margin-top:1rem}
   .mb-figwrap{margin:1.4rem 0 .4rem}
-  .mb-fig{font-size:1.7rem;font-weight:600}
-  .mb-figrole{font-size:.85rem;color:#5a5f6b;margin-bottom:1.4rem}
-  .mb-track{position:relative;height:8px;border-radius:6px;background:#eef0f4;border:0.5px solid #dfe3ea;margin:2rem 0 1.8rem}
-  .mb-you{position:absolute;top:50%;left:50%;width:52px;height:52px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;outline:none;z-index:3}
+  .mb-fig{font-size:1.7rem;font-weight:600;transition:color .3s ease}
+  .mb-figrole{font-size:.85rem;color:#5a5f6b;margin-bottom:1.1rem;min-height:1.1em}
+
+  /* three-anchor legend chips */
+  .mb-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin:.2rem 0 1.4rem}
+  .mb-chip{display:inline-flex;flex-direction:column;gap:.1rem;padding:.4rem .7rem;border-radius:12px;border:1px solid #dfe3ea;background:#f7f9ff;cursor:pointer;transition:border-color .25s,box-shadow .25s,background .25s}
+  .mb-chip .k{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#8a8f99}
+  .mb-chip .v{font-size:.98rem;font-weight:600;color:#1e2a4a}
+  .mb-chip.sel{border-color:#2b54e6;box-shadow:0 0 0 3px rgba(43,84,230,.14);background:#eef3ff}
+  .mb-chip[data-slot="ideal"] .k{color:#5b7bf0}
+  .mb-chip[data-slot="res"] .k{color:#13205c}
+
+  .mb-track{position:relative;height:8px;border-radius:6px;background:#eef0f4;border:0.5px solid #dfe3ea;margin:2.4rem 0 1.8rem}
+  /* your own range: translucent band from lowest to highest figure */
+  .mb-band{position:absolute;top:50%;height:8px;transform:translateY(-50%);border-radius:6px;background:linear-gradient(90deg,rgba(91,123,240,.30),rgba(43,84,230,.42),rgba(19,32,92,.34));pointer-events:none;z-index:0;transition:background .4s}
+
+  /* reservation handle = the spinning orbit hub (the binding "walk-away" figure) */
+  .mb-you{position:absolute;top:50%;left:50%;width:52px;height:52px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;outline:none;z-index:4}
   .mb-you:active{cursor:grabbing}
-  .hub{position:absolute;top:50%;left:50%;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid #2b54e6;transform:translate(-50%,-50%);z-index:2;box-shadow:0 0 8px 1px rgba(43,84,230,.35)}
+  .hub{position:absolute;top:50%;left:50%;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid #13205c;transform:translate(-50%,-50%);z-index:2;box-shadow:0 0 8px 1px rgba(19,32,92,.4)}
   .ring{position:absolute;inset:0;animation:mb-spin 3.4s linear infinite}
   @keyframes mb-spin{to{transform:rotate(360deg)}}
   .od-blue{position:absolute;top:50%;left:50%;width:14px;height:14px;border-radius:50%;background:#2b54e6;transform:translate(-50%,-50%) translateX(-18px);box-shadow:0 0 11px 3px rgba(43,84,230,.5)}
   .mb-you:focus-visible .hub{box-shadow:0 0 0 4px rgba(43,84,230,.3)}
+
+  /* the two softer handles: ideal (hollow ring) + fair (solid dot) */
+  .mb-h{position:absolute;top:50%;left:50%;width:34px;height:34px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;outline:none;z-index:3;display:flex;align-items:center;justify-content:center}
+  .mb-h:active{cursor:grabbing}
+  .mb-h .dot{width:15px;height:15px;border-radius:50%;transition:transform .15s}
+  .mb-h[data-slot="fair"] .dot{background:#2b54e6;box-shadow:0 0 8px 2px rgba(43,84,230,.4)}
+  .mb-h[data-slot="ideal"] .dot{background:#fff;border:2px solid #5b7bf0;box-shadow:0 0 7px 1px rgba(91,123,240,.4)}
+  .mb-h:focus-visible .dot,.mb-h.live .dot{transform:scale(1.22)}
+
   .mb-snake{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:1;transition:opacity .5s ease}
   .seg{position:absolute;border-radius:50%;transform:translate(-50%,-50%)}
   .mb-pops{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:2}
   .pp{position:absolute;width:9px;height:9px;border-radius:50%;will-change:transform,opacity}
   .mb-scale{display:flex;justify-content:space-between;font-size:.72rem;color:#8a8f99;margin-top:.5rem}
+
+  /* proximity highlight meter — the "you're nearly there" signal */
+  .mb-prox{margin:1.1rem 0 .2rem}
+  .mb-prox-bar{position:relative;height:7px;border-radius:6px;background:#eef0f4;border:0.5px solid #dfe3ea;overflow:hidden}
+  .mb-prox-fill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:6px;background:#c7cdda;transition:width .6s cubic-bezier(.2,.7,.3,1),background .5s}
+  .mb-prox-fill.lvl-apart{background:#2b54e6}
+  .mb-prox-fill.lvl-near{background:#f5b400;box-shadow:0 0 12px 2px rgba(245,180,0,.55)}
+  .mb-prox-fill.lvl-close{background:#23a259}
+  .mb-prox-fill.lvl-overlap{background:#23a259;box-shadow:0 0 14px 3px rgba(35,162,89,.5)}
+  .mb-prox-text{font-size:.78rem;color:#8a8f99;margin-top:.45rem;min-height:1em;transition:color .3s}
+  .mb-prox-text.hot{color:#9a6b00;font-weight:600}
+
   .coach{display:flex;gap:.55rem;align-items:flex-start;margin:1rem 0 0;padding:.7rem .9rem;border-radius:14px;background:#f3f6ff;border:1px solid #e0e7fb;color:#1e2a4a;font-size:.95rem;line-height:1.45}
   .coach .coach-badge{flex:0 0 auto;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#fff;background:linear-gradient(135deg,#2647d6,#13205c);padding:.3rem .46rem;border-radius:7px;margin-top:.05rem}
   .coach.tone-warning{background:#fff6ec;border-color:#f2dcc1;color:#5a3a17}
@@ -50,15 +85,29 @@
 
 <div class="card mb-card">
   <div class="mb-figwrap">
-    <div class="mb-fig">£<span id="figNum"><%= status.myValue == null ? fmt(Math.round(c.amount/2)) : fmt(status.myValue) %></span></div>
-    <div class="mb-figrole"><%= role === 'claim' ? 'The least you will accept' : 'The most you will pay' %></div>
+    <div class="mb-fig">£<span id="figNum">0</span></div>
+    <div class="mb-figrole" id="figRole">Drag the three handles to set your figures</div>
+  </div>
+
+  <div class="mb-chips" id="chips">
+    <div class="mb-chip" data-slot="ideal"><span class="k" id="kIdeal">Ideal</span><span class="v">£<span id="vIdeal">0</span></span></div>
+    <div class="mb-chip" data-slot="fair"><span class="k">Target</span><span class="v">£<span id="vFair">0</span></span></div>
+    <div class="mb-chip" data-slot="res"><span class="k" id="kRes">Walk-away</span><span class="v">£<span id="vRes">0</span></span></div>
   </div>
 
   <div class="mb-track" id="track">
+    <div class="mb-band" id="band"></div>
+    <div class="mb-h" id="hIdeal" data-slot="ideal"><span class="dot"></span></div>
+    <div class="mb-h" id="hFair" data-slot="fair"><span class="dot"></span></div>
     <div class="mb-you" id="you"><span class="hub"></span><span class="ring" id="ring"><span class="od-blue"></span></span></div>
     <div class="mb-pops" id="pops"></div>
   </div>
   <div class="mb-scale"><span>£0</span><span>£<%= fmt(Math.round(c.amount/2)) %></span><span>£<%= fmt(c.amount) %></span></div>
+
+  <div class="mb-prox">
+    <div class="mb-prox-bar"><div class="mb-prox-fill" id="proxFill"></div></div>
+    <div class="mb-prox-text" id="proxText"></div>
+  </div>
 
   <div class="coach tone-<%= status.coach ? status.coach.tone : 'idle' %>" id="coachBox" <%= status.coach ? '' : 'style="display:none"' %>>
     <span class="coach-badge">midbid</span>
@@ -66,12 +115,12 @@
   </div>
 
   <div class="mb-actions">
-    <button class="btn btn-primary" type="button" id="saveBtn">Save my figure</button>
+    <button class="btn btn-primary" type="button" id="saveBtn">Save my figures</button>
     <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Approve settlement</span></button>
     <span class="muted" id="saveHint"></span>
   </div>
 
-  <p class="note">🔒&nbsp; Blue is your figure. The other side never sees your number — the coach only tells you when you are within 10%.</p>
+  <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
 
   <div class="mb-med-wrap" id="medWrap">
     <a class="mb-med" id="mediation" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener"><span>Create mediation agreement</span><span aria-hidden="true" style="margin-left:3px">↗</span></a>
@@ -84,21 +133,49 @@
 <script>
   var AMOUNT = <%= c.amount %>;
   var CASE_ID = <%= c.id %>;
-  var INIT = <%- JSON.stringify({ myValue: status.myValue, close: !!status.close, mineApproved: !!status.mineApproved, otherApproved: !!status.otherApproved, state: status.state }) %>;
+  var ROLE = '<%= role %>';                       // 'claim' (wants high) or 'resp' (wants low)
+  var INIT = <%- JSON.stringify({ mine: status.mine, close: !!status.close, prox: status.prox, mineApproved: !!status.mineApproved, otherApproved: !!status.otherApproved, state: status.state }) %>;
 
   var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
-  var figNum=document.getElementById('figNum'), pops=document.getElementById('pops');
+  var hIdeal=document.getElementById('hIdeal'), hFair=document.getElementById('hFair'), band=document.getElementById('band');
+  var figNum=document.getElementById('figNum'), figRole=document.getElementById('figRole'), pops=document.getElementById('pops');
+  var vIdeal=document.getElementById('vIdeal'), vFair=document.getElementById('vFair'), vRes=document.getElementById('vRes');
+  var kIdeal=document.getElementById('kIdeal'), kRes=document.getElementById('kRes');
   var saveBtn=document.getElementById('saveBtn'), saveHint=document.getElementById('saveHint');
   var btn=document.getElementById('approve'), approveLbl=document.getElementById('approveLbl');
   var coachBox=document.getElementById('coachBox'), coachText=document.getElementById('coachText');
-  var medWrap=document.getElementById('medWrap');
+  var proxFill=document.getElementById('proxFill'), proxText=document.getElementById('proxText');
+  var medWrap=document.getElementById('medWrap'), chips=document.getElementById('chips');
 
-  var yourPct = (INIT.myValue!=null) ? INIT.myValue/AMOUNT : 0.5;
-  var dragging=false, lastPopX=null, started=false, locked=false;
+  // Role-aware labels. Both roles read left->right as [low, mid, high].
+  var LBL = ROLE==='claim'
+    ? { res:'The least you’ll accept', fair:'Your target figure', ideal:'Your ideal outcome', kIdeal:'Ideal', kRes:'Walk-away' }
+    : { res:'The most you’ll pay',     fair:'Your target figure', ideal:'Your ideal outcome', kIdeal:'Ideal', kRes:'Walk-away' };
+  kIdeal.textContent=LBL.kIdeal; kRes.textContent=LBL.kRes;
+
+  // slot fractions, always lo <= mid <= hi (left to right on the track)
+  var MINGAP=0.015, lo, mid, hi;
+  function fracFromVal(v){ return Math.max(0,Math.min(1, v/AMOUNT)); }
+  if (INIT.mine && INIT.mine.reservation!=null){
+    var a=INIT.mine;
+    if (ROLE==='claim'){ lo=fracFromVal(a.reservation); mid=fracFromVal(a.fair!=null?a.fair:a.reservation); hi=fracFromVal(a.ideal!=null?a.ideal:a.fair); }
+    else { hi=fracFromVal(a.reservation); mid=fracFromVal(a.fair!=null?a.fair:a.reservation); lo=fracFromVal(a.ideal!=null?a.ideal:a.fair); }
+  } else {
+    if (ROLE==='claim'){ lo=0.40; mid=0.60; hi=0.80; } else { lo=0.20; mid=0.40; hi=0.60; }
+  }
+  function order(){ if(mid<lo+MINGAP)mid=lo+MINGAP; if(hi<mid+MINGAP)hi=mid+MINGAP; if(hi>1){hi=1; if(mid>hi-MINGAP)mid=hi-MINGAP; if(lo>mid-MINGAP)lo=mid-MINGAP;} if(lo<0)lo=0; }
+
+  // map slots -> meaning
+  function resFrac(){ return ROLE==='claim'?lo:hi; }
+  function idealFrac(){ return ROLE==='claim'?hi:lo; }
+  function anchorsGBP(){
+    return { ideal:Math.round(idealFrac()*AMOUNT), fair:Math.round(mid*AMOUNT), reservation:Math.round(resFrac()*AMOUNT) };
+  }
+
+  var dragging=null, lastPopX=null, locked=false;
   var gClose=INIT.close, phase='negotiate', t=0, btnX=0, btnY=0, btnW=120, btnH=36, circleStart=0;
 
   function gbp(n){ return Number(n).toLocaleString('en-GB'); }
-  function money(n){ return Number(Math.round(n)).toLocaleString('en-GB'); }
 
   function makeSnake(hex, glow){
     var layer=document.createElement('div'); layer.className='mb-snake'; track.appendChild(layer);
@@ -114,13 +191,40 @@
   var yellow=makeSnake('#f5b400','rgba(245,180,0,A)');
   var blue=makeSnake('#2b54e6','rgba(43,84,230,A)'); blue.layer.style.display='none';
 
-  function placeFig(){ figNum.textContent=gbp(Math.round(yourPct*AMOUNT)); you.style.left=(yourPct*100)+'%'; you.setAttribute('aria-valuenow',Math.round(yourPct*AMOUNT)); }
+  function placeAll(){
+    order();
+    you.style.left=(resFrac()*100)+'%';
+    hFair.style.left=(mid*100)+'%';
+    hIdeal.style.left=(idealFrac()*100)+'%';
+    band.style.left=(lo*100)+'%';
+    band.style.width=((hi-lo)*100)+'%';
+    var a=anchorsGBP();
+    vIdeal.textContent=gbp(a.ideal); vFair.textContent=gbp(a.fair); vRes.textContent=gbp(a.reservation);
+    you.setAttribute('aria-valuenow',a.reservation);
+  }
+  function headline(slot){
+    var a=anchorsGBP();
+    if(slot==='ideal'){ figNum.textContent=gbp(a.ideal); figRole.textContent=LBL.ideal; }
+    else if(slot==='res'){ figNum.textContent=gbp(a.reservation); figRole.textContent=LBL.res; }
+    else { figNum.textContent=gbp(a.fair); figRole.textContent=LBL.fair; }
+    [].forEach.call(chips.children,function(ch){ ch.classList.toggle('sel', ch.getAttribute('data-slot')===slot); });
+  }
+  // chip click jumps the headline to that figure
+  [].forEach.call(chips.children,function(ch){ ch.addEventListener('click',function(){ headline(ch.getAttribute('data-slot')); }); });
+
   function setCoach(tone,text){
     if(!coachBox)return;
     if(!text){ coachBox.style.display='none'; return; }
     var changed=coachText.textContent!==text;
     coachText.textContent=text; coachBox.className='coach tone-'+(tone||'idle'); coachBox.style.display='flex';
     if(changed){ coachBox.classList.remove('pop'); void coachBox.offsetWidth; coachBox.classList.add('pop'); }
+  }
+  function setProx(p){
+    if(!p){ proxFill.style.width='0%'; proxText.textContent=''; return; }
+    proxFill.style.width=Math.round((p.fill||0)*100)+'%';
+    proxFill.className='mb-prox-fill lvl-'+(p.level||'far');
+    proxText.textContent=p.text||'';
+    proxText.classList.toggle('hot', p.level==='near');
   }
   function setApprove(state){
     btn.classList.remove('ready');
@@ -133,12 +237,13 @@
   function applyStatus(s){
     if(!s) return;
     gClose = !!s.close;
+    if(s.prox) setProx(s.prox);
     if(locked) return;
     if(s.state==='settled'){ runSeal(); return; }
     if(s.mineApproved){ phase='mine'; setApprove('waiting'); setCoach('success',"You've approved — waiting for the other side to accept."); ring.style.animationDuration='2.4s'; return; }
     phase='negotiate';
     if(s.close && s.otherApproved){ setApprove('ready'); setCoach('success',"The other side has approved — approve to lock it in."); }
-    else if(s.close){ setApprove('ready'); setCoach('success',"You're within 10% of each other — either side can approve to settle."); }
+    else if(s.close){ setApprove('ready'); setCoach('success',"You're within range of each other — either side can approve to settle."); }
     else { setApprove('idle'); if(s.coach) setCoach(s.coach.tone, s.coach.text); }
   }
 
@@ -166,7 +271,7 @@
   function spawnPop(px){
     for(var i=0;i<2;i++){
       var d=document.createElement('span'); d.className='pp'; var bl=Math.random()<0.5;
-      d.style.background=bl?'#2b54e6':'#f5b400'; d.style.boxShadow='0 0 7px 1px '+(bl?'rgba(43,84,230,.5)':'rgba(245,180,0,.5)');
+      d.style.background=bl?'#2b54e6':'#5b7bf0'; d.style.boxShadow='0 0 7px 1px '+(bl?'rgba(43,84,230,.5)':'rgba(91,123,240,.5)');
       d.style.left=(px+(Math.random()*16-8))+'px'; d.style.top='50%'; d.style.transform='translate(-50%,-50%)'; pops.appendChild(d);
       (function(el){var up=18+Math.random()*10;
         requestAnimationFrame(function(){el.style.transition='transform .3s cubic-bezier(.3,1.25,.5,1)';el.style.transform='translate(-50%,calc(-50% - '+up+'px))';});
@@ -195,8 +300,8 @@
     saveBtn.style.display='none';
     measureBtn();
     var W=track.clientWidth||520;
-    you.style.display='none';
-    blue.layer.style.display='block'; blue.x=yourPct*W; blue.y=0; blue.hist=[];
+    you.style.display='none'; hFair.style.display='none'; hIdeal.style.display='none';
+    blue.layer.style.display='block'; blue.x=resFrac()*W; blue.y=0; blue.hist=[];
     setCoach('success',"Both sides approved — sealing the deal…");
     phase='travel';
     setTimeout(function(){ phase='circle'; circleStart=performance.now(); },1100);
@@ -213,7 +318,8 @@
   function finalizeNow(){
     locked=true; phase='agreed';
     saveBtn.style.display='none';
-    you.style.display='none'; yellow.layer.style.display='none'; blue.layer.style.display='none';
+    you.style.display='none'; hFair.style.display='none'; hIdeal.style.display='none';
+    yellow.layer.style.display='none'; blue.layer.style.display='none';
     setApprove('green');
     setCoach('success',"Agreed. This figure is locked in by both sides.");
     medWrap.classList.add('show');
@@ -221,41 +327,80 @@
 
   function postForm(url,body){ return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body}).then(function(r){return r.json();}); }
 
-  function saveFigure(){
+  function saveFigures(){
+    var a=anchorsGBP();
     saveBtn.disabled=true; saveHint.textContent='Saving…';
-    postForm('/cases/'+CASE_ID+'/bid','value='+encodeURIComponent(Math.round(yourPct*AMOUNT)))
+    postForm('/cases/'+CASE_ID+'/bid','ideal='+a.ideal+'&fair='+a.fair+'&reservation='+a.reservation)
       .then(function(s){ applyStatus(s); saveBtn.disabled=false; saveHint.textContent='Saved.'; setTimeout(function(){saveHint.textContent='';},1500); })
       .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not save — try again.'; });
   }
   function approve(){
     if(phase!=='negotiate'||locked) return;
-    if(!gClose){ started=true; setCoach('warning',"You're not within 10% yet — save a closer figure first."); return; }
+    if(!gClose){ setCoach('warning',"You're not close enough yet — save a closer walk-away figure first."); return; }
     btn.classList.remove('ready'); setApprove('waiting'); setCoach('success',"You've approved — letting the other side know…");
     postForm('/cases/'+CASE_ID+'/approve','')
       .then(function(s){ applyStatus(s); })
       .catch(function(){ setCoach('warning',"Could not record your approval — try again."); setApprove('ready'); });
   }
 
-  function setFromClientX(clientX){
-    var r=track.getBoundingClientRect(); var p=Math.max(0,Math.min(1,(clientX-r.left)/r.width)); var px=p*r.width;
-    if(lastPopX===null||Math.abs(px-lastPopX)>26){ spawnPop(px); lastPopX=px; }
-    yourPct=p; placeFig();
+  // ---- three-handle dragging with ordering constraints ----
+  function clampSlot(slot,p){
+    if(slot==='lo')  return Math.max(0, Math.min(p, mid-MINGAP));
+    if(slot==='mid') return Math.max(lo+MINGAP, Math.min(p, hi-MINGAP));
+    return Math.max(mid+MINGAP, Math.min(p, 1));   // 'hi'
   }
-  function down(e){ if(locked||phase==='agreed') return; dragging=true; started=true; lastPopX=null; if(you.setPointerCapture&&e.pointerId!=null){try{you.setPointerCapture(e.pointerId);}catch(_){}} setFromClientX(e.clientX); e.preventDefault(); }
-  function move(e){ if(dragging) setFromClientX(e.clientX); }
-  function up(){ dragging=false; lastPopX=null; }
-  you.addEventListener('pointerdown',down);
-  track.addEventListener('pointerdown',down);
-  window.addEventListener('pointermove',move);
-  window.addEventListener('pointerup',up);
-  you.tabIndex=0; you.setAttribute('role','slider'); you.setAttribute('aria-label','Your figure'); you.setAttribute('aria-valuemin',0); you.setAttribute('aria-valuemax',AMOUNT);
+  function slotForHandle(el){
+    if(el===hFair) return 'mid';
+    if(el===you) return ROLE==='claim'?'lo':'hi';
+    if(el===hIdeal) return ROLE==='claim'?'hi':'lo';
+    return null;
+  }
+  function chipSlotFor(slot){
+    if(slot==='mid') return 'fair';
+    if(slot===(ROLE==='claim'?'lo':'hi')) return 'res';
+    return 'ideal';
+  }
+  function setSlot(slot,p){
+    if(slot==='lo')lo=clampSlot('lo',p); else if(slot==='mid')mid=clampSlot('mid',p); else hi=clampSlot('hi',p);
+    placeAll(); headline(chipSlotFor(slot));
+  }
+  function nearestHandle(p){
+    var cands=[{el:you,f:resFrac()},{el:hFair,f:mid},{el:hIdeal,f:idealFrac()}];
+    cands.sort(function(a,b){return Math.abs(a.f-p)-Math.abs(b.f-p);});
+    return cands[0].el;
+  }
+  function pFromClientX(clientX){ var r=track.getBoundingClientRect(); return Math.max(0,Math.min(1,(clientX-r.left)/r.width)); }
+  function down(el,e){
+    if(locked||phase==='agreed') return;
+    dragging=el; lastPopX=null; el.classList.add('live');
+    if(el.setPointerCapture&&e.pointerId!=null){try{el.setPointerCapture(e.pointerId);}catch(_){}}
+    var p=pFromClientX(e.clientX); var slot=slotForHandle(el);
+    var px=p*(track.getBoundingClientRect().width);
+    if(lastPopX===null||Math.abs(px-lastPopX)>26){ spawnPop(px); lastPopX=px; }
+    setSlot(slot,p); e.preventDefault();
+  }
+  you.addEventListener('pointerdown',function(e){down(you,e);});
+  hFair.addEventListener('pointerdown',function(e){down(hFair,e);});
+  hIdeal.addEventListener('pointerdown',function(e){down(hIdeal,e);});
+  track.addEventListener('pointerdown',function(e){ if(e.target.closest('.mb-you,.mb-h'))return; down(nearestHandle(pFromClientX(e.clientX)),e); });
+  window.addEventListener('pointermove',function(e){
+    if(!dragging) return;
+    var p=pFromClientX(e.clientX), slot=slotForHandle(dragging);
+    var px=p*(track.getBoundingClientRect().width);
+    if(lastPopX===null||Math.abs(px-lastPopX)>26){ spawnPop(px); lastPopX=px; }
+    setSlot(slot,p);
+  });
+  window.addEventListener('pointerup',function(){ if(dragging){dragging.classList.remove('live'); dragging=null;} lastPopX=null; });
+
+  // keyboard for the reservation hub
+  you.tabIndex=0; you.setAttribute('role','slider'); you.setAttribute('aria-label','Your walk-away figure'); you.setAttribute('aria-valuemin',0); you.setAttribute('aria-valuemax',AMOUNT);
   you.addEventListener('keydown',function(e){
-    if(locked)return;
-    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ started=true; yourPct=Math.max(0,yourPct-0.02); spawnPop(yourPct*track.clientWidth); placeFig(); e.preventDefault(); }
-    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ started=true; yourPct=Math.min(1,yourPct+0.02); spawnPop(yourPct*track.clientWidth); placeFig(); e.preventDefault(); }
+    if(locked)return; var slot=ROLE==='claim'?'lo':'hi'; var cur=resFrac();
+    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ setSlot(slot,cur-0.02); spawnPop(resFrac()*track.clientWidth); e.preventDefault(); }
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ setSlot(slot,cur+0.02); spawnPop(resFrac()*track.clientWidth); e.preventDefault(); }
   });
 
-  if(saveBtn) saveBtn.addEventListener('click',saveFigure);
+  if(saveBtn) saveBtn.addEventListener('click',saveFigures);
   btn.addEventListener('click',approve);
 
   var copyBtn=document.getElementById('copyBtn');
@@ -267,9 +412,11 @@
     fetch('/cases/'+CASE_ID+'/status').then(function(r){return r.json();}).then(function(s){ if(s&&s.state) applyStatus(s); }).catch(function(){});
   },4000);
 
-  placeFig();
+  placeAll();
+  headline('fair');
+  setProx(INIT.prox);
   if(INIT.state==='settled'){ finalizeNow(); }
-  else { applyStatus({state:INIT.state, close:INIT.close, mineApproved:INIT.mineApproved, otherApproved:INIT.otherApproved, coach:null}); }
+  else { applyStatus({state:INIT.state, close:INIT.close, prox:INIT.prox, mineApproved:INIT.mineApproved, otherApproved:INIT.otherApproved, coach:null}); }
   requestAnimationFrame(frame);
 </script>
 <%- include('partials/foot') %>

@@ -53,6 +53,15 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_approved BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_approved BOOLEAN NOT NULL DEFAULT false;`);
+  // Three-anchor bidding. The existing claim_value / resp_value keep their meaning
+  // (claimant's floor = least they'll accept; respondent's ceiling = most they'll pay)
+  // and now act as the "walk-away" anchor. These two add the softer anchors per side:
+  //   *_ideal = the best realistic outcome for that party
+  //   *_fair  = the figure they would genuinely consider (their middle / target)
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_ideal INTEGER;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_fair  INTEGER;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_ideal  INTEGER;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_fair   INTEGER;`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -106,6 +115,14 @@ const db = {
   async setRespondent(userId, status, id) { await pool.query('UPDATE cases SET respondent_id=$1, status=$2 WHERE id=$3', [userId, status, id]); },
   async setClaimValue(value, id) { await pool.query('UPDATE cases SET claim_value=$1 WHERE id=$2', [value, id]); },
   async setRespValue(value, id) { await pool.query('UPDATE cases SET resp_value=$1 WHERE id=$2', [value, id]); },
+  // Save all three claimant anchors at once. floor -> claim_value (the binding walk-away).
+  async setClaimAnchors(ideal, fair, floor, id) {
+    await pool.query('UPDATE cases SET claim_ideal=$1, claim_fair=$2, claim_value=$3 WHERE id=$4', [ideal, fair, floor, id]);
+  },
+  // Save all three respondent anchors at once. ceil -> resp_value (the binding walk-away).
+  async setRespAnchors(ideal, fair, ceil, id) {
+    await pool.query('UPDATE cases SET resp_ideal=$1, resp_fair=$2, resp_value=$3 WHERE id=$4', [ideal, fair, ceil, id]);
+  },
   async settle(status, value, id) { await pool.query('UPDATE cases SET status=$1, settled_value=$2, settled_at=now() WHERE id=$3', [status, value, id]); },
   async setApproval(role, id) {
     const col = role === 'claim' ? 'claim_approved' : 'resp_approved';

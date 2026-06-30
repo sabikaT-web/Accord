@@ -40,6 +40,7 @@ const fs = require('node:fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CLOSE_THRESHOLD = 0.10;                                   // "within 10% of the amount in dispute"
+const FAIR_THRESHOLD  = 0.15;                                   // softer "within 15%" highlight on the middle (Fair) anchors
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com').toLowerCase();
 
 app.set('view engine', 'ejs');
@@ -118,6 +119,42 @@ function roleOf(c, userId) {
 }
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+// Blind proximity read. Sees BOTH sides' anchors but returns ONLY a coarse band
+// and a safe message — never a number, never the gap, never the other side's figure.
+//   claim_value = claimant floor (least they'll accept)  -> their walk-away
+//   resp_value  = respondent ceiling (most they'll pay)   -> their walk-away
+//   *_fair      = the middle figure each side would genuinely consider
+// A deal is possible once the walk-aways overlap (ceiling >= floor). The Fair
+// anchors give an earlier, softer "you're nearly there" highlight at 15%.
+function proximity(c) {
+  const A = c.amount || 1;
+  const cFloor = c.claim_value, rCeil = c.resp_value;
+  const cFair = c.claim_fair,  rFair = c.resp_fair;
+  const resIn  = cFloor != null && rCeil != null;
+  const fairIn = cFair  != null && rFair != null;
+  if (!resIn) return { level: 'pending', fill: 0, canApprove: false };
+
+  const overlap = rCeil >= cFloor;                 // ranges meet -> settlement available
+  const resGap  = (cFloor - rCeil) / A;            // >0 still apart, <=0 overlap (walk-aways)
+  const fairGap = fairIn ? Math.abs(cFair - rFair) / A : null;
+
+  if (overlap)                       return { level: 'overlap', fill: 1.00, canApprove: true };
+  if (resGap <= CLOSE_THRESHOLD)     return { level: 'close',   fill: 0.85, canApprove: true };   // within 10% on walk-aways
+  if (fairGap != null && fairGap <= FAIR_THRESHOLD)
+                                     return { level: 'near',    fill: 0.62, canApprove: false };  // within 15% on the Fair figures
+  if (resGap <= 0.30)                return { level: 'apart',   fill: 0.40, canApprove: false };
+  return { level: 'far', fill: 0.20, canApprove: false };
+}
+
+const PROX_TEXT = {
+  pending: '',
+  far:     'Some distance between you for now — nothing about your figures is shared.',
+  apart:   'Getting closer, but still a gap. A slightly bolder move could help.',
+  near:    'Your realistic figures look within about 15% of each other — a deal is in reach.',
+  close:   "You're within 10% — either side can approve to settle.",
+  overlap: 'Your ranges meet — a settlement is available. Approve to lock it in.'
+};
+
 // Friendly coach: picks a short nudge based on how extreme YOUR figure is
 // and how far the two sides are apart. Runs server-side, so it can see both
 // numbers — but it NEVER returns the other side's figure or the actual gap,
@@ -150,22 +187,20 @@ function coachNudge(c, role) {
     return { tone: 'idle', text: "You're in. Sit tight — nothing about your figure is shared." };
   }
 
-  // --- Both in: coach on the GAP (this never reveals their number) ---
-  const gap = claim - resp;               // > 0 means still apart
-  if (gap <= 0) return { tone: 'deal', text: "You've met in the middle. Nice work." };
-
-  const g = gap / (A || 1);               // gap as a share of the amount in dispute
-  if (g <= 0.10) return { tone: 'close', text: pick([
+  // --- Both walk-aways in: coach on the BAND (never reveals their number) ---
+  const p = proximity(c);
+  if (p.level === 'overlap') return { tone: 'deal',  text: "Your ranges meet — you can settle. Nice work." };
+  if (p.level === 'close')   return { tone: 'close', text: pick([
     "You're nearly there — a small move closes this.",
     "So close. A lawyer would take more than this gap in fees anyway — worth finishing here."
   ]) };
-  if (g <= 0.30) return { tone: 'close', text: pick([
-    "You're within reach. Want to meet somewhere in the middle?",
-    "Not far now — one step from each side and you're done."
+  if (p.level === 'near')    return { tone: 'close', text: pick([
+    "Your realistic figures are within about 15% — one step from each side does it.",
+    "Within reach now — your middle figures are close. Want to meet around there?"
   ]) };
-  if (g <= 0.60) return { tone: 'warn', text: pick([
-    "You might still be a fair way from each other's number.",
-    "Some distance left — try a slightly bigger move this round."
+  if (p.level === 'apart')   return { tone: 'warn',  text: pick([
+    "Some distance left — try a slightly bigger move this round.",
+    "You might still be a fair way apart on the figure that binds."
   ]) };
   return { tone: 'warn', text: pick([
     "You might be stretching this a little — big gaps rarely settle on their own.",
@@ -175,22 +210,29 @@ function coachNudge(c, role) {
 
 // The blind-bid brain: returns ONLY what the asking side may see.
 function viewerStatus(c, role) {
-  const myValue = role === 'claim' ? c.claim_value : c.resp_value;
+  const p = proximity(c);                                  // coarse, safe band
+  const mine = role === 'claim'
+    ? { ideal: c.claim_ideal, fair: c.claim_fair, reservation: c.claim_value }
+    : { ideal: c.resp_ideal,  fair: c.resp_fair,  reservation: c.resp_value };
+  const myValue = mine.reservation;                        // the binding walk-away figure
   const bothIn = c.claim_value != null && c.resp_value != null;
-  const gap = bothIn ? Math.abs(c.claim_value - c.resp_value) : null;
-  const close = bothIn && gap <= CLOSE_THRESHOLD * c.amount;
+  const close = p.canApprove;                              // overlap OR within 10% on walk-aways
   const mineApproved = role === 'claim' ? !!c.claim_approved : !!c.resp_approved;
   const otherApproved = role === 'claim' ? !!c.resp_approved : !!c.claim_approved;
   let s;
   if (c.status === 'settled') s = { state: 'settled', colour: 'deal', title: 'Agreed at £' + fmt(c.settled_value), sub: 'Both sides approved. This is your agreed settlement.' };
-  else if (myValue == null) s = { state: 'need_bid', colour: 'idle', title: 'Set your figure to begin', sub: role === 'claim' ? 'Enter the least you will accept.' : 'Enter the most you will pay.' };
+  else if (myValue == null) s = { state: 'need_bid', colour: 'idle', title: 'Set your three figures to begin', sub: role === 'claim' ? 'Your ideal, a figure you would consider, and the least you will accept.' : 'Your ideal, a figure you would consider, and the most you will pay.' };
   else if (!bothIn) s = { state: 'waiting', colour: 'idle', title: 'Waiting for the other side', sub: 'You are in. Nothing is revealed until your figures are close.' };
-  else if (close) s = { state: 'close', colour: 'close', title: "Within 10% — you can approve", sub: 'Either side can approve to settle.' };
+  else if (close) s = { state: 'close', colour: 'close', title: p.level === 'overlap' ? 'Your ranges meet — you can approve' : "Within 10% — you can approve", sub: 'Either side can approve to settle.' };
+  else if (p.level === 'near') s = { state: 'near', colour: 'close', title: 'Within ~15% — nearly there', sub: 'Close the last gap on your walk-away figure to settle.' };
   else s = { state: 'far', colour: 'idle', title: 'No signal yet', sub: 'Keep adjusting — nothing leaks while you are apart.' };
   s.myValue = myValue;
+  s.mine = mine;                          // this viewer's own three anchors (safe — they are theirs)
   s.amount = c.amount;
+  s.role = role;
   s.bothIn = bothIn;
   s.close = close;
+  s.prox = { level: p.level, fill: p.fill, text: PROX_TEXT[p.level] || '' };
   s.mineApproved = mineApproved;
   s.otherApproved = otherApproved;
   s.settledValue = c.settled_value != null ? c.settled_value : null;
@@ -387,13 +429,29 @@ app.post('/cases/:id/bid', requireLogin, wrap(async (req, res) => {
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).json({ error: 'forbidden' });
   if (c.status === 'settled' || c.status === 'closed') return res.json(viewerStatus(c, role));
-  let value = parseInt(req.body.value, 10);
-  if (!(value >= 0)) value = 0;
-  if (value > c.amount) value = c.amount;
-  if (role === 'claim') await db.setClaimValue(value, c.id); else await db.setRespValue(value, c.id);
+
+  const A = c.amount;
+  const clamp = (raw) => { let v = parseInt(raw, 10); if (!(v >= 0)) v = 0; if (v > A) v = A; return v; };
+  let ideal = clamp(req.body.ideal);
+  let fair  = clamp(req.body.fair);
+  let resv  = clamp(req.body.reservation);   // reservation = walk-away (floor for claimant / ceiling for respondent)
+
+  // Enforce the natural ordering of the three anchors so the data always makes sense.
+  // Claimant wants high:   reservation (floor)  <= fair <= ideal (high)
+  // Respondent wants low:  ideal (low)          <= fair <= reservation (ceiling)
+  if (role === 'claim') {
+    fair  = Math.max(resv, fair);
+    ideal = Math.max(fair, ideal);
+    await db.setClaimAnchors(ideal, fair, resv, c.id);
+  } else {
+    fair  = Math.min(resv, fair);
+    ideal = Math.min(fair, ideal);
+    await db.setRespAnchors(ideal, fair, resv, c.id);
+  }
+
   // A changed figure changes the terms, so any earlier approval no longer holds.
   await db.resetApprovals(c.id);
-  await db.addEvent(c.id, 'bid', (role === 'claim' ? 'Claimant' : 'Respondent') + ' submitted a figure');
+  await db.addEvent(c.id, 'bid', (role === 'claim' ? 'Claimant' : 'Respondent') + ' set their three figures');
   const fresh = await db.caseById(c.id);
   res.json(viewerStatus(fresh, role));
 }));
@@ -406,8 +464,7 @@ app.post('/cases/:id/approve', requireLogin, wrap(async (req, res) => {
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).json({ error: 'forbidden' });
   if (c.status === 'settled' || c.status === 'closed') return res.json(viewerStatus(c, role));
-  const bothIn = c.claim_value != null && c.resp_value != null;
-  const close = bothIn && Math.abs(c.claim_value - c.resp_value) <= CLOSE_THRESHOLD * c.amount;
+  const close = proximity(c).canApprove;   // overlap, or within 10% on the walk-away figures
   if (!close) return res.status(400).json(viewerStatus(c, role));
   await db.setApproval(role, c.id);
   await db.addEvent(c.id, 'approved', (role === 'claim' ? 'Claimant' : 'Respondent') + ' approved the settlement');
