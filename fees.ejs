@@ -46,11 +46,12 @@
   <p>The fee that applies depends on two things: the <strong>amount in dispute</strong> for the Case, and <strong>how quickly</strong> a Settlement is reached.</p>
 
   <h2 class="sec"><span class="n">2.</span>The fees</h2>
+  <p>The <strong>percentages are the same in every currency</strong>. Each Case is charged in its own currency (chosen when the Case is created); only the tier threshold and the flat fee differ by currency, as set out in the table below.</p>
 
   <div class="tier tier-a">
     <div class="tier-head">
       <span class="tier-tag">Tier A</span>
-      <span class="tier-cond">Amount in dispute below ₹2,00,000 (₹2 lakh)</span>
+      <span class="tier-cond">Smaller cases — amount in dispute <strong>below</strong> the tier threshold</span>
     </div>
     <div class="fee-rows">
       <div class="when"><span class="pillrow"><span class="dot go"></span> Settles <b>within 30 days</b> of the Case being created</span></div>
@@ -63,25 +64,40 @@
   <div class="tier tier-b">
     <div class="tier-head">
       <span class="tier-tag">Tier B</span>
-      <span class="tier-cond">Amount in dispute ₹2,00,000 (₹2 lakh) or more</span>
+      <span class="tier-cond">Larger cases — amount in dispute <strong>at or above</strong> the tier threshold</span>
     </div>
     <div class="fee-rows">
       <div class="when"><span class="pillrow"><span class="dot go"></span> Settles <b>within 20 days</b> of the Case being created</span></div>
-      <div class="what">₹5,000 <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">flat</span></div>
+      <div class="what">flat fee <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">(see table)</span></div>
       <div class="when"><span class="pillrow"><span class="dot slow"></span> Settles <b>after 20 days</b></span></div>
       <div class="what">5% <span style="font-weight:500;color:var(--ink-soft);font-size:.85rem">of amount in dispute</span></div>
     </div>
   </div>
 
-  <div class="examples">
-    <h3>Worked examples (illustrative)</h3>
-    <ul>
-      <li>₹1,50,000 case that settles on day 12 → Tier A, within 30 days → <strong>10% of the settlement</strong>.</li>
-      <li>₹1,50,000 case that settles on day 45 → Tier A, after 30 days → <strong>15% of the settlement</strong>.</li>
-      <li>₹5,00,000 case that settles on day 8 → Tier B, within 20 days → <strong>₹5,000 flat</strong>.</li>
-      <li>₹5,00,000 case that settles on day 30 → Tier B, after 20 days → <strong>5% of ₹5,00,000 = ₹25,000</strong>.</li>
-    </ul>
+  <h3 style="font-size:.96rem;font-weight:700;margin:1.6rem 0 .5rem">Amounts by currency</h3>
+  <div style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+    <thead>
+      <tr style="text-align:left;border-bottom:2px solid var(--line);color:var(--ink-soft)">
+        <th style="padding:.5rem .6rem .5rem 0">Currency</th>
+        <th style="padding:.5rem .6rem">Tier threshold</th>
+        <th style="padding:.5rem .6rem">Tier B flat fee</th>
+        <th style="padding:.5rem .6rem">Activation fee</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% Object.keys(currencies).forEach(function(code){ var x=currencies[code]; %>
+      <tr style="border-bottom:1px solid var(--line)">
+        <td style="padding:.5rem .6rem .5rem 0"><strong><%= x.symbol %> <%= code %></strong></td>
+        <td style="padding:.5rem .6rem"><%= x.symbol %><%= x.threshold.toLocaleString(x.locale) %></td>
+        <td style="padding:.5rem .6rem"><%= x.symbol %><%= x.flat.toLocaleString(x.locale) %></td>
+        <td style="padding:.5rem .6rem"><%= x.symbol %><%= x.start.toLocaleString(x.locale) %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
   </div>
+  <p style="font-size:.85rem;color:var(--ink-soft);margin-top:.6rem">A one-time <strong>activation fee</strong> opens each Case. The Tier A percentages (10% / 15%) apply to cases below the threshold; the Tier B flat fee or 5% applies at or above it.</p>
 
   <h2 class="sec"><span class="n">3.</span>The fee base and the timing clock</h2>
   <p>3.1 <strong>Amount in dispute</strong> means the value entered when the Case was created. It decides which tier applies.</p>
@@ -95,11 +111,11 @@
 
   <h2 class="sec"><span class="n">5.</span>Payment, currency and refunds</h2>
   <p>5.1 Payments are processed by a third-party provider; we do not store full payment-card details.</p>
-  <p>5.2 Fees are charged in Indian rupees (₹). The Platform does not facilitate payment in other currencies.</p>
+  <p>5.2 Each Case is charged in the currency chosen when it was created (see the table in section 2). Both parties transact in that single currency.</p>
   <p>5.3 Because the success fee is earned only when a Settlement is reached, fees once paid are <strong>non-refundable</strong>, except where required by law or where we have charged you in error.</p>
 
   <h2 class="sec"><span class="n">6.</span>Taxes</h2>
-  <p>All fees are exclusive of taxes. You are responsible for any applicable taxes (for example <span class="fillme">[GST]</span>), which will be added where required by law.</p>
+  <p>All fees are exclusive of taxes. You are responsible for any applicable taxes (for example VAT, GST or sales tax in your country), which will be added where required by law.</p>
 
   <h2 class="sec"><span class="n">7.</span>Changes to this Fee Schedule</h2>
   <p>We may revise this Fee Schedule from time to time. Changes take effect when published and apply to Cases created on or after the effective date of the change. The fees applicable to a Case are those in force on the date the Case is created.</p>

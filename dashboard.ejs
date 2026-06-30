@@ -12,7 +12,7 @@
       <li class="case-row">
         <div>
           <div class="t"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
-          <div class="muted">£<%= fmt(c.amount) %> in dispute</div>
+          <div class="muted"><%= money(c.amount, c.currency) %> in dispute</div>
         </div>
         <span class="pill <%= c.status === 'settled' ? 'settled' : (c.status === 'active' ? 'active' : '') %>">
           <%= c.status === 'awaiting_other' ? 'Awaiting other party' : (c.status === 'active' ? 'In progress' : 'Settled') %>

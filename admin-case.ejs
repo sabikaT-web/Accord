@@ -21,21 +21,21 @@
     <h2>Claimant <span class="muted">(owed money)</span></h2>
     <p><strong><%= c.claimant_acc_email || '—' %></strong><br>
        <span class="muted"><%= c.claimant_name || (c.claimant_acc_email ? '' : 'not joined — invited: ' + c.other_email) %></span></p>
-    <p class="figure">Least they'll accept: <strong><%= c.claim_value != null ? '£' + fmt(c.claim_value) : '— not entered' %></strong></p>
+    <p class="figure">Least they'll accept: <strong><%= c.claim_value != null ? money(c.claim_value, c.currency) : '— not entered' %></strong></p>
   </div>
   <div class="card">
     <h2>Respondent <span class="muted">(owes money)</span></h2>
     <p><strong><%= c.respondent_acc_email || '—' %></strong><br>
        <span class="muted"><%= c.respondent_name || (c.respondent_acc_email ? '' : 'not joined — invited: ' + c.other_email) %></span></p>
-    <p class="figure">Most they'll pay: <strong><%= c.resp_value != null ? '£' + fmt(c.resp_value) : '— not entered' %></strong></p>
+    <p class="figure">Most they'll pay: <strong><%= c.resp_value != null ? money(c.resp_value, c.currency) : '— not entered' %></strong></p>
   </div>
 </div>
 
 <div class="card">
   <h2>Case details</h2>
   <table class="kv">
-    <tr><td>Amount in dispute</td><td>£<%= fmt(c.amount) %></td></tr>
-    <tr><td>Settlement amount</td><td><%= c.settled_value != null ? '£' + fmt(c.settled_value) : '—' %></td></tr>
+    <tr><td>Amount in dispute</td><td><%= money(c.amount, c.currency) %></td></tr>
+    <tr><td>Settlement amount</td><td><%= c.settled_value != null ? money(c.settled_value, c.currency) : '—' %></td></tr>
     <tr><td>Created</td><td><%= fmtDate(c.created_at) %></td></tr>
     <tr><td>Settled</td><td><%= fmtDate(c.settled_at) %></td></tr>
   </table>

@@ -71,10 +71,18 @@
   .mb-med{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:#13205c;background:transparent;border:0.5px solid #c7cdda;border-radius:999px;padding:.55rem 1.05rem;cursor:pointer;text-decoration:none}
   .mb-med:hover{background:#f3f6ff}
   .mb-med-cap{display:block;font-size:.78rem;color:#8a8f99;margin-top:.5rem}
+  .mb-escalate{margin-top:1.2rem;padding-top:1rem;border-top:0.5px dashed #e3e6ec}
+  .mb-esc-row{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+  .mb-esc-btn{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:.88rem;font-weight:600;color:#13205c;background:#fff;border:1px solid #c7cdda;border-radius:999px;padding:.5rem 1rem;cursor:pointer;transition:background .2s,border-color .2s}
+  .mb-esc-btn:hover:not(:disabled){background:#f3f6ff;border-color:#2b54e6}
+  .mb-esc-btn:disabled{cursor:default;color:#23a259;border-color:#cce9d4;background:#eef9f1}
+  .mb-esc-cap{font-size:.8rem;color:#8a8f99;line-height:1.4;flex:1 1 220px}
+  .mb-pay{display:inline-flex;align-items:center;gap:6px;font-size:.92rem;font-weight:700;color:#fff;background:#23a259;border:none;border-radius:999px;padding:.6rem 1.15rem;cursor:pointer;box-shadow:0 0 16px 3px rgba(35,162,89,.35);transition:filter .2s}
+  .mb-pay:hover{filter:brightness(1.05)}
 </style>
 
 <h1 class="page serif"><%= c.title %></h1>
-<p class="sub">£<%= fmt(c.amount) %> in dispute · you are the party who <strong><%= role === 'claim' ? 'is owed money' : 'owes money' %></strong>.</p>
+<p class="sub"><%= money(c.amount, c.currency) %> in dispute · you are the party who <strong><%= role === 'claim' ? 'is owed money' : 'owes money' %></strong>.</p>
 
 <% if (c.status === 'awaiting_other') { %>
   <div class="banner">Waiting for the other party to join. Send them this private link:
@@ -85,14 +93,14 @@
 
 <div class="card mb-card">
   <div class="mb-figwrap">
-    <div class="mb-fig">£<span id="figNum">0</span></div>
+    <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
     <div class="mb-figrole" id="figRole">Drag the three handles to set your figures</div>
   </div>
 
   <div class="mb-chips" id="chips">
-    <div class="mb-chip" data-slot="ideal"><span class="k" id="kIdeal">Ideal</span><span class="v">£<span id="vIdeal">0</span></span></div>
-    <div class="mb-chip" data-slot="fair"><span class="k">Target</span><span class="v">£<span id="vFair">0</span></span></div>
-    <div class="mb-chip" data-slot="res"><span class="k" id="kRes">Walk-away</span><span class="v">£<span id="vRes">0</span></span></div>
+    <div class="mb-chip" data-slot="ideal"><span class="k" id="kIdeal">Ideal</span><span class="v"><%= cur.symbol %><span id="vIdeal">0</span></span></div>
+    <div class="mb-chip" data-slot="fair"><span class="k">Target</span><span class="v"><%= cur.symbol %><span id="vFair">0</span></span></div>
+    <div class="mb-chip" data-slot="res"><span class="k" id="kRes">Walk-away</span><span class="v"><%= cur.symbol %><span id="vRes">0</span></span></div>
   </div>
 
   <div class="mb-track" id="track">
@@ -102,7 +110,7 @@
     <div class="mb-you" id="you"><span class="hub"></span><span class="ring" id="ring"><span class="od-blue"></span></span></div>
     <div class="mb-pops" id="pops"></div>
   </div>
-  <div class="mb-scale"><span>£0</span><span>£<%= fmt(Math.round(c.amount/2)) %></span><span>£<%= fmt(c.amount) %></span></div>
+  <div class="mb-scale"><span><%= cur.symbol %>0</span><span><%= cur.symbol %><%= fmt(Math.round(c.amount/2)) %></span><span><%= cur.symbol %><%= fmt(c.amount) %></span></div>
 
   <div class="mb-prox">
     <div class="mb-prox-bar"><div class="mb-prox-fill" id="proxFill"></div></div>
@@ -122,9 +130,23 @@
 
   <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
 
+  <div class="mb-escalate" id="escalate">
+    <div class="mb-esc-row">
+      <button class="mb-esc-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
+      <span class="mb-esc-cap">Stuck? Bring in an accredited mediator to help close the gap.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></span>
+    </div>
+  </div>
+
   <div class="mb-med-wrap" id="medWrap">
-    <a class="mb-med" id="mediation" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener"><span>Create mediation agreement</span><span aria-hidden="true" style="margin-left:3px">↗</span></a>
-    <span class="mb-med-cap">Turn the agreed figure into an enforceable settlement.</span>
+    <% if (pay && pay.enabled && !pay.successFeePaid) { %>
+      <form method="POST" action="/cases/<%= c.id %>/pay/success-fee" style="margin:0">
+        <button class="mb-pay" type="submit">Lock in your settlement<%= pay.successFeeLabel ? ' · ' + pay.successFeeLabel : '' %></button>
+      </form>
+      <span class="mb-med-cap">Once paid, your settlement agreement is ready to sign and download.</span>
+    <% } else { %>
+      <a class="mb-med" id="mediation" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener"><span>Download settlement agreement</span><span aria-hidden="true" style="margin-left:3px">↗</span></a>
+      <span class="mb-med-cap">Turn the agreed figure into a binding settlement agreement.</span>
+    <% } %>
   </div>
 </div>
 
@@ -132,6 +154,7 @@
 
 <script>
   var AMOUNT = <%= c.amount %>;
+  var CUR = { symbol: <%- JSON.stringify(cur.symbol) %>, locale: <%- JSON.stringify(cur.locale) %> };
   var CASE_ID = <%= c.id %>;
   var ROLE = '<%= role %>';                       // 'claim' (wants high) or 'resp' (wants low)
   var INIT = <%- JSON.stringify({ mine: status.mine, close: !!status.close, prox: status.prox, mineApproved: !!status.mineApproved, otherApproved: !!status.otherApproved, state: status.state }) %>;
@@ -175,7 +198,7 @@
   var dragging=null, lastPopX=null, locked=false;
   var gClose=INIT.close, phase='negotiate', t=0, btnX=0, btnY=0, btnW=120, btnH=36, circleStart=0;
 
-  function gbp(n){ return Number(n).toLocaleString('en-GB'); }
+  function gbp(n){ return Number(n).toLocaleString(CUR.locale); }
 
   function makeSnake(hex, glow){
     var layer=document.createElement('div'); layer.className='mb-snake'; track.appendChild(layer);
@@ -312,12 +335,15 @@
     setApprove('green');
     burstAt(btnX,btnY);
     setCoach('success',"Agreed! The figure is locked in by both sides.");
+    var esc=document.getElementById('escalate'); if(esc) esc.style.display='none';
     setTimeout(function(){ blue.layer.style.opacity='0'; yellow.layer.style.opacity='0'; },350);
-    medWrap.classList.add('show');
+    // Reload so the settled view renders the agreement / success-fee step from the server.
+    setTimeout(function(){ location.reload(); },2100);
   }
   function finalizeNow(){
     locked=true; phase='agreed';
     saveBtn.style.display='none';
+    var esc=document.getElementById('escalate'); if(esc) esc.style.display='none';
     you.style.display='none'; hFair.style.display='none'; hIdeal.style.display='none';
     yellow.layer.style.display='none'; blue.layer.style.display='none';
     setApprove('green');
@@ -402,6 +428,14 @@
 
   if(saveBtn) saveBtn.addEventListener('click',saveFigures);
   btn.addEventListener('click',approve);
+
+  var mediatorBtn=document.getElementById('mediatorBtn'), mediatorLbl=document.getElementById('mediatorLbl');
+  if(mediatorBtn) mediatorBtn.addEventListener('click',function(){
+    mediatorBtn.disabled=true; mediatorLbl.textContent='Requesting…';
+    postForm('/cases/'+CASE_ID+'/mediator','')
+      .then(function(r){ mediatorLbl.textContent='✓ Human mediator requested'; })
+      .catch(function(){ mediatorBtn.disabled=false; mediatorLbl.textContent='Request a human mediator'; });
+  });
 
   var copyBtn=document.getElementById('copyBtn');
   if(copyBtn) copyBtn.addEventListener('click',function(){ var x=document.getElementById('inviteBox').textContent.trim(); navigator.clipboard.writeText(x).then(function(){ copyBtn.textContent='Copied!'; setTimeout(function(){copyBtn.textContent='Copy link';},1500); }); });

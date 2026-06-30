@@ -7,7 +7,15 @@
     <label for="title">What's the dispute about?</label>
     <input id="title" name="title" type="text" placeholder="e.g. Unpaid invoice #1042" required />
 
-    <label for="amount">Amount in dispute (£)</label>
+    <label for="currency">Currency</label>
+    <select id="currency" name="currency">
+      <% Object.keys(currencies).forEach(function(code){ %>
+        <option value="<%= code %>"<%= code === selectedCurrency ? ' selected' : '' %>><%= currencies[code].label %></option>
+      <% }) %>
+    </select>
+    <div class="help">The dispute, the scale, the settlement and the agreement are all shown in this currency. Both parties see the same currency.</div>
+
+    <label for="amount">Amount in dispute (<span id="curSym"><%= currencies[selectedCurrency].symbol %></span>)</label>
     <input id="amount" name="amount" type="number" min="1" step="1" placeholder="80000" required />
     <div class="help">The full sum the disagreement is about. The 10% signal is measured against this.</div>
 
@@ -21,7 +29,29 @@
     <input id="other_email" name="other_email" type="email" placeholder="them@email.com" required />
     <div class="help">We'll generate an invite link for them on the next screen.</div>
 
-    <div class="btn-block"><button class="btn btn-primary" type="submit">Create case</button></div>
+    <% if (paymentsEnabled) { %>
+      <div class="help" id="feeNote" style="margin-top:.9rem;padding:.7rem .85rem;background:rgba(47,107,255,.06);border:1px solid rgba(47,107,255,.2);border-radius:10px;color:#1e2a4a">
+        A one-time <strong id="feeAmt"></strong> activation fee opens the case. You'll be taken to secure checkout next; the other party is only invited once payment is complete.
+      </div>
+      <div class="btn-block"><button class="btn btn-primary" type="submit" id="submitBtn">Continue to payment</button></div>
+    <% } else { %>
+      <div class="btn-block"><button class="btn btn-primary" type="submit">Create case</button></div>
+    <% } %>
   </form>
 </div>
+
+<script>
+  var CURMAP = <%- JSON.stringify(Object.fromEntries(Object.keys(currencies).map(function(k){return [k,{symbol:currencies[k].symbol,start:currencies[k].start}];}))) %>;
+  var sel = document.getElementById('currency');
+  var sym = document.getElementById('curSym');
+  var feeAmt = document.getElementById('feeAmt');
+  var submitBtn = document.getElementById('submitBtn');
+  function refresh(){
+    var c = CURMAP[sel.value] || {symbol:'\u00a3',start:0};
+    if(sym) sym.textContent = c.symbol;
+    if(feeAmt){ feeAmt.textContent = c.symbol + Number(c.start).toLocaleString(); }
+    if(submitBtn){ submitBtn.textContent = 'Continue to payment \u00b7 ' + c.symbol + Number(c.start).toLocaleString(); }
+  }
+  if(sel){ sel.addEventListener('change', refresh); refresh(); }
+</script>
 <%- include('partials/foot') %>

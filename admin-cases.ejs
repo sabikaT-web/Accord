@@ -32,7 +32,7 @@
           <td><strong>MB-<%= c.id %></strong><br><span class="muted"><%= c.title %></span></td>
           <td><%= c.claimant_acc_email || (c.respondent_acc_email ? c.other_email : '—') %></td>
           <td><%= c.respondent_acc_email || (c.claimant_acc_email ? c.other_email : '—') %></td>
-          <td>£<%= fmt(c.amount) %></td>
+          <td><%= money(c.amount, c.currency) %></td>
           <td><span class="badge <%= c.status==='settled'?'green':(c.status==='closed'?'grey':'blue') %>"><%= statusText(c) %></span></td>
           <td><div class="prog"><div class="prog-fill" style="width:<%= p %>%"></div></div><span class="muted"><%= p %>%</span></td>
           <td><%= fmtDay(c.created_at) %></td>

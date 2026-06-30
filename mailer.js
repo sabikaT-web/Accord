@@ -29,7 +29,8 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
-const gbp = (n) => '£' + Number(n || 0).toLocaleString('en-GB');
+const _CUR = { GBP:['\u00a3','en-GB'], USD:['$','en-US'], CAD:['C$','en-CA'], EUR:['\u20ac','de-DE'], SGD:['S$','en-SG'], INR:['\u20b9','en-IN'] };
+const money = (n, code) => { const c = _CUR[String(code || 'GBP').toUpperCase()] || _CUR.GBP; return c[0] + Number(n || 0).toLocaleString(c[1]); };
 const btn = (href, label) =>
   '<p><a href="' + href + '" style="display:inline-block;background:#16306B;color:#fff;' +
   'text-decoration:none;padding:10px 18px;border-radius:8px;font-family:sans-serif">' + label + '</a></p>';
@@ -75,7 +76,7 @@ async function notifyNewCase(c, claimantEmail, respondentEmail) {
     '<strong>Title:</strong> ' + esc(c.title) + '<br>' +
     '<strong>Claimant (owed):</strong> ' + esc(claimantEmail || '—') + '<br>' +
     '<strong>Respondent (owes):</strong> ' + esc(respondentEmail || c.other_email || '—') + '<br>' +
-    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '<br>' +
+    '<strong>Amount in dispute:</strong> ' + money(c.amount, c.currency) + '<br>' +
     '<strong>Status:</strong> Waiting for the other party</p>' +
     btn(APP_URL + '/admin/cases/' + c.id, 'Open case'));
 }
@@ -95,7 +96,7 @@ function brandHeader() {
     '</div>'
   );
 }
-function scaleGraphic(amount, recipientPosition, href) {
+function scaleGraphic(amount, recipientPosition, href, currency) {
   const cap = recipientPosition === 'owe' ? 'the most you\'ll pay' : 'the least you\'ll accept';
   return (
     '<a href="' + href + '" style="text-decoration:none;color:inherit;display:block">' +
@@ -111,9 +112,9 @@ function scaleGraphic(amount, recipientPosition, href) {
       '</tr></table>' +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:8px">' +
         '<tr style="font-family:Arial,sans-serif;font-size:12px;color:#586079">' +
-          '<td align="left">£0</td>' +
+          '<td align="left">' + (_CUR[String(currency||'GBP').toUpperCase()]||_CUR.GBP)[0] + '0</td>' +
           '<td align="center" style="color:#16306B;font-weight:bold">drag to set yours →</td>' +
-          '<td align="right">' + gbp(amount) + '</td>' +
+          '<td align="right">' + money(amount, currency) + '</td>' +
         '</tr></table>' +
     '</div></a>'
   );
@@ -130,8 +131,8 @@ async function notifyCaseInvite(c, opts) {
       '<h1 style="font-family:Georgia,serif;font-weight:500;color:#1E2A45;font-size:24px;' +
         'text-align:center;margin:18px 0 6px;letter-spacing:-.01em">You\'re invited to settle</h1>' +
       '<p style="text-align:center;font-family:Arial,sans-serif;color:#586079;font-size:15px;margin:0 0 18px">' +
-        esc(o.creatorEmail || 'Someone') + ' &nbsp;·&nbsp; ' + esc(c.title) + ' &nbsp;·&nbsp; <strong style="color:#1E2A45">' + gbp(c.amount) + '</strong></p>' +
-      scaleGraphic(c.amount, o.recipientPosition, href) +
+        esc(o.creatorEmail || 'Someone') + ' &nbsp;·&nbsp; ' + esc(c.title) + ' &nbsp;·&nbsp; <strong style="color:#1E2A45">' + money(c.amount, c.currency) + '</strong></p>' +
+      scaleGraphic(c.amount, o.recipientPosition, href, c.currency) +
       '<div style="text-align:center;margin:22px 0 6px">' +
         '<a href="' + href + '" style="display:inline-block;background:#F5B312;color:#16306B;' +
           'text-decoration:none;padding:14px 30px;border-radius:10px;font-family:Arial,sans-serif;' +
@@ -153,7 +154,7 @@ async function notifySettled(c, claimantEmail, respondentEmail) {
     '<strong>Case ID:</strong> MB-' + c.id + '<br>' +
     '<strong>Title:</strong> ' + esc(c.title) + '<br>' +
     '<strong>Parties:</strong> ' + esc(claimantEmail || '—') + ' &amp; ' + esc(respondentEmail || c.other_email || '—') + '<br>' +
-    '<strong>Settlement amount:</strong> ' + gbp(c.settled_value) + '</p>' +
+    '<strong>Settlement amount:</strong> ' + money(c.settled_value, c.currency) + '</p>' +
     btn(APP_URL + '/admin/cases/' + c.id, 'View case'));
 }
 
@@ -163,7 +164,7 @@ async function notifyCaseAccepted(c, toEmail) {
   await send(toEmail, 'Your MidBid case was accepted: ' + c.title,
     '<h2 style="font-family:sans-serif">The other party joined your case 🎉</h2>' +
     '<p style="font-family:sans-serif"><strong>Case:</strong> ' + esc(c.title) + ' (MB-' + c.id + ')<br>' +
-    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '</p>' +
+    '<strong>Amount in dispute:</strong> ' + money(c.amount, c.currency) + '</p>' +
     '<p style="font-family:sans-serif">Both sides are now in. Open the case and set your private figure.</p>' +
     btn(APP_URL + '/cases/' + c.id, 'Open the case'));
 }
@@ -174,7 +175,7 @@ async function notifyCaseDeclined(c, toEmail) {
   const html =
     '<h2 style="font-family:sans-serif">The other party declined</h2>' +
     '<p style="font-family:sans-serif"><strong>Case:</strong> ' + esc(c.title) + ' (MB-' + c.id + ')<br>' +
-    '<strong>Amount in dispute:</strong> ' + gbp(c.amount) + '<br>' +
+    '<strong>Amount in dispute:</strong> ' + money(c.amount, c.currency) + '<br>' +
     '<strong>Declined by:</strong> ' + esc(c.other_email || '—') + '</p>' +
     '<p style="font-family:sans-serif">No figures were exchanged. You can open a fresh case if you\'d like to try again.</p>';
   if (toEmail) await send(toEmail, subject, html);
@@ -183,5 +184,21 @@ async function notifyCaseDeclined(c, toEmail) {
 
 module.exports = {
   notifyNewSignup, sendWelcome, notifyNewCase, notifySettled,
-  notifyCaseInvite, notifyCaseAccepted, notifyCaseDeclined
+  notifyCaseInvite, notifyCaseAccepted, notifyCaseDeclined,
+  notifyMediatorRequest
 };
+
+// Human-mediator escalation: alert the admin + acknowledge the parties.
+async function notifyMediatorRequest(c, claimantEmail, respondentEmail, role) {
+  const who = role === 'claim' ? 'the claimant' : 'the respondent';
+  const adminTo = process.env.ADMIN_EMAIL || MAIL_FROM;
+  await send(adminTo, 'Mediator requested — case #' + c.id,
+    brandHeader() + '<p><strong>' + esc(who) + '</strong> has requested a human mediator on case #' + esc(c.id) +
+    ' (“' + esc(c.title) + '”).</p><p>Reach out to both parties to arrange a session and confirm the fee.</p>');
+  const parties = [claimantEmail, respondentEmail].filter(Boolean);
+  for (const to of parties) {
+    await send(to, 'Your MidBid mediator request',
+      brandHeader() + '<p>Thanks — we’ve received a request for a human mediator on “' + esc(c.title) +
+      '”. A MidBid mediator will be in touch shortly to arrange a session and confirm the fee.</p>');
+  }
+}

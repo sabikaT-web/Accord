@@ -62,6 +62,13 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_fair  INTEGER;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_ideal  INTEGER;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_fair   INTEGER;`);
+  // Monetisation: case activation fee, settlement success fee, human-mediator escalation.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS start_fee_paid    BOOLEAN NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS success_fee_paid  BOOLEAN NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS success_fee_amount INTEGER;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS mediator_requested BOOLEAN NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS mediator_party    TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'GBP';`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -97,11 +104,11 @@ const db = {
   },
 
   // ---- cases ----
-  async createCase(title, amount, token, claimantId, respondentId, otherEmail) {
+  async createCase(title, amount, token, claimantId, respondentId, otherEmail, currency) {
     const r = await pool.query(
-      `INSERT INTO cases (title, amount, invite_token, claimant_id, respondent_id, other_email)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-      [title, amount, token, claimantId, respondentId, otherEmail]);
+      `INSERT INTO cases (title, amount, invite_token, claimant_id, respondent_id, other_email, currency)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [title, amount, token, claimantId, respondentId, otherEmail, currency || 'GBP']);
     return r.rows[0].id;
   },
   async caseById(id) { return one(await pool.query('SELECT * FROM cases WHERE id=$1', [id])); },
@@ -130,6 +137,9 @@ const db = {
   },
   async resetApprovals(id) { await pool.query('UPDATE cases SET claim_approved=false, resp_approved=false WHERE id=$1', [id]); },
   async setStatus(status, id) { await pool.query('UPDATE cases SET status=$1 WHERE id=$2', [status, id]); },
+  async markStartFeePaid(id) { await pool.query('UPDATE cases SET start_fee_paid=true WHERE id=$1', [id]); },
+  async markSuccessFeePaid(id, amount) { await pool.query('UPDATE cases SET success_fee_paid=true, success_fee_amount=$1 WHERE id=$2', [amount, id]); },
+  async setMediatorRequested(id, party) { await pool.query('UPDATE cases SET mediator_requested=true, mediator_party=$1 WHERE id=$2', [party, id]); },
 
   async allCases(search) {
     const s = '%' + (search || '') + '%';
