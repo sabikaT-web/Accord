@@ -407,7 +407,7 @@
     btn.classList.remove('ready');
     if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Settle'; }
     else if(state==='waiting'){ approveLbl.textContent='Waiting for the other side…'; }
-    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.innerHTML='&#10003;'; }
+    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.textContent='Settle'; }
     else { approveLbl.textContent='Settle'; }
   }
 
