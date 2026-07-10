@@ -71,8 +71,10 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'GBP';`);
 
   // Party details, captured after settlement so the agreement can name the parties properly.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_full_name TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_company TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_address TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_full_name TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_company  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_address  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_sent BOOLEAN NOT NULL DEFAULT false;`);
@@ -165,10 +167,12 @@ const db = {
   async setMediatorRequested(id, party) { await pool.query('UPDATE cases SET mediator_requested=true, mediator_party=$1 WHERE id=$2', [party, id]); },
 
   // Party details for the settlement agreement.
-  async setPartyDetails(role, company, address, id) {
-    const cc = role === 'claim' ? 'claim_company' : 'resp_company';
-    const ca = role === 'claim' ? 'claim_address' : 'resp_address';
-    await pool.query('UPDATE cases SET ' + cc + '=$1, ' + ca + '=$2 WHERE id=$3', [company, address, id]);
+  async setPartyDetails(role, d, id) {
+    const p = role === 'claim' ? 'claim' : 'resp';
+    await pool.query(
+      'UPDATE cases SET ' + p + '_full_name=$1, ' + p + '_company=$2, ' + p + '_address=$3 WHERE id=$4',
+      [d.fullName, d.company, d.address, id]
+    );
   },
   async markAgreementSent(id) { await pool.query('UPDATE cases SET agreement_sent=true WHERE id=$1', [id]); },
 
