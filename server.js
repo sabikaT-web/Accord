@@ -904,34 +904,16 @@ app.post('/cases/:id/party-details', requireLogin, wrap(async (req, res) => {
   await db.addEvent(c.id, 'details', (role === 'claim' ? 'Claimant' : 'Respondent') + ' added their details for the agreement');
   const fresh = await db.caseById(c.id);
   const bothIn = !!(fresh.claim_full_name && fresh.claim_address && fresh.resp_full_name && fresh.resp_address);
-  res.json({ ok: true, bothIn, escrowUrl: '/cases/' + c.id + '/escrow' });
+  res.json({ ok: true, bothIn });
 }));
 
-// Hand off to the escrow payment provider. Set ESCROW_URL to your provider's
-// hosted payment link; until then this shows a holding page.
-app.get('/cases/:id/escrow', requireLogin, wrap(async (req, res) => {
-  const c = await db.caseById(Number(req.params.id));
-  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
-  const role = roleOf(c, req.session.userId);
-  if (!role && !res.locals.isAdmin) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
-  if (c.status !== 'settled') return res.status(400).render('message', { title: 'Not yet agreed', body: 'Both sides must settle before payment can be placed into escrow.' });
-  const bothIn = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
-  if (!bothIn) return res.status(400).render('message', { title: 'Waiting on the other side', body: 'Payment can be placed into escrow once both parties have provided their details.' });
-  if (!agreementReleasable(c) && !res.locals.isAdmin) {
-    return res.status(402).render('message', { title: 'Service charge outstanding', body: 'Escrow opens once the MidBid service charge has been paid in full.' });
-  }
-  if (!c.agreement_sent) await db.markAgreementSent(c.id);
-  await db.addEvent(c.id, 'escrow', (role === 'claim' ? 'Claimant' : 'Respondent') + ' opened the escrow payment step');
-  const base = process.env.ESCROW_URL;
-  if (base) {
-    const sep = base.includes('?') ? '&' : '?';
-    return res.redirect(base + sep + 'caseRef=MB-' + c.id + '&amount=' + (c.settled_value || 0) + '&currency=' + c.currency);
-  }
-  res.render('message', {
-    title: 'Escrow payment',
-    body: 'Your settlement of ' + money(c.settled_value, c.currency) + ' is ready to be placed into escrow. Funds are held by a regulated payment provider and released to the receiving party once the settlement is confirmed, so neither party is left waiting. We will email you the secure payment link shortly.'
-  });
-}));
+// Escrow has been removed from the flow. MidBid never holds the settlement money —
+// the parties settle the agreed sum directly, and MidBid only collects its service
+// charge (see /cases/:id/pay/success-fee). Any old link to /escrow just lands the
+// party back on their case page.
+app.get('/cases/:id/escrow', requireLogin, (req, res) => {
+  res.redirect('/cases/' + Number(req.params.id));
+});
 
 // Supporting documents: only the parties (or an admin) may list or download them.
 async function guardCase(req, res) {

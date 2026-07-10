@@ -262,8 +262,7 @@
     <div id="settleStep1" <%= myDetailsDone ? 'hidden' : '' %>>
       <div class="mb-modal-badge">Agreed</div>
       <h2 id="settleTitle">Your settlement is agreed</h2>
-      <p class="mb-modal-sub">Both sides have settled. We'll prepare your settlement agreement, and payment is then made through a secure escrow pipeline so neither party has to wait on the other.</p>
-      <p class="mb-modal-sub">Add your details below so the agreement names you correctly.</p>
+      <p class="mb-modal-sub">Both sides have settled. Add your details below so your settlement agreement names you correctly.</p>
 
       <label for="pdName">Full name</label>
       <input id="pdName" type="text" maxlength="200" placeholder="As it should appear on the agreement" />
@@ -284,22 +283,21 @@
 
       <div id="pdWait" <%= bothDetailsDone ? 'hidden' : '' %>>
         <h2>Waiting for the other side</h2>
-        <p class="mb-modal-sub">Thanks — your details are recorded. As soon as the other party adds theirs, your settlement agreement is prepared and payment can be placed into escrow.</p>
+        <p class="mb-modal-sub">Thanks — your details are recorded. As soon as the other party adds theirs, your settlement agreement is ready to release.</p>
       </div>
 
       <div id="pdReady" <%= bothDetailsDone ? '' : 'hidden' %>>
-        <h2>Settle the payment</h2>
-        <p class="mb-modal-sub">Both sides have provided their details. Payment is made into a secure escrow account and released to the receiving party once the settlement is confirmed — so the money is protected in transit and neither party is left waiting on the other.</p>
+        <% if (pay && pay.enabled && !pay.released) { %>
+          <h2>One step to release</h2>
+          <p class="mb-modal-sub">Both sides have provided their details. Your settlement agreement is released as soon as the MidBid service charge is paid. Close this and choose how to cover it.</p>
+          <button class="mb-modal-go" type="button" onclick="document.getElementById('settleModal').hidden=true;document.body.style.overflow='';var f=document.getElementById('feeForm');if(f)f.scrollIntoView({behavior:'smooth'})">Continue to the service charge →</button>
+        <% } else { %>
+          <h2>Your agreement is ready</h2>
+          <p class="mb-modal-sub">Both sides have provided their details and the service charge is settled. Your executable settlement agreement is ready to view and download.</p>
+          <a class="mb-modal-go" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener">View &amp; download the agreement →</a>
+        <% } %>
       </div>
-
-      <% if (pay && pay.enabled && !pay.released) { %>
-        <p class="mb-modal-sub">Your settlement agreement is released once the MidBid service charge has been paid in full. Close this and choose how to cover it.</p>
-        <button class="mb-modal-go" type="button" onclick="document.getElementById('settleModal').hidden=true;document.getElementById('feeForm')&&document.getElementById('feeForm').scrollIntoView({behavior:'smooth'})">Continue to the service charge →</button>
-      <% } else { %>
-        <a class="mb-modal-go link" id="pdPay" href="/cases/<%= c.id %>/escrow"<%= bothDetailsDone ? '' : ' aria-disabled="true"' %>>Make payment into escrow →</a>
-        <a class="mb-modal-alt" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener">View or print the agreement</a>
-      <% } %>
-      <p class="mb-modal-fine">Funds are held by a regulated payment provider and never by MidBid.</p>
+      <p class="mb-modal-fine">MidBid never holds the settlement money. You and the other party settle the agreed sum directly.</p>
     </div>
   </div>
 </div>
@@ -507,7 +505,7 @@
 
   function postForm(url,body){ return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body}).then(function(r){return r.json();}); }
 
-  /* ===== Settle modal: details for the agreement, then escrow payment ===== */
+  /* ===== Settle modal: details for the agreement, then service charge ===== */
   (function(){
     var modal=document.getElementById('settleModal');
     if(!modal) return;
@@ -517,7 +515,7 @@
     var company=document.getElementById('pdCompany'), address=document.getElementById('pdAddress');
     var fullName=document.getElementById('pdName');
     var save=document.getElementById('pdSave'), err=document.getElementById('pdErr');
-    var wait=document.getElementById('pdWait'), ready=document.getElementById('pdReady'), payLink=document.getElementById('pdPay');
+    var wait=document.getElementById('pdWait'), ready=document.getElementById('pdReady');
     var MY_DETAILS_DONE = <%= myDetailsDone ? 'true' : 'false' %>;
 
     function open(){ modal.hidden=false; document.body.style.overflow='hidden'; var f=step1.hidden?null:fullName; if(f) setTimeout(function(){f.focus();},80); }
@@ -547,7 +545,6 @@
           if(r.bothIn){
             if(wait) wait.hidden=true;
             if(ready) ready.hidden=false;
-            if(payLink) payLink.removeAttribute('aria-disabled');
           }
         })
         .catch(function(){ save.disabled=false; save.textContent='Save my details'; fail('Could not save your details — please try again.'); });
@@ -558,15 +555,15 @@
     window.mbOpenSettleModal=function(){ if(openBtn && modal.hidden) setTimeout(open,900); };
     if(openBtn && MY_DETAILS_DONE===false && INIT.state==='settled') setTimeout(open,600);
 
-    // While we wait on the other side, watch for their details and unlock escrow.
+    // While we wait on the other side, watch for their details and reveal the
+    // "ready to release" step (service charge, then agreement) automatically.
     function unlockReady(){
       if(wait) wait.hidden=true;
       if(ready) ready.hidden=false;
-      if(payLink) payLink.removeAttribute('aria-disabled');
     }
     var watch=setInterval(function(){
-      if(!payLink || !payLink.hasAttribute('aria-disabled')) { clearInterval(watch); return; }
-      if(step2.hidden) return;
+      // Only poll while we're actually parked on the waiting screen.
+      if(!wait || wait.hidden || step2.hidden) { clearInterval(watch); return; }
       fetch('/cases/'+CASE_ID+'/status').then(function(r){return r.json();}).then(function(s){
         if(s && s.bothDetailsDone){ unlockReady(); clearInterval(watch); }
       }).catch(function(){});
