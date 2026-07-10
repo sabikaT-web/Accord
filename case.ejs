@@ -145,7 +145,7 @@
 
   <div class="mb-actions">
     <button class="btn btn-primary" type="button" id="saveBtn">Save my figures</button>
-    <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Approve — subject to signed agreement</span></button>
+    <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Settle</span></button>
     <span class="muted" id="saveHint"></span>
   </div>
 
@@ -159,13 +159,10 @@
   </div>
 
   <div class="mb-med-wrap" id="medWrap">
-    <% if (pay && pay.enabled && pay.fee && !pay.released) { %>
-      <span class="mb-med-cap">Add your details, then settle the service charge to release your agreement.</span>
-      <button class="mb-med" id="settleBtn" type="button"><span>Settle</span></button>
-    <% } else { %>
-      <button class="mb-med" id="settleBtn" type="button"><span>Settle</span></button>
-      <span class="mb-med-cap">Add your details, then settle securely through escrow.</span>
+    <% if (c.status === 'settled') { %>
+      <span class="mb-med-cap"><% if (pay && pay.enabled && pay.fee && !pay.released) { %>Add your details, then settle the service charge to release your agreement.<% } else { %>Add your details to complete your settlement agreement.<% } %></span>
     <% } %>
+    <button id="settleBtn" type="button" hidden aria-hidden="true"></button>
   </div>
 </div>
 
@@ -408,10 +405,10 @@
   }
   function setApprove(state){
     btn.classList.remove('ready');
-    if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Approve — subject to signed agreement'; }
+    if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Settle'; }
     else if(state==='waiting'){ approveLbl.textContent='Waiting for the other side…'; }
-    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.textContent='✓ Agreed in principle'; }
-    else { approveLbl.textContent='Approve — subject to signed agreement'; }
+    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.innerHTML='&#10003;'; }
+    else { approveLbl.textContent='Settle'; }
   }
 
   function applyStatus(s){
@@ -526,6 +523,10 @@
     function open(){ modal.hidden=false; document.body.style.overflow='hidden'; var f=step1.hidden?null:fullName; if(f) setTimeout(function(){f.focus();},80); }
     function close(){ modal.hidden=true; document.body.style.overflow=''; }
     if(openBtn) openBtn.addEventListener('click',open);
+    // After settlement the single green "Settle" button opens the details modal.
+    var SETTLED = <%= c.status === 'settled' ? 'true' : 'false' %>;
+    var mainBtn=document.getElementById('approve');
+    if(SETTLED && mainBtn){ mainBtn.style.cursor='pointer'; mainBtn.addEventListener('click',open); }
     if(back) back.addEventListener('click',close);
     if(closeBtn) closeBtn.addEventListener('click',close);
     document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!modal.hidden) close(); });
