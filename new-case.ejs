@@ -27,6 +27,16 @@
 
     <label for="other_email">The other party's email</label>
     <input id="other_email" name="other_email" type="email" placeholder="them@email.com" required />
+
+    <label for="full_name">Your full name</label>
+    <input id="full_name" name="full_name" type="text" maxlength="200" placeholder="As it should appear on the agreement" required />
+    <div class="help">Used to name you correctly on the settlement agreement. The other party adds theirs when you settle.</div>
+
+    <label for="company">Company name <span class="muted">(optional)</span></label>
+    <input id="company" name="company" type="text" maxlength="200" placeholder="e.g. Northgate Interiors Ltd" />
+
+    <label for="address">Your address</label>
+    <input id="address" name="address" type="text" maxlength="500" placeholder="Street, city, postcode" required />
     <div class="help">We'll generate an invite link for them on the next screen.</div>
 
     <label for="documents">Supporting documents or evidence <span class="opt">(optional)</span></label>
@@ -41,7 +51,31 @@
     <% if (paymentsEnabled) { %>
       <div class="help" id="feeNote" style="margin-top:.9rem;padding:.7rem .85rem;background:rgba(47,107,255,.06);border:1px solid rgba(47,107,255,.2);border-radius:10px;color:#1e2a4a">
         A one-time <strong id="feeAmt"></strong> activation fee opens the case. You'll be taken to secure checkout next; the other party is only invited once payment is complete.
+        <strong>This activation fee is deducted from the MidBid service charge if you go on to settle.</strong>
       </div>
+
+      <div class="card card-flat" style="margin-top:1rem;box-shadow:none;border-color:var(--ochre-soft);background:rgba(245,179,18,.06)">
+        <div class="eyebrow">Service charge authorisation</div>
+        <p class="help" style="margin-top:.5rem">
+          If both sides&rsquo; figures converge and both approve, a <strong>MidBid service charge</strong> becomes payable under the
+          <a href="/fees" target="_blank" rel="noopener">Fee Schedule</a>. Your activation fee is deducted from it. You are responsible for
+          <strong>half</strong> of what remains, unless either party chooses to cover it in full.
+        </p>
+        <p class="help">
+          By continuing you authorise MidBid to charge the card you provide for your share, at that point.
+          We will email you before taking any charge.
+        </p>
+        <p class="help">
+          The service charge is payable because a settlement was reached. It is <strong>not</strong> a payment for the document,
+          and it is not refundable if the other party later declines to sign.
+          <strong>The settlement agreement is released only once the service charge has been paid in full.</strong>
+        </p>
+        <label style="display:flex;gap:.6em;align-items:flex-start;margin-top:.8rem;font-weight:400;color:var(--ink);text-transform:none;font-size:.88rem">
+          <input type="checkbox" name="mandate" value="accepted" required style="width:auto;margin-top:.3em;accent-color:var(--go)" />
+          <span>I have read and accept the <a href="/terms" target="_blank" rel="noopener">Platform Terms</a>, including the service charge and the payment authorisation above.</span>
+        </label>
+      </div>
+
       <div class="btn-block"><button class="btn btn-primary" type="submit" id="submitBtn">Continue to payment</button></div>
     <% } else { %>
       <div class="btn-block"><button class="btn btn-primary" type="submit">Create case</button></div>

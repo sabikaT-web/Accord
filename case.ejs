@@ -1,4 +1,8 @@
-<%- include('partials/head') %>
+<%- include('partials/head', { pageHead: {
+  eyebrow: 'Case MB-' + c.id + ' \u00b7 ' + (role === 'claim' ? 'Claimant' : 'Respondent'),
+  title: c.title,
+  sub: money(c.amount, c.currency) + ' in dispute \u00b7 you are the party who <strong>' + (role === 'claim' ? 'is owed money' : 'owes money') + '</strong>.'
+} }) %>
 
 <style>
   .mb-card{margin-top:1rem}
@@ -101,9 +105,6 @@
   .mb-modal-fine{font-size:.76rem;color:#8a8f99;text-align:center;margin:.75rem 0 0;line-height:1.45}
 </style>
 
-<h1 class="page serif"><%= c.title %></h1>
-<p class="sub"><%= money(c.amount, c.currency) %> in dispute · you are the party who <strong><%= role === 'claim' ? 'is owed money' : 'owes money' %></strong>.</p>
-
 <% if (c.status === 'awaiting_other') { %>
   <div class="banner">Waiting for the other party to join. Send them this private link:
     <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
@@ -111,7 +112,7 @@
   </div>
 <% } %>
 
-<div class="card mb-card">
+<div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
   <div class="mb-figwrap">
     <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
     <div class="mb-figrole" id="figRole">Drag the three handles to set your figures</div>
@@ -144,7 +145,7 @@
 
   <div class="mb-actions">
     <button class="btn btn-primary" type="button" id="saveBtn">Save my figures</button>
-    <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Approve settlement</span></button>
+    <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Approve — subject to signed agreement</span></button>
     <span class="muted" id="saveHint"></span>
   </div>
 
@@ -158,17 +159,102 @@
   </div>
 
   <div class="mb-med-wrap" id="medWrap">
-    <% if (pay && pay.enabled && !pay.successFeePaid) { %>
-      <form method="POST" action="/cases/<%= c.id %>/pay/success-fee" style="margin:0">
-        <button class="mb-pay" type="submit">Lock in your settlement<%= pay.successFeeLabel ? ' · ' + pay.successFeeLabel : '' %></button>
-      </form>
-      <span class="mb-med-cap">Once paid, your settlement agreement is ready to sign and download.</span>
+    <% if (pay && pay.enabled && pay.fee && !pay.released) { %>
+      <span class="mb-med-cap">Add your details, then settle the service charge to release your agreement.</span>
+      <button class="mb-med" id="settleBtn" type="button"><span>Settle</span></button>
     <% } else { %>
       <button class="mb-med" id="settleBtn" type="button"><span>Settle</span></button>
       <span class="mb-med-cap">Add your details, then settle securely through escrow.</span>
     <% } %>
   </div>
 </div>
+
+<% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
+<div class="card">
+  <div class="eyebrow">Service charge</div>
+  <h2 style="margin-top:.35rem">Release your settlement agreement</h2>
+
+  <div class="ledger">
+    <div class="lrow"><span class="lk">MidBid service charge</span><span class="lv"><%= pay.fee.grossLabel %></span></div>
+    <% if (pay.fee.credit > 0) { %>
+      <div class="lrow credit"><span class="lk">Less activation fee already paid</span><span class="lv">&minus;<%= pay.fee.creditLabel %></span></div>
+    <% } %>
+    <% if (pay.myPaid > 0) { %>
+      <div class="lrow credit"><span class="lk">You have paid</span><span class="lv">&minus;<%= pay.myPaidLabel %></span></div>
+    <% } %>
+    <div class="lrow total"><span class="lk">Outstanding on this case</span><span class="lv"><%= pay.fee.outstandingLabel %></span></div>
+  </div>
+
+  <form method="POST" action="/cases/<%= c.id %>/pay/success-fee" id="feeForm">
+    <p class="muted" style="margin-bottom:.7rem">How would you like to cover it?</p>
+
+    <label class="choice on" id="choiceSplit">
+      <input type="radio" name="choice" value="split" checked />
+      <span><b>Split it 50/50</b>
+      <span>You pay <%= pay.fee.halfLabel %>. The other party is asked to pay their half.</span></span>
+    </label>
+
+    <label class="choice" id="choiceFull">
+      <input type="radio" name="choice" value="full" />
+      <span><b>I&rsquo;ll cover it in full</b>
+      <span>You pay <%= pay.fee.outstandingLabel %>. Your agreement is released straight away.</span></span>
+    </label>
+
+    <div class="hint">
+      <span class="k">&#9679;</span>
+      <span>What the other party chooses to pay is not shared with you. If they never pay their half, you can come back and cover the balance to release the agreement &mdash; and recover it from them under clause 5 of the terms.</span>
+    </div>
+
+    <button class="btn btn-primary btn-block" type="button" id="feeOpen">Continue to payment</button>
+  </form>
+
+  <p class="note">The service charge is payable because a settlement was reached. It is not a payment for the document, and it is not refundable if the other party later declines to sign.</p>
+</div>
+
+<div class="rel-veil" id="relModal" hidden>
+  <div class="rel" role="dialog" aria-modal="true" aria-labelledby="relTitle">
+    <div class="mi">&#10003;</div>
+    <h3 id="relTitle">Release the settlement agreement?</h3>
+    <p>Once the service charge is paid in full, a link to the executable settlement agreement is emailed to <strong>both parties</strong>. This cannot be undone.</p>
+    <p>Nothing is binding until both parties sign it.</p>
+    <label class="consent">
+      <input type="checkbox" id="relConsent" />
+      <span>I authorise MidBid to charge my card <strong id="relAmount"><%= pay.fee.halfLabel %></strong> and release the agreement.</span>
+    </label>
+    <div class="rel-actions">
+      <button class="btn btn-ghost" type="button" id="relCancel">Not yet</button>
+      <button class="btn btn-primary" type="button" id="relGo" disabled>Pay <span id="relAmount2"><%= pay.fee.halfLabel %></span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var form=document.getElementById('feeForm');
+  if(!form) return;
+  var HALF=<%- JSON.stringify(pay.fee.halfLabel) %>, FULL=<%- JSON.stringify(pay.fee.outstandingLabel) %>;
+  var modal=document.getElementById('relModal'), consent=document.getElementById('relConsent'),
+      go=document.getElementById('relGo'), cancel=document.getElementById('relCancel'),
+      open=document.getElementById('feeOpen'),
+      a1=document.getElementById('relAmount'), a2=document.getElementById('relAmount2'),
+      cs=document.getElementById('choiceSplit'), cf=document.getElementById('choiceFull');
+
+  function picked(){ var el=form.querySelector('input[name=choice]:checked'); return el?el.value:'split'; }
+  function paint(){
+    var full = picked()==='full';
+    cs.classList.toggle('on',!full); cf.classList.toggle('on',full);
+    a1.textContent = a2.textContent = full?FULL:HALF;
+  }
+  form.addEventListener('change',paint); paint();
+
+  open.addEventListener('click',function(){ consent.checked=false; go.disabled=true; modal.hidden=false; });
+  cancel.addEventListener('click',function(){ modal.hidden=true; });
+  modal.addEventListener('click',function(e){ if(e.target===modal) modal.hidden=true; });
+  consent.addEventListener('change',function(){ go.disabled=!consent.checked; });
+  go.addEventListener('click',function(){ go.disabled=true; go.textContent='Processing…'; form.submit(); });
+})();
+</script>
+<% } %>
 
 <!-- Settlement details + e-signature hand-off -->
 <div class="mb-modal" id="settleModal" hidden>
@@ -209,8 +295,13 @@
         <p class="mb-modal-sub">Both sides have provided their details. Payment is made into a secure escrow account and released to the receiving party once the settlement is confirmed — so the money is protected in transit and neither party is left waiting on the other.</p>
       </div>
 
-      <a class="mb-modal-go link" id="pdPay" href="/cases/<%= c.id %>/escrow"<%= bothDetailsDone ? '' : ' aria-disabled="true"' %>>Make payment into escrow →</a>
-      <a class="mb-modal-alt" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener">View or print the agreement</a>
+      <% if (pay && pay.enabled && !pay.released) { %>
+        <p class="mb-modal-sub">Your settlement agreement is released once the MidBid service charge has been paid in full. Close this and choose how to cover it.</p>
+        <button class="mb-modal-go" type="button" onclick="document.getElementById('settleModal').hidden=true;document.getElementById('feeForm')&&document.getElementById('feeForm').scrollIntoView({behavior:'smooth'})">Continue to the service charge →</button>
+      <% } else { %>
+        <a class="mb-modal-go link" id="pdPay" href="/cases/<%= c.id %>/escrow"<%= bothDetailsDone ? '' : ' aria-disabled="true"' %>>Make payment into escrow →</a>
+        <a class="mb-modal-alt" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener">View or print the agreement</a>
+      <% } %>
       <p class="mb-modal-fine">Funds are held by a regulated payment provider and never by MidBid.</p>
     </div>
   </div>
@@ -317,10 +408,10 @@
   }
   function setApprove(state){
     btn.classList.remove('ready');
-    if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Approve settlement'; }
+    if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Approve — subject to signed agreement'; }
     else if(state==='waiting'){ approveLbl.textContent='Waiting for the other side…'; }
-    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.textContent='✓ Agreed!'; }
-    else { approveLbl.textContent='Approve settlement'; }
+    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.textContent='✓ Agreed in principle'; }
+    else { approveLbl.textContent='Approve — subject to signed agreement'; }
   }
 
   function applyStatus(s){
@@ -391,7 +482,7 @@
     var W=track.clientWidth||520;
     you.style.display='none'; hFair.style.display='none'; hIdeal.style.display='none';
     blue.layer.style.display='block'; blue.x=resFrac()*W; blue.y=0; blue.hist=[];
-    setCoach('success',"Both sides approved — sealing the deal…");
+    setCoach('success',"Both sides approved — preparing your agreement…");
     phase='travel';
     setTimeout(function(){ phase='circle'; circleStart=performance.now(); },1100);
     setTimeout(finalizeAgreed,2700);

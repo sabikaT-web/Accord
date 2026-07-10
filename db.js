@@ -94,6 +94,42 @@ async function init() {
     );
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS case_documents_case_idx ON case_documents(case_id);`);
+
+  // ---- Fee model v2 -------------------------------------------------------
+  // Money below is stored in MINOR units (pence/cents), because a 50/50 split of
+  // an odd amount is not a whole pound. Everything else in this app is in major
+  // units; do not mix them.
+  //
+  //   success_fee_gross_minor  the published success fee, before any credit
+  //   activation_credit_minor  the activation fee already paid by the creator
+  //   fee_due_minor            gross - credit. What is outstanding at settlement.
+  //   claim/resp_fee_paid_minor  what each side has actually paid toward it
+  //   *_fee_choice             'split' | 'full' | null
+  //
+  // Release rule: the agreement unlocks when
+  //   claim_fee_paid_minor + resp_fee_paid_minor >= fee_due_minor
+  // regardless of who paid it. That is ICC Art. 37-style substitution.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS success_fee_gross_minor INTEGER;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS activation_credit_minor INTEGER NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS fee_due_minor INTEGER;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_fee_paid_minor INTEGER NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_fee_paid_minor  INTEGER NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_fee_choice TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_fee_choice  TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_released_at TIMESTAMPTZ;`);
+
+  // Saved cards. Captured with setup_future_usage on the activation Checkout for
+  // the creator, and on-session at the moment the other party first chooses to pay.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_customer_id TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_pm_id TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_customer_id TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_pm_id TEXT;`);
+
+  // Evidence that the payment mandate was shown and accepted. This is the
+  // chargeback defence and the Consumer Rights Act transparency record.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS mandate_version TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_mandate_at TIMESTAMPTZ;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_mandate_at  TIMESTAMPTZ;`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -175,6 +211,38 @@ const db = {
     );
   },
   async markAgreementSent(id) { await pool.query('UPDATE cases SET agreement_sent=true WHERE id=$1', [id]); },
+
+  // ---- fee model v2 ----
+  async setFeeLedger(id, grossMinor, creditMinor, dueMinor) {
+    await pool.query(
+      'UPDATE cases SET success_fee_gross_minor=$1, activation_credit_minor=$2, fee_due_minor=$3 WHERE id=$4',
+      [grossMinor, creditMinor, dueMinor, id]);
+  },
+  async setFeeChoice(role, choice, id) {
+    const col = role === 'claim' ? 'claim_fee_choice' : 'resp_fee_choice';
+    await pool.query('UPDATE cases SET ' + col + '=$1 WHERE id=$2', [choice, id]);
+  },
+  // Additive, so a party can pay half now and top up the balance later.
+  async addFeePayment(role, amountMinor, id) {
+    const col = role === 'claim' ? 'claim_fee_paid_minor' : 'resp_fee_paid_minor';
+    await pool.query('UPDATE cases SET ' + col + ' = ' + col + ' + $1 WHERE id=$2', [amountMinor, id]);
+  },
+  async saveCard(role, customerId, pmId, id) {
+    const p = role === 'claim' ? 'claim' : 'resp';
+    await pool.query(
+      'UPDATE cases SET ' + p + '_customer_id=$1, ' + p + '_pm_id=$2 WHERE id=$3',
+      [customerId, pmId, id]);
+  },
+  async recordMandate(role, version, id) {
+    const col = role === 'claim' ? 'claim_mandate_at' : 'resp_mandate_at';
+    await pool.query(
+      'UPDATE cases SET ' + col + '=now(), mandate_version=$1 WHERE id=$2', [version, id]);
+  },
+  async releaseAgreement(id) {
+    await pool.query(
+      'UPDATE cases SET agreement_released_at=now(), success_fee_paid=true WHERE id=$1 AND agreement_released_at IS NULL',
+      [id]);
+  },
 
   // Supporting documents.
   async addDocument(caseId, uploaderId, filename, mime, size, data) {

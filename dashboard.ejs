@@ -1,6 +1,8 @@
-<%- include('partials/head') %>
-<h1 class="page serif">Your cases</h1>
-<p class="sub">Open a new dispute, or continue one you're already part of.</p>
+<%- include('partials/head', { pageHead: {
+  eyebrow: 'Your cases',
+  title: cases.length ? (cases.filter(function(c){return c.status!=='settled'&&c.status!=='closed'}).length + ' open, ' + cases.filter(function(c){return c.status==='settled'}).length + ' settled') : 'No cases yet',
+  sub: "Open a new dispute, or continue one you're already part of."
+} }) %>
 
 <a class="btn btn-primary" href="/cases/new" style="margin-bottom:1.6rem">+ Start a new case</a>
 
@@ -9,10 +11,10 @@
 <% } else { %>
   <ul class="case-list">
     <% cases.forEach(function(c){ %>
-      <li class="case-row">
+      <li class="case-row <%= c.claimant_id === me.id ? 'tint-claim' : 'tint-resp' %><%= (c.status === 'settled' || c.status === 'closed') ? ' done' : '' %>">
         <div>
           <div class="t"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
-          <div class="muted"><%= money(c.amount, c.currency) %> in dispute</div>
+          <div class="muted"><%= money(c.amount, c.currency) %> &middot; you <%= c.claimant_id === me.id ? 'are owed' : 'owe' %></div>
         </div>
         <span class="pill <%= c.status === 'settled' ? 'settled' : (c.status === 'active' ? 'active' : '') %>">
           <%= c.status === 'awaiting_other' ? 'Awaiting other party' : (c.status === 'active' ? 'In progress' : 'Settled') %>

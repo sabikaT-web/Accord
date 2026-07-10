@@ -77,7 +77,11 @@ const MEDIATOR_FEE_NOTE = process.env.MEDIATOR_FEE_NOTE || 'A MidBid mediator wi
 function baseUrl(req) { return req.protocol + '://' + req.get('host'); }
 function daysBetween(a, b) { return Math.floor((new Date(b) - new Date(a)) / 86400000); }
 
-// Success fee per the published Fee Schedule, in the case's own currency.
+// Bump this whenever the wording of the payment mandate changes. It is stored
+// against each party so you can prove, later, exactly what they agreed to.
+const MANDATE_VERSION = process.env.MANDATE_VERSION || '2026-07-v1';
+
+// Success fee per the published Fee Schedule, in the case's own currency (MAJOR units).
 function computeSuccessFee(c) {
   const cur = curOf(c.currency);
   const amt = c.amount, settled = c.settled_value || 0;
@@ -86,16 +90,134 @@ function computeSuccessFee(c) {
   return (days <= 20) ? cur.flat : Math.round(0.05 * amt);
 }
 
+// ---- Fee ledger ------------------------------------------------------------
+// All fee arithmetic happens in MINOR units so a 50/50 split of an odd amount
+// does not silently lose a penny. Major units are only for display.
+//
+//   gross  = published success fee
+//   credit = the activation fee the creator already paid (deducted from the TOTAL,
+//            not from one party's share, so 50/50 stays symmetric and there is no
+//            asymmetric figure to hide from either side)
+//   due    = gross - credit, floored at zero
+//
+// This is the ONLY place the fee is computed. The Fee Schedule page and the terms
+// must both read from it, or the number you promise and the number Stripe charges
+// will drift apart.
+const toMinor = (major) => Math.round(Number(major || 0) * 100);
+const toMajor = (minor) => Number(minor || 0) / 100;
+
+function feeLedger(c) {
+  const cur = curOf(c.currency);
+  const gross = toMinor(computeSuccessFee(c));
+  const credit = c.start_fee_paid ? toMinor(cur.start) : 0;
+  const due = Math.max(0, gross - credit);
+  const paid = (c.claim_fee_paid_minor || 0) + (c.resp_fee_paid_minor || 0);
+  const outstanding = Math.max(0, due - paid);
+  return {
+    gross, credit, due, paid, outstanding,
+    settled: outstanding === 0 && due > 0,
+    // A party's "half" is half of the ORIGINAL due, not half of what is left,
+    // so choosing 50/50 late does not quietly cost you more.
+    half: Math.ceil(due / 2),
+    grossLabel: money(toMajor(gross), c.currency),
+    creditLabel: money(toMajor(credit), c.currency),
+    dueLabel: money(toMajor(due), c.currency),
+    outstandingLabel: money(toMajor(outstanding), c.currency),
+    halfLabel: money(toMajor(Math.ceil(due / 2)), c.currency)
+  };
+}
+
+function myFeePaid(c, role) { return role === 'claim' ? (c.claim_fee_paid_minor || 0) : (c.resp_fee_paid_minor || 0); }
+function myCard(c, role) {
+  return role === 'claim'
+    ? { customer: c.claim_customer_id, pm: c.claim_pm_id }
+    : { customer: c.resp_customer_id,  pm: c.resp_pm_id };
+}
+
+// Credit a payment, then release the agreement if the fee is fully covered.
+// Idempotent: releaseAgreement() is a no-op once agreement_released_at is set.
+async function creditFeeAndMaybeRelease(req, id, role, amountMinor) {
+  await db.addFeePayment(role, amountMinor, id);
+  const c = await db.caseById(id);
+  const led = feeLedger(c);
+  await db.addEvent(id, 'payment',
+    (role === 'claim' ? 'Claimant' : 'Respondent') + ' paid ' + money(toMajor(amountMinor), c.currency) +
+    ' toward the service charge (' + money(toMajor(led.paid), c.currency) + ' of ' + led.dueLabel + ')');
+  if (led.outstanding === 0 && led.due > 0) {
+    await db.releaseAgreement(id);
+    await db.addEvent(id, 'released', 'Service charge paid in full — settlement agreement released');
+    const full = await db.caseDetail(id);
+    if (mailer.notifyAgreementReleased) {
+      mailer.notifyAgreementReleased(
+        { id, title: full.title, url: baseUrl(req) + '/cases/' + id + '/agreement' },
+        full.claimant_acc_email, full.respondent_acc_email
+      ).catch(() => {});
+    }
+    return true;
+  }
+  return false;
+}
+
+// The condition precedent, in one place. Every route that generates, previews,
+// emails or downloads the agreement must call this — not just the download button.
+function agreementReleasable(c) {
+  if (!PAYMENTS_ENABLED) return true;
+  return !!c.agreement_released_at;
+}
+
 // Send the payer to Stripe Checkout for a one-off payment.
-async function startCheckout(req, res, { caseId, kind, amountMajor, label, stripeCurrency, successUrl, cancelUrl }) {
+async function startCheckout(req, res, { caseId, kind, role, amountMajor, label, stripeCurrency, successUrl, cancelUrl }) {
   const sessionObj = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: [{ quantity: 1, price_data: { currency: stripeCurrency || 'gbp', unit_amount: Math.round(amountMajor * 100), product_data: { name: label } } }],
-    metadata: { caseId: String(caseId), kind },
+    metadata: { caseId: String(caseId), kind, role: role || '' },
+    // Save the card on this one SCA challenge, so the success fee can later be
+    // taken off-session without dragging the payer back through 3-D Secure.
+    customer_creation: 'always',
+    payment_intent_data: { setup_future_usage: 'off_session' },
     success_url: successUrl,
     cancel_url: cancelUrl
   });
   res.redirect(303, sessionObj.url);
+}
+
+// Pull the customer + payment method off a completed Checkout session and store
+// them against the paying side.
+async function rememberCardFromSession(sessionObj, caseId, role) {
+  try {
+    const customer = typeof sessionObj.customer === 'string' ? sessionObj.customer : (sessionObj.customer && sessionObj.customer.id);
+    let pm = null;
+    if (sessionObj.payment_intent) {
+      const piId = typeof sessionObj.payment_intent === 'string' ? sessionObj.payment_intent : sessionObj.payment_intent.id;
+      const pi = await stripe.paymentIntents.retrieve(piId);
+      pm = typeof pi.payment_method === 'string' ? pi.payment_method : (pi.payment_method && pi.payment_method.id);
+    }
+    if (customer && pm) await db.saveCard(role, customer, pm, caseId);
+  } catch (err) { console.error('rememberCardFromSession:', err.message); }
+}
+
+// Charge a saved card without the payer present. Returns 'paid', 'needs_action'
+// or 'failed'. Never throws — a declined card is a normal outcome, not a crash.
+async function chargeSavedCard(c, role, amountMinor, label) {
+  const card = myCard(c, role);
+  if (!card.customer || !card.pm) return 'no_card';
+  try {
+    const pi = await stripe.paymentIntents.create({
+      amount: amountMinor,
+      currency: curOf(c.currency).stripe,
+      customer: card.customer,
+      payment_method: card.pm,
+      off_session: true,
+      confirm: true,
+      description: label,
+      metadata: { caseId: String(c.id), kind: 'success', role }
+    });
+    return pi.status === 'succeeded' ? 'paid' : 'failed';
+  } catch (err) {
+    if (err.code === 'authentication_required') return 'needs_action';
+    console.error('chargeSavedCard:', err.code || err.message);
+    return 'failed';
+  }
 }
 
 const CLOSE_THRESHOLD = 0.10;                                   // "within 10% of the amount in dispute"
@@ -412,6 +534,18 @@ app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
   const claimantId = role === 'owed' ? me : null;
   const respondentId = role === 'owe' ? me : null;
   const id = await db.createCase(title, amount, token, claimantId, respondentId, otherEmail, currency);
+
+  // Details for the agreement, captured up front from whoever opens the case.
+  // The other side supplies theirs at settlement. Collected here because the
+  // creator is already in a form and already paying — it is free friction.
+  const clean = (v, n) => (v || '').trim().slice(0, n);
+  const myName = clean(req.body.full_name, 200);
+  const myAddress = clean(req.body.address, 500);
+  if (myName.length >= 2 && myAddress.length >= 6) {
+    await db.setPartyDetails(role === 'owed' ? 'claim' : 'resp',
+      { fullName: myName, company: clean(req.body.company, 200) || null, address: myAddress }, id);
+  }
+
   const meEmail = res.locals.me ? res.locals.me.email : '';
   await db.addEvent(id, 'created', 'Case created by ' + meEmail + ' (' + (role === 'owed' ? 'claimant' : 'respondent') + ', ' + currency + ')');
 
@@ -426,8 +560,10 @@ app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
   const startFee = curOf(currency).start;
   if (PAYMENTS_ENABLED && startFee > 0) {
     await db.setStatus('pending_payment', id);
+    await db.recordMandate(role === 'owed' ? 'claim' : 'resp', MANDATE_VERSION, id);
     return startCheckout(req, res, {
-      caseId: id, kind: 'start', amountMajor: startFee, stripeCurrency: curOf(currency).stripe,
+      caseId: id, kind: 'start', role: role === 'owed' ? 'claim' : 'resp',
+      amountMajor: startFee, stripeCurrency: curOf(currency).stripe,
       label: 'MidBid — case activation fee',
       successUrl: baseUrl(req) + '/cases/' + id + '/pay/return?kind=start&session_id={CHECKOUT_SESSION_ID}',
       cancelUrl: baseUrl(req) + '/cases/' + id + '/pay/cancel'
@@ -449,15 +585,19 @@ app.get('/cases/:id/pay/return', requireLogin, wrap(async (req, res) => {
     ok = s && s.payment_status === 'paid' && s.metadata && s.metadata.caseId === String(id) && s.metadata.kind === kind;
   } catch (_) { ok = false; }
   if (!ok) return res.render('message', { title: 'Payment not completed', body: 'Your payment was not completed, so nothing has been charged. You can try again from the case page.' });
+  let sessionObj = null;
+  try { sessionObj = await stripe.checkout.sessions.retrieve(sid); } catch (_) {}
+  const role = (sessionObj && sessionObj.metadata && sessionObj.metadata.role) || roleOf(await db.caseById(id), req.session.userId);
+
   if (kind === 'start') {
+    if (sessionObj && role) await rememberCardFromSession(sessionObj, id, role);
     await db.markStartFeePaid(id);
     await db.addEvent(id, 'payment', 'Case activation fee paid');
     await activateCaseAndInvite(req, id);
   } else if (kind === 'success') {
-    const c = await db.caseById(id);
-    const fee = computeSuccessFee(c);
-    await db.markSuccessFeePaid(id, fee);
-    await db.addEvent(id, 'payment', 'Settlement agreement payment received (' + money(fee, c.currency) + ')');
+    if (sessionObj && role) await rememberCardFromSession(sessionObj, id, role);
+    const paidMinor = sessionObj && sessionObj.amount_total ? sessionObj.amount_total : 0;
+    if (paidMinor > 0 && role) await creditFeeAndMaybeRelease(req, id, role, paidMinor);
   }
   res.redirect('/cases/' + id);
 }));
@@ -466,7 +606,14 @@ app.get('/cases/:id/pay/cancel', requireLogin, wrap(async (req, res) => {
   res.render('message', { title: 'Payment cancelled', body: 'No payment was taken. Your case is saved but not yet active — you can complete the activation payment from your dashboard when ready.' });
 }));
 
-// Pay to lock in the settlement, which unlocks the settlement agreement.
+// Pay the MidBid service charge. Each party chooses to split it 50/50 or cover it
+// in full. Whoever pays, the agreement is released once the total is covered —
+// ICC Art. 37-style substitution, so one side's default never strands the other.
+//
+// There is deliberately no refund path. The fee is for the mediation, and the
+// mediation happened (see terms cl. 4.3). A party who pays half and whose
+// opponent never pays can top up the balance and take the agreement, then
+// recover the difference under the joint and several liability clause.
 app.post('/cases/:id/pay/success-fee', requireLogin, wrap(async (req, res) => {
   const id = Number(req.params.id);
   const c = await db.caseById(id);
@@ -474,12 +621,50 @@ app.post('/cases/:id/pay/success-fee', requireLogin, wrap(async (req, res) => {
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
   if (c.status !== 'settled') return res.redirect('/cases/' + id);
-  if (c.success_fee_paid) return res.redirect('/cases/' + id);
-  const fee = computeSuccessFee(c);
-  if (!PAYMENTS_ENABLED) { await db.markSuccessFeePaid(id, fee); return res.redirect('/cases/' + id); }
+
+  const led = feeLedger(c);
+  if (led.outstanding === 0) return res.redirect('/cases/' + id);
+
+  // Persist the ledger the first time we quote it, so the figure the party saw
+  // is the figure they are charged, even if the fee schedule changes tomorrow.
+  if (c.fee_due_minor == null) await db.setFeeLedger(id, led.gross, led.credit, led.due);
+
+  const choice = req.body.choice === 'full' ? 'full' : 'split';
+  await db.setFeeChoice(role, choice, id);
+
+  // 'split' pays your half, less anything you have already put in.
+  // 'full' clears whatever is left on the case.
+  const already = myFeePaid(c, role);
+  const amountMinor = choice === 'full'
+    ? led.outstanding
+    : Math.max(0, Math.min(led.half - already, led.outstanding));
+
+  if (amountMinor <= 0) return res.redirect('/cases/' + id);
+
+  if (!PAYMENTS_ENABLED) {
+    await creditFeeAndMaybeRelease(req, id, role, amountMinor);
+    return res.redirect('/cases/' + id);
+  }
+
+  await db.recordMandate(role, MANDATE_VERSION, id);
+
+  // If we already hold this party's card (the creator, from activation), charge it
+  // silently. Otherwise send them through Checkout, which also saves the card.
+  const outcome = await chargeSavedCard(c, role, amountMinor,
+    'MidBid — service charge, case MB-' + id);
+
+  if (outcome === 'paid') {
+    await creditFeeAndMaybeRelease(req, id, role, amountMinor);
+    return res.redirect('/cases/' + id);
+  }
+  if (outcome === 'failed') {
+    await db.addEvent(id, 'payment', 'Card declined for ' + (role === 'claim' ? 'claimant' : 'respondent'));
+  }
+  // no_card, needs_action, or a decline — fall back to an on-session Checkout.
   return startCheckout(req, res, {
-    caseId: id, kind: 'success', amountMajor: fee,
-    label: 'MidBid — settlement agreement',
+    caseId: id, kind: 'success', role, amountMajor: toMajor(amountMinor),
+    stripeCurrency: curOf(c.currency).stripe,
+    label: 'MidBid — service charge (case MB-' + id + ')',
     successUrl: baseUrl(req) + '/cases/' + id + '/pay/return?kind=success&session_id={CHECKOUT_SESSION_ID}',
     cancelUrl: baseUrl(req) + '/cases/' + id + '/pay/cancel'
   });
@@ -524,15 +709,19 @@ app.post('/join/:token', requireLogin, wrap(async (req, res) => {
   res.redirect('/cases/' + c.id);
 }));
 
-// Settle if both figures are in and they have crossed (shared by bid + join-with-figure).
+// DELIBERATE CHANGE: this no longer settles the case on its own.
+//
+// It used to mark a case 'settled' the moment the figures crossed, with no
+// approval from either party. That meant a binding compromise could arise from
+// the bidding process itself — which would gut the "subject to contract" clause
+// and leave the condition precedent guarding a door that was already open.
+//
+// Convergence is now only a signal. Nothing settles until BOTH sides approve,
+// in /cases/:id/approve. Revert at your peril.
 async function maybeSettle(id) {
   const u = await db.caseById(id);
   if (u.claim_value != null && u.resp_value != null && u.resp_value >= u.claim_value) {
-    const settled = Math.round((u.claim_value + u.resp_value) / 2 / 100) * 100;
-    await db.settle('settled', settled, u.id);
-    await db.addEvent(u.id, 'settled', 'Settled at ' + money(settled, u.currency));
-    const full = await db.caseDetail(u.id);
-    mailer.notifySettled({ id: full.id, title: full.title, settled_value: settled, currency: full.currency, other_email: full.other_email }, full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
+    await db.addEvent(u.id, 'converged', 'Figures converged — both sides may now approve');
   }
 }
 
@@ -612,12 +801,17 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
   if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
   const status = viewerStatus(c, role);
   const inviteUrl = req.protocol + '://' + req.get('host') + '/join/' + c.invite_token;
-  const settledFee = c.status === 'settled' ? computeSuccessFee(c) : null;
+  const led = c.status === 'settled' ? feeLedger(c) : null;
   const pay = {
     enabled: PAYMENTS_ENABLED,
-    successFeePaid: !!c.success_fee_paid,
-    successFee: settledFee,
-    successFeeLabel: settledFee != null ? money(settledFee, c.currency) : null,
+    released: agreementReleasable(c),
+    fee: led,
+    myPaid: myFeePaid(c, role),
+    myPaidLabel: money(toMajor(myFeePaid(c, role)), c.currency),
+    myChoice: role === 'claim' ? c.claim_fee_choice : c.resp_fee_choice,
+    hasCard: !!myCard(c, role).pm,
+    // What the other side chose or paid is never sent to this template.
+    successFeePaid: agreementReleasable(c),
     mediatorRequested: !!c.mediator_requested,
     mediatorNote: MEDIATOR_FEE_NOTE
   };
@@ -723,6 +917,9 @@ app.get('/cases/:id/escrow', requireLogin, wrap(async (req, res) => {
   if (c.status !== 'settled') return res.status(400).render('message', { title: 'Not yet agreed', body: 'Both sides must settle before payment can be placed into escrow.' });
   const bothIn = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
   if (!bothIn) return res.status(400).render('message', { title: 'Waiting on the other side', body: 'Payment can be placed into escrow once both parties have provided their details.' });
+  if (!agreementReleasable(c) && !res.locals.isAdmin) {
+    return res.status(402).render('message', { title: 'Service charge outstanding', body: 'Escrow opens once the MidBid service charge has been paid in full.' });
+  }
   if (!c.agreement_sent) await db.markAgreementSent(c.id);
   await db.addEvent(c.id, 'escrow', (role === 'claim' ? 'Claimant' : 'Respondent') + ' opened the escrow payment step');
   const base = process.env.ESCROW_URL;
@@ -832,7 +1029,12 @@ app.get('/cases/:id/agreement', requireLogin, wrap(async (req, res) => {
   const role = roleOf(c, req.session.userId);
   if (!role && !res.locals.isAdmin) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
   if (c.status !== 'settled') return res.status(400).render('message', { title: 'Not yet agreed', body: 'A settlement agreement can be created once both sides have approved the figure.' });
-  if (PAYMENTS_ENABLED && !c.success_fee_paid && !res.locals.isAdmin) return res.status(402).render('message', { title: 'Payment required', body: 'Your settlement agreement unlocks once payment is complete. You can pay it from the case page.' });
+  if (!agreementReleasable(c) && !res.locals.isAdmin) {
+    return res.status(402).render('message', {
+      title: 'Service charge outstanding',
+      body: 'The settlement agreement is released once the MidBid service charge has been paid in full. You can pay your share, or cover the balance, from the case page.'
+    });
+  }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(agreementHtml(c));
 }));

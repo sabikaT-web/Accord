@@ -6,10 +6,11 @@
 <title>MidBid</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+<div class="seam-top"></div>
 <header class="bar">
   <div class="bar-in">
     <a class="brand" href="/">
@@ -40,4 +41,16 @@
     </div>
   </div>
 </header>
-<main><div class="wrap">
+<main>
+<%# Pages opt in to the navy banner by passing a pageHead object with eyebrow, title, sub. %>
+<%# Pages that pass nothing render exactly as they did before. %>
+<% if (typeof pageHead !== 'undefined' && pageHead) { %>
+  <div class="page-head">
+    <div class="wrap">
+      <% if (pageHead.eyebrow) { %><div class="eyebrow"><%= pageHead.eyebrow %></div><% } %>
+      <h1 class="page"><%= pageHead.title %></h1>
+      <% if (pageHead.sub) { %><p class="sub"><%- pageHead.sub %></p><% } %>
+    </div>
+  </div>
+<% } %>
+<div class="wrap">
