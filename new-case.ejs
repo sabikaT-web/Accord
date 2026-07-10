@@ -1,0 +1,100 @@
+<%- include('partials/head') %>
+<h1 class="page serif">Start a new case</h1>
+<p class="sub">Describe the dispute and invite the other side. They'll get a private link to join.</p>
+<div class="card">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="POST" action="/cases/new" enctype="multipart/form-data">
+    <label for="title">What's the dispute about?</label>
+    <input id="title" name="title" type="text" placeholder="e.g. Unpaid invoice #1042" required />
+
+    <label for="currency">Currency</label>
+    <select id="currency" name="currency">
+      <% Object.keys(currencies).forEach(function(code){ %>
+        <option value="<%= code %>"<%= code === selectedCurrency ? ' selected' : '' %>><%= currencies[code].label %></option>
+      <% }) %>
+    </select>
+    <div class="help">The dispute, the scale, the settlement and the agreement are all shown in this currency. Both parties see the same currency.</div>
+
+    <label for="amount">Amount in dispute (<span id="curSym"><%= currencies[selectedCurrency].symbol %></span>)</label>
+    <input id="amount" name="amount" type="number" min="1" step="1" placeholder="80000" required />
+    <div class="help">The full sum the disagreement is about. The 10% signal is measured against this.</div>
+
+    <label>Your position</label>
+    <div class="radio-row">
+      <label><input type="radio" name="role" value="owed" required /> I'm owed money</label>
+      <label><input type="radio" name="role" value="owe" /> I owe money</label>
+    </div>
+
+    <label for="other_email">The other party's email</label>
+    <input id="other_email" name="other_email" type="email" placeholder="them@email.com" required />
+    <div class="help">We'll generate an invite link for them on the next screen.</div>
+
+    <label for="documents">Supporting documents or evidence <span class="opt">(optional)</span></label>
+    <input id="documents" name="documents" type="file" multiple
+           accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" />
+    <div class="help">Invoices, contracts, correspondence — up to 5 files, 5&nbsp;MB each.</div>
+    <div class="doc-note">
+      <strong>How your documents are used.</strong> Documents are only used as identifiers for the case. They are assessed solely for the purpose of mediation, and only where a human mediator is involved.
+    </div>
+    <div id="docList" class="doc-list" hidden></div>
+
+    <% if (paymentsEnabled) { %>
+      <div class="help" id="feeNote" style="margin-top:.9rem;padding:.7rem .85rem;background:rgba(47,107,255,.06);border:1px solid rgba(47,107,255,.2);border-radius:10px;color:#1e2a4a">
+        A one-time <strong id="feeAmt"></strong> activation fee opens the case. You'll be taken to secure checkout next; the other party is only invited once payment is complete.
+      </div>
+      <div class="btn-block"><button class="btn btn-primary" type="submit" id="submitBtn">Continue to payment</button></div>
+    <% } else { %>
+      <div class="btn-block"><button class="btn btn-primary" type="submit">Create case</button></div>
+    <% } %>
+  </form>
+</div>
+
+<style>
+  .opt{font-weight:400;color:#8a8f99}
+  input[type=file]{display:block;width:100%;font:inherit;font-size:.92rem;padding:.6rem .7rem;border:1px dashed #c7cdda;border-radius:10px;background:#fbfcfe;cursor:pointer}
+  input[type=file]::file-selector-button{font:inherit;font-weight:600;margin-right:.8rem;padding:.4rem .8rem;border:none;border-radius:999px;background:#16306B;color:#fff;cursor:pointer}
+  .doc-note{margin-top:.7rem;padding:.7rem .85rem;background:rgba(47,107,255,.06);border:1px solid rgba(47,107,255,.2);border-radius:10px;color:#1e2a4a;font-size:.85rem;line-height:1.5}
+  .doc-list{margin-top:.7rem;display:flex;flex-direction:column;gap:.35rem}
+  .doc-item{display:flex;justify-content:space-between;gap:.8rem;font-size:.84rem;color:#3b4252;background:#f4f6fa;border:1px solid #e3e6ec;border-radius:8px;padding:.4rem .65rem}
+  .doc-item.bad{background:#fff6ec;border-color:#f2dcc1;color:#7a4a18}
+  .doc-size{color:#8a8f99;white-space:nowrap}
+</style>
+
+<script>
+  var MAX_DOCS = 5, MAX_BYTES = 5 * 1024 * 1024;
+  var docInput = document.getElementById('documents');
+  var docList = document.getElementById('docList');
+  function human(b){ return b < 1024*1024 ? Math.max(1,Math.round(b/1024)) + ' KB' : (b/1048576).toFixed(1) + ' MB'; }
+  if (docInput) docInput.addEventListener('change', function(){
+    var files = Array.prototype.slice.call(docInput.files || []);
+    docList.innerHTML = '';
+    docList.hidden = files.length === 0;
+    if (files.length > MAX_DOCS) {
+      var w = document.createElement('div'); w.className = 'doc-item bad';
+      w.textContent = 'Please choose no more than ' + MAX_DOCS + ' files.';
+      docList.appendChild(w);
+    }
+    files.slice(0, MAX_DOCS).forEach(function(f){
+      var row = document.createElement('div');
+      row.className = 'doc-item' + (f.size > MAX_BYTES ? ' bad' : '');
+      var n = document.createElement('span'); n.textContent = f.name;
+      var s = document.createElement('span'); s.className = 'doc-size';
+      s.textContent = f.size > MAX_BYTES ? human(f.size) + ' — too large' : human(f.size);
+      row.appendChild(n); row.appendChild(s); docList.appendChild(row);
+    });
+  });
+
+  var CURMAP = <%- JSON.stringify(Object.fromEntries(Object.keys(currencies).map(function(k){return [k,{symbol:currencies[k].symbol,start:currencies[k].start}];}))) %>;
+  var sel = document.getElementById('currency');
+  var sym = document.getElementById('curSym');
+  var feeAmt = document.getElementById('feeAmt');
+  var submitBtn = document.getElementById('submitBtn');
+  function refresh(){
+    var c = CURMAP[sel.value] || {symbol:'\u00a3',start:0};
+    if(sym) sym.textContent = c.symbol;
+    if(feeAmt){ feeAmt.textContent = c.symbol + Number(c.start).toLocaleString(); }
+    if(submitBtn){ submitBtn.textContent = 'Continue to payment \u00b7 ' + c.symbol + Number(c.start).toLocaleString(); }
+  }
+  if(sel){ sel.addEventListener('change', refresh); refresh(); }
+</script>
+<%- include('partials/foot') %>
