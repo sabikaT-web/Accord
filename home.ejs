@@ -251,6 +251,57 @@
     .reveal{opacity:1;transform:none}.seam{opacity:.9}.hero-side{opacity:1;transform:none}
   }
   :focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
+
+  /* ===== Ghost scales: the same scale, multiplied ===== */
+  .track-shell{position:relative;transition:padding-top .55s cubic-bezier(.2,.7,.2,1)}
+  .scale-demo.multi .track-shell{padding-top:126px}
+  .ghost{position:absolute;left:0;right:0;top:0;height:16px;border-radius:999px;background:var(--ground-2);border:1px solid var(--line);opacity:0;pointer-events:none;transition:opacity .5s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .ghost i{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%)}
+  .ghost i.c{background:var(--teal)} .ghost i.r{background:var(--ochre)}
+  .ghost .gz{position:absolute;top:-2px;bottom:-2px;border-radius:999px;background:var(--go-soft)}
+  .scale-demo.multi .g1{opacity:.6;transform:translateY(-74px)}
+  .scale-demo.multi .g2{opacity:.38;transform:translateY(-94px) scaleX(.975)}
+  .scale-demo.multi .g3{opacity:.2;transform:translateY(-112px) scaleX(.95)}
+
+  /* ===== The chooser: one row, beneath the card ===== */
+  .chooser{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:20px}
+  .chooser .ask{font-size:.98rem;color:var(--ink-soft)}
+  .swch{display:inline-flex;background:var(--ground-2);border:1px solid var(--line);border-radius:999px;padding:4px}
+  .swch button{border:none;background:none;font:inherit;font-size:.92rem;font-weight:600;color:var(--ink-soft);padding:.5em 1.15em;border-radius:999px;cursor:pointer;transition:all .2s ease;display:inline-flex;align-items:center;gap:.5em}
+  .swch button .bead{width:11px;height:11px;border-radius:50%;background:var(--ink-soft);opacity:.4;transition:all .2s ease}
+  .swch button.on{background:var(--paper);color:var(--teal-deep);box-shadow:0 1px 4px rgba(22,48,107,.14)}
+  .swch button.on .bead{opacity:1;background:var(--teal)}
+  .swch button.biz.on .bead{background:var(--ochre)}
+
+  /* ===== Who it's for: two paths ===== */
+  .who-two{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:2.4rem}
+  .pcard{background:var(--paper);border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+  .pcard:hover{transform:translateY(-4px);border-color:var(--go-soft);box-shadow:0 20px 46px -24px rgba(22,48,107,.45)}
+  .pcard .strip{height:6px;background:var(--teal)}
+  .pcard.biz .strip{background:var(--ochre)}
+  .pcard .in{padding:28px 28px 0;flex:1}
+  .pcard .tier{font-family:"Spline Sans Mono",monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+  .pcard h3{font-size:1.5rem;margin:.45rem 0 .5rem}
+  .pcard>.in>p{color:var(--ink-soft);font-size:.96rem}
+  .pcard ul{list-style:none;margin:1.1rem 0 0;padding:0}
+  .pcard li{font-size:.94rem;color:var(--ink-soft);padding:.36em 0 .36em 1.5em;position:relative}
+  .pcard li::before{content:"";position:absolute;left:0;top:1em;width:7px;height:7px;border-radius:50%;background:var(--go)}
+  .pcard .act{padding:1.4rem 28px 28px}
+  .tags{display:flex;gap:.4rem;margin-top:1rem;flex-wrap:wrap}
+  .tag{font-family:"Spline Sans Mono",monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;background:var(--ground-2);border-radius:999px;padding:.34em .75em;color:var(--ink-soft)}
+
+  /* ===== Industries ===== */
+  .indgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:1.6rem}
+  .ind{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+  .ind:hover{transform:translateY(-3px);border-color:var(--teal);box-shadow:0 14px 32px -20px rgba(22,48,107,.5)}
+  .ind .ic{width:34px;height:34px;border-radius:9px;background:var(--ground-2);display:flex;align-items:center;justify-content:center;color:var(--teal-deep);margin-bottom:12px}
+  .ind h4{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.06rem;letter-spacing:-.01em}
+  .ind p{font-size:.86rem;color:var(--ink-soft);margin-top:.25rem;line-height:1.5}
+  .range-note{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--go);border-radius:0 14px 14px 0;padding:18px 22px;margin-top:1.6rem;font-size:.95rem;color:var(--ink-soft)}
+  .range-note b{color:var(--ink);font-weight:600}
+  @media(max-width:980px){.indgrid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:860px){.who-two{grid-template-columns:1fr}}
+  @media(max-width:560px){.indgrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -338,6 +389,9 @@
 
       <div class="track-shell">
         <div class="track" id="track">
+          <div class="ghost g3"><i class="r" style="left:30%"></i><i class="c" style="left:73%"></i></div>
+          <div class="ghost g2"><span class="gz" style="left:45%;right:42%"></span><i class="r" style="left:46%"></i><i class="c" style="left:57%"></i></div>
+          <div class="ghost g1"><i class="r" style="left:38%"></i><i class="c" style="left:66%"></i></div>
           <div class="zone" id="zone"></div>
           <div class="mark resp" id="markResp"><span class="bubble" id="bubResp">£30,000</span></div>
           <div class="mark claim" id="markClaim"><span class="bubble" id="bubClaim">£58,000</span></div>
@@ -362,6 +416,16 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
         <span>This is a demo, so you can see both sides. In the live product each party controls only their own slider and sees only the colour — never the other side's figure, and never the gap between you.</span>
       </div>
+    </div>
+
+    <!-- One row: which door are you? The scale above answers by multiplying. -->
+    <div class="chooser reveal">
+      <span class="ask" id="chooseAsk">Got one of these, or a ledger full?</span>
+      <div class="swch" role="group" aria-label="How many disputes have you got?">
+        <button type="button" class="on" id="bInd"><span class="bead"></span>Just this one</button>
+        <button type="button" class="biz" id="bBiz"><span class="bead"></span>A whole ledger</button>
+      </div>
+      <a class="btn btn-primary" id="chooseCta" href="/signup">Open your first case <span class="arrow">→</span></a>
     </div>
   </div>
 </section>
@@ -417,18 +481,64 @@
 
 <!-- WHO IT'S FOR -->
 <section class="who-sec band" id="who">
-  <div class="wrap pro">
-    <div class="reveal">
+  <div class="wrap">
+    <div class="sec-head reveal">
       <span class="eyebrow">Who it's for</span>
       <h2 class="display" style="margin:.9rem 0 1rem">For the person owed, not the system</h2>
-      <p class="lead">If a sum is stuck between you and someone else, and going to court would cost more than it's worth, the scale gives you a fair, private way to settle it.</p>
-      <a class="btn btn-primary" href="/signup" style="margin-top:1.6rem">Create account <span class="arrow">→</span></a>
+      <p class="lead">If a sum is stuck between two parties, the scale gives you a fair, private way to settle it — whether that's a returned deposit or a seven-figure contract claim.</p>
     </div>
-    <div class="pro-card reveal">
-      <div class="pro-row"><div class="ri"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16v12H4zM8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.7"/></svg></div><div><strong>Freelancers &amp; contractors</strong><span>Chase an unpaid invoice without burning the relationship or paying a lawyer.</span></div></div>
-      <div class="pro-row"><div class="ri"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-5h6v5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div><div><strong>Suppliers &amp; SMEs</strong><span>Recover money owed on goods and services delivered — quickly and quietly.</span></div></div>
-      <div class="pro-row"><div class="ri"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="9" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 19a5.5 5.5 0 0111 0M15 19a5 5 0 015.5-1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div><div><strong>Anyone mid-dispute</strong><span>Deposits, refunds, loans between people — any stuck sum two sides can't agree on.</span></div></div>
+
+    <div class="who-two">
+      <div class="pcard reveal">
+        <div class="strip"></div>
+        <div class="in">
+          <div class="tier">For individuals</div>
+          <h3>One dispute at a time</h3>
+          <p>A single stuck sum between you and one other party. Open a case, name your figure, and see it through.</p>
+          <ul>
+            <li>Name the dispute and invite the other side</li>
+            <li>Set three private figures — ideal, target, walk-away</li>
+            <li>Settle in days, binding and enforceable</li>
+          </ul>
+          <div class="tags"><span class="tag">One case</span><span class="tag">Free to look</span><span class="tag">No settlement, no fee</span></div>
+        </div>
+        <div class="act"><a class="btn btn-primary" href="/signup">Open a case <span class="arrow">→</span></a></div>
+      </div>
+
+      <div class="pcard biz reveal">
+        <div class="strip"></div>
+        <div class="in">
+          <div class="tier">For business</div>
+          <h3>Your whole ledger</h3>
+          <p>Disputes arrive in volume, not one at a time. Run them as a pipeline instead of forty awkward conversations.</p>
+          <ul>
+            <li>Import every dispute from a spreadsheet</li>
+            <li>Set one bid bar across all of them at once</li>
+            <li>Invite everyone; MidBid chases the quiet ones</li>
+          </ul>
+          <div class="tags"><span class="tag">Many cases</span><span class="tag">Bulk invites</span><span class="tag">Auto-nudge</span><span class="tag">One dashboard</span></div>
+        </div>
+        <div class="act"><a class="btn btn-primary" href="/business">Open the business portal <span class="arrow">→</span></a></div>
+      </div>
     </div>
+
+    <div class="sec-head reveal" style="margin-top:4.4rem">
+      <span class="eyebrow">Where it's used</span>
+      <h2 class="display" style="margin:.9rem 0 0;font-size:clamp(1.6rem,3vw,2.2rem)">Any industry where money gets stuck</h2>
+    </div>
+
+    <div class="indgrid reveal">
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div><h4>Construction &amp; engineering</h4><p>Variations, delay claims, retention and final accounts.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17h20l-2 4H4l-2-4zM5 17V9h14v8M9 9V5h6v4"/></svg></div><h4>Shipping &amp; logistics</h4><p>Demurrage, freight charges, cargo damage and delay.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></div><h4>Energy &amp; infrastructure</h4><p>Supply contracts, EPC disputes, availability and offtake.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-6 9 6v12H3V9zM9 21v-8h6v8"/></svg></div><h4>Property &amp; real estate</h4><p>Deposits, dilapidations, service charges and rent arrears.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v14H3zM8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div><h4>Professional services</h4><p>Unpaid fees, scope disputes and terminated engagements.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h20v14H2zM8 22h8M12 18v4"/></svg></div><h4>Technology &amp; SaaS</h4><p>Licence fees, SLA credits and contract exits.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4z"/></svg></div><h4>Insurance</h4><p>Quantum gaps on claims, subrogation and recoveries.</p></div>
+      <div class="ind"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></div><h4>Manufacturing &amp; supply</h4><p>Goods delivered, defects, price and volume disputes.</p></div>
+    </div>
+
+    <div class="range-note reveal"><b>No floor, no ceiling.</b> The same three private figures settle a £900 deposit and a £2m contract claim. Court is slow and expensive at every size — the scale isn't.</div>
   </div>
 </section>
 
@@ -514,6 +624,24 @@
       }
     });
   }
+
+  /* ===== One dispute, or a ledger? The scale multiplies. ===== */
+  (function(){
+    var sec=document.getElementById('scale');
+    var bInd=document.getElementById('bInd'), bBiz=document.getElementById('bBiz');
+    var cta=document.getElementById('chooseCta'), ask=document.getElementById('chooseAsk');
+    if(!sec||!bInd||!bBiz) return;
+    function choose(biz){
+      sec.classList.toggle('multi', biz);
+      bInd.classList.toggle('on', !biz);
+      bBiz.classList.toggle('on', biz);
+      ask.textContent = biz ? 'One bar, set once, across every one of them.' : 'Got one of these, or a ledger full?';
+      cta.innerHTML = (biz ? 'Open the business portal' : 'Open your first case') + ' <span class="arrow">→</span>';
+      cta.setAttribute('href', biz ? '/business' : '/signup');
+    }
+    bInd.addEventListener('click', function(){ choose(false); });
+    bBiz.addEventListener('click', function(){ choose(true); });
+  })();
 
   /* ===== The settlement scale ===== */
   (function(){
