@@ -8,6 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
+<style>
+/* Portal switch. Scoped here so styles.css needs no changes. */
+.portal-seg{display:flex;background:#EAEFF7;border:1px solid #DCE3EF;border-radius:999px;padding:3px;font-size:.84rem;font-weight:600;margin:0 auto}
+.portal-seg form{margin:0;display:flex}
+.portal-seg button{border:none;background:none;font:inherit;font-weight:600;color:#586079;padding:.4em 1em;border-radius:999px;cursor:pointer;white-space:nowrap}
+.portal-seg button.on{background:#fff;color:#16306B;box-shadow:0 1px 3px rgba(22,48,107,.12)}
+@media (max-width:760px){.portal-seg{font-size:.78rem;margin:0}.portal-seg button{padding:.35em .7em}}
+</style>
 </head>
 <body>
 <div class="seam-top"></div>
@@ -28,11 +36,30 @@
    <circle cx="50" cy="24" r="4" fill="#F5B312" filter="url(#gH)"/></g></svg>
       MidBid
     </a>
+
+    <%# Individual / business switch. Only for signed-in users. %>
+    <% if (me) { %>
+      <div class="portal-seg" role="group" aria-label="Choose portal">
+        <form method="POST" action="/business/switch">
+          <input type="hidden" name="type" value="individual" />
+          <button type="submit" class="<%= me.account_type === 'business' ? '' : 'on' %>">For individuals</button>
+        </form>
+        <form method="POST" action="/business/switch">
+          <input type="hidden" name="type" value="business" />
+          <button type="submit" class="<%= me.account_type === 'business' ? 'on' : '' %>">For business</button>
+        </form>
+      </div>
+    <% } %>
+
     <div class="bar-right">
       <% if (me) { %>
-        <a href="/dashboard">My cases</a>
+        <% if (me.account_type === 'business') { %>
+          <a href="/business">Disputes</a>
+        <% } else { %>
+          <a href="/dashboard">My cases</a>
+        <% } %>
         <% if (typeof isAdmin !== 'undefined' && isAdmin) { %><a href="/admin" class="admin-link">Admin</a><% } %>
-        <span class="muted"><%= me.name %></span>
+        <span class="muted"><%= me.company_name || me.name %></span>
         <form method="POST" action="/logout"><button class="linkbtn" type="submit">Log out</button></form>
       <% } else { %>
         <a href="/login">Log in</a>

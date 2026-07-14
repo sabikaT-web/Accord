@@ -1,0 +1,78 @@
+<%- include('partials/head') %>
+
+<style>
+/* Scoped to this page so styles.css needs no changes. */
+.gate-in{max-width:760px;margin:0 auto;text-align:center;padding:34px 0 60px}
+.gate-in h1.big{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:2.3rem;letter-spacing:-.02em;margin-bottom:.5rem}
+.gate-in .lede{color:#586079;font-size:1.05rem;margin-bottom:2.2rem}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:left}
+.choice{background:#fff;border:1px solid #DCE3EF;border-radius:18px;padding:26px 24px;text-decoration:none;color:inherit;display:block;width:100%;text-align:left;font:inherit;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.choice:hover{transform:translateY(-3px);border-color:#2F6BFF;box-shadow:0 14px 34px rgba(22,48,107,.12);text-decoration:none}
+.choice .cic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.choice.ind .cic{background:rgba(47,107,255,.12);color:#2F6BFF}
+.choice.biz .cic{background:rgba(245,179,18,.16);color:#B5790F}
+.choice h3{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.35rem;margin-bottom:.3rem}
+.choice p{font-size:.92rem;color:#586079;margin-bottom:1rem}
+.choice .go-lnk{font-weight:600;font-size:.9rem;color:#2F6BFF}
+.gate-in .foot-note{margin-top:1.8rem;font-size:.86rem;color:#586079}
+.choice-form{margin:0;display:block}
+@media (max-width:760px){.choices{grid-template-columns:1fr}}
+</style>
+
+<div class="gate-in">
+  <h1 class="big">How are you here?</h1>
+  <p class="lede">MidBid works the same either way — this just sets up the right home page for you. You can switch whenever you like.</p>
+
+  <div class="choices">
+
+    <%# ---- Individual ---- %>
+    <% if (me) { %>
+      <form class="choice-form" method="POST" action="/business/switch">
+        <input type="hidden" name="type" value="individual" />
+        <button type="submit" class="choice ind">
+    <% } else { %>
+        <a class="choice ind" href="/home">
+    <% } %>
+          <span class="cic">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          </span>
+          <h3>I'm an individual</h3>
+          <p>Resolve a single dispute you're personally involved in — money owed, a deposit, a contract you can't agree on.</p>
+          <span class="go-lnk">Go to my cases →</span>
+    <% if (me) { %>
+        </button>
+      </form>
+    <% } else { %>
+        </a>
+    <% } %>
+
+    <%# ---- Business ---- %>
+    <% if (me) { %>
+      <form class="choice-form" method="POST" action="/business/switch">
+        <input type="hidden" name="type" value="business" />
+        <button type="submit" class="choice biz">
+    <% } else { %>
+        <a class="choice biz" href="/signup?next=%2Fbusiness">
+    <% } %>
+          <span class="cic">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="1.5"/><path d="M8 8V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3"/><path d="M3 13h18"/></svg>
+          </span>
+          <h3>We're a business</h3>
+          <p>Manage many disputes in one place, set one bid bar across them all, invite the other side, and let MidBid chase the quiet ones.</p>
+          <span class="go-lnk">Open the business portal →</span>
+    <% if (me) { %>
+        </button>
+      </form>
+    <% } else { %>
+        </a>
+    <% } %>
+
+  </div>
+
+  <p class="foot-note">
+    Not sure? Start as an individual — you can switch to a business workspace later from the same account.
+    <% if (!me) { %><br /><a href="/login">Already have an account? Log in</a><% } %>
+  </p>
+</div>
+
+<%- include('partials/foot') %>
