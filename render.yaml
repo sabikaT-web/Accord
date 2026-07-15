@@ -1,7 +1,8 @@
-# Tells Render what to build. Creates the website AND the database in one step.
+# This file tells Render what to build. With it, Render can create the website
+# AND the database for you in one step (see DEPLOY.md).
 services:
   - type: web
-    name: midbid
+    name: accord
     runtime: node
     plan: free
     buildCommand: npm install
@@ -10,22 +11,14 @@ services:
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
-        generateValue: true              # Render makes a long random secret for you
+        generateValue: true        # Render makes a long random secret for you
       - key: DATABASE_URL
         fromDatabase:
-          name: midbid-db
+          name: accord-db
           property: connectionString
-      - key: ADMIN_EMAIL
-        value: midbid.settle@gmail.com    # this account sees the Admin portal
-      - key: NOTIFY_EMAIL
-        value: midbid.settle@gmail.com    # where alert emails are sent
-      - key: APP_URL
-        value: https://midbid-wdpc.onrender.com
-      - key: RESEND_API_KEY
-        sync: false                        # you paste this in the Render dashboard
 
 databases:
-  - name: midbid-db
+  - name: accord-db
     plan: free
-    databaseName: midbid
-    user: midbid
+    databaseName: accord
+    user: accord

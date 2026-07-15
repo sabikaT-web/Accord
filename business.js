@@ -23,8 +23,12 @@ const crypto = require('node:crypto');
 const express = require('express');
 const { pool, db } = require('./db');
 const mailer = require('./mailer');
+const multer = require('multer');
+const XLSX = require('xlsx');
 
 const router = express.Router();
+const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1 } });
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // ---- Stage model -------------------------------------------------------------
 // The engine's real statuses are mapped onto the five pipeline stages shown in
@@ -70,8 +74,16 @@ async function initBusiness() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bar_target_pct INTEGER NOT NULL DEFAULT 80;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bar_walk_pct   INTEGER NOT NULL DEFAULT 65;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nudge_enabled BOOLEAN NOT NULL DEFAULT true;`);
-  // The business's own reference (invoice no., matter ref) carried through import.
+  // Imported case metadata. Email is intentionally nullable: a draft can be
+  // created first and the counterparty email added/edited later.
+  await pool.query(`ALTER TABLE cases ALTER COLUMN other_email DROP NOT NULL;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS our_ref TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS category TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS source_status TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS issue_date DATE;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS due_date DATE;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS notes TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS creditor TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS last_nudge_at TIMESTAMPTZ;`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bid_presets (
@@ -114,6 +126,13 @@ const bz = {
   },
   async markNudged(id) { await pool.query('UPDATE cases SET last_nudge_at=now() WHERE id=$1', [id]); },
   async setOurRef(id, ref) { await pool.query('UPDATE cases SET our_ref=$1 WHERE id=$2', [ref, id]); },
+  async setEmail(id, userId, email) {
+    await pool.query('UPDATE cases SET other_email=$1 WHERE id=$2 AND claimant_id=$3', [email || null, id, userId]);
+  },
+  async setMetadata(id, userId, m) {
+    await pool.query(`UPDATE cases SET category=$1, source_status=$2, issue_date=$3, due_date=$4, notes=$5, creditor=$6, our_ref=$7 WHERE id=$8 AND claimant_id=$9`,
+      [m.category || null, m.source_status || null, m.issue_date || null, m.due_date || null, m.notes || null, m.creditor || null, m.our_ref || null, id, userId]);
+  },
 };
 
 // ---- Guards ------------------------------------------------------------------
@@ -231,38 +250,90 @@ router.post('/new', requireLogin, wrap(async (req, res) => {
   res.redirect('/business?msg=' + encodeURIComponent('Dispute added as a draft. Invite when you are ready.'));
 }));
 
-// ---- Bulk import from a spreadsheet ------------------------------------------
-// Format per line: counterparty, email, amount, currency, your-ref
-router.post('/import', requireLogin, wrap(async (req, res) => {
+// ---- Bulk import from Excel or CSV ------------------------------------------
+const norm = (v) => String(v == null ? '' : v).trim();
+const keyOf = (v) => norm(v).toLowerCase().replace(/[^a-z0-9]+/g, '');
+const aliases = {
+  title: ['debtorcompany','counterparty','debtor','company','title','case'],
+  email: ['debtoremail','counterpartyemail','email','otheremail'],
+  creditor: ['creditor','claimant','yourcompany'],
+  category: ['category','duescategory','type'],
+  our_ref: ['referenceno','reference','ourref','caseref','caseid'],
+  amount: ['amountowed','amount','claimamount','amountindispute'],
+  currency: ['currency','ccy'],
+  issue_date: ['issuedate','invoiceissuedate'],
+  due_date: ['duedate','paymentduedate'],
+  source_status: ['status','sourcestatus'],
+  notes: ['notesofclaimdues','notes','description','claimnotes']
+};
+function mapped(row, field) {
+  const wanted = aliases[field] || [];
+  for (const [k, v] of Object.entries(row)) if (wanted.includes(keyOf(k))) return v;
+  return '';
+}
+function excelDate(v) {
+  if (!v) return null;
+  if (v instanceof Date && !Number.isNaN(v.valueOf())) return v.toISOString().slice(0, 10);
+  if (typeof v === 'number') {
+    const d = XLSX.SSF.parse_date_code(v);
+    return d ? [d.y, String(d.m).padStart(2,'0'), String(d.d).padStart(2,'0')].join('-') : null;
+  }
+  const d = new Date(v);
+  return Number.isNaN(d.valueOf()) ? null : d.toISOString().slice(0, 10);
+}
+function parseWorkbook(buffer, originalname) {
+  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { defval: '', raw: true }).slice(0, 500);
+}
+
+router.post('/import', requireLogin, importUpload.single('spreadsheet'), wrap(async (req, res) => {
+  if (!req.file) return res.redirect('/business?msg=' + encodeURIComponent('Choose an .xlsx, .xls or .csv file first.'));
   const me = res.locals.me;
   const applyBar = !!req.body.apply_bar;
-  const lines = String(req.body.csv || '').split('\n').map((l) => l.trim()).filter(Boolean);
-  let made = 0;
-  for (const line of lines) {
-    const p = line.split(',').map((s) => s.trim());
-    if (p.length < 3) continue;
-    const nm = p[0];
-    const email = (p[1] || '').toLowerCase();
-    const amount = parseInt(String(p[2]).replace(/[^0-9]/g, ''), 10);
-    if (!nm || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !(amount > 0)) continue;   // skips a header row too
-    const currency = (p[3] || 'GBP').toUpperCase().replace(/[^A-Z]/g, '') || 'GBP';
+  const rows = parseWorkbook(req.file.buffer, req.file.originalname);
+  let made = 0, missingEmail = 0, skipped = 0;
+  for (const row of rows) {
+    const title = norm(mapped(row, 'title'));
+    const rawAmount = String(mapped(row, 'amount')).replace(/[^0-9.-]/g, '');
+    const amount = Math.round(Number(rawAmount));
+    if (!title || !(amount > 0)) { skipped++; continue; }
+    const rawEmail = norm(mapped(row, 'email')).toLowerCase();
+    const email = EMAIL_RE.test(rawEmail) ? rawEmail : null;
+    if (!email) missingEmail++;
+    const currency = (norm(mapped(row, 'currency')) || 'GBP').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3) || 'GBP';
     const token = crypto.randomBytes(16).toString('hex');
-    const id = await db.createCase(nm, amount, token, me.id, null, email, currency);
+    const id = await db.createCase(title, amount, token, me.id, null, email, currency);
     await db.setStatus('draft', id);
-    if (p[4]) await bz.setOurRef(id, p[4].slice(0, 80));
-    await db.addEvent(id, 'created', 'Imported in the business portal by ' + me.email);
-    if (applyBar) {
-      await db.setClaimAnchors(
-        Math.round(amount * me.bar_ideal_pct / 100),
-        Math.round(amount * me.bar_target_pct / 100),
-        Math.round(amount * me.bar_walk_pct / 100), id);
-    }
+    await bz.setMetadata(id, me.id, {
+      creditor: norm(mapped(row, 'creditor')).slice(0, 200),
+      category: norm(mapped(row, 'category')).slice(0, 100),
+      our_ref: norm(mapped(row, 'our_ref')).slice(0, 100),
+      source_status: norm(mapped(row, 'source_status')).slice(0, 100),
+      issue_date: excelDate(mapped(row, 'issue_date')),
+      due_date: excelDate(mapped(row, 'due_date')),
+      notes: norm(mapped(row, 'notes')).slice(0, 2000)
+    });
+    await db.addEvent(id, 'created', 'Imported from ' + req.file.originalname + ' by ' + me.email);
+    if (applyBar) await db.setClaimAnchors(
+      Math.round(amount * me.bar_ideal_pct / 100),
+      Math.round(amount * me.bar_target_pct / 100),
+      Math.round(amount * me.bar_walk_pct / 100), id);
     made++;
   }
-  const msg = made
-    ? 'Imported ' + made + ' dispute' + (made === 1 ? '' : 's') + (applyBar ? ' with the bid bar pre-set.' : '. Set a bid bar and invite when ready.')
-    : 'Nothing imported — check the format: counterparty, email, amount, currency, ref.';
+  let msg = made ? 'Imported ' + made + ' draft' + (made === 1 ? '' : 's') + '.' : 'No valid rows were imported.';
+  if (missingEmail) msg += ' ' + missingEmail + ' email field' + (missingEmail === 1 ? ' is' : 's are') + ' blank and can be edited before inviting.';
+  if (skipped) msg += ' ' + skipped + ' invalid row' + (skipped === 1 ? ' was' : 's were') + ' skipped.';
   res.redirect('/business?msg=' + encodeURIComponent(msg));
+}));
+
+router.post('/cases/:id/email', requireLogin, wrap(async (req, res) => {
+  const value = norm(req.body.other_email).toLowerCase();
+  if (value && !EMAIL_RE.test(value)) return res.redirect('/business?msg=' + encodeURIComponent('Enter a valid email address or leave it blank.'));
+  await bz.setEmail(Number(req.params.id), req.session.userId, value || null);
+  await db.addEvent(Number(req.params.id), 'email_updated', value ? 'Counterparty email updated' : 'Counterparty email cleared');
+  res.redirect('/business?msg=' + encodeURIComponent(value ? 'Email saved.' : 'Email removed. This case remains a draft until an email is added.'));
 }));
 
 // ---- Apply the bid bar -------------------------------------------------------
@@ -329,7 +400,7 @@ router.post('/bulk', requireLogin, wrap(async (req, res) => {
 
   if (action === 'invite') {
     for (const c of mine) {
-      if (stageOf(c) !== 'draft') continue;
+      if (stageOf(c) !== 'draft' || !EMAIL_RE.test(c.other_email || '')) continue;
       await inviteOne(req, c, me.email);
       n++;
     }
@@ -388,18 +459,34 @@ router.post('/bulk', requireLogin, wrap(async (req, res) => {
 }));
 
 // ---- Export ------------------------------------------------------------------
-router.get('/export.csv', requireLogin, wrap(async (req, res) => {
+router.get('/export.xlsx', requireLogin, wrap(async (req, res) => {
   const rows = await bz.casesForBusiness(req.session.userId);
-  const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const head = 'case_id,our_ref,counterparty,email,amount,currency,stage,status,bid_ideal,bid_target,bid_walk,settled_value,created_at\n';
-  const body = rows.map((c) => [
-    c.id, esc(c.our_ref), esc(c.title), esc(c.other_email), c.amount, c.currency,
-    stageOf(c), c.status, c.claim_ideal || '', c.claim_fair || '', c.claim_value || '',
-    c.settled_value || '', new Date(c.created_at).toISOString()
-  ].join(',')).join('\n');
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="midbid-disputes.csv"');
-  res.send(head + body);
+  const data = rows.map((c) => ({
+    'Case ID': 'MB-' + c.id,
+    'Debtor Company': c.title,
+    'Debtor Email': c.other_email || '',
+    'Creditor': c.creditor || '',
+    'Category': c.category || '',
+    'Reference No.': c.our_ref || '',
+    'Amount Owed': c.amount,
+    'Currency': c.currency,
+    'Issue Date': c.issue_date || '',
+    'Due Date': c.due_date || '',
+    'Source Status': c.source_status || '',
+    'Notes of Claim / Dues': c.notes || '',
+    'MidBid Status': stageOf(c),
+    'Highest Bid': Math.max(...[c.claim_ideal,c.claim_fair,c.claim_value,c.resp_ideal,c.resp_fair,c.resp_value].filter((v)=>v!=null), 0) || '',
+    'Lowest Bid': Math.min(...[c.claim_ideal,c.claim_fair,c.claim_value,c.resp_ideal,c.resp_fair,c.resp_value].filter((v)=>v!=null), Infinity) === Infinity ? '' : Math.min(...[c.claim_ideal,c.claim_fair,c.claim_value,c.resp_ideal,c.resp_fair,c.resp_value].filter((v)=>v!=null)),
+    'Settled Amount': c.settled_value || '',
+    'Date Settled': c.settled_at || ''
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, 'MidBid Cases');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="midbid-disputes.xlsx"');
+  res.send(buf);
 }));
 
 module.exports = { router, initBusiness, stageOf, STAGES };
