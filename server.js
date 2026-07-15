@@ -25,7 +25,7 @@ const fs = require('node:fs');
   fs.mkdirSync(publicDir, { recursive: true });
   const pages = ['admin-case','admin-cases','admin-users','admin','case',
     'dashboard','home','join','login','message','new-case','signup','signup-invite',
-    'terms','fees','privacy','business'];
+    'terms','fees','privacy','gate','business'];
   for (const p of pages) {
     const src = path.join(__dirname, p + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
@@ -454,17 +454,17 @@ function viewerStatus(c, role) {
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 // ---- Auth ----
-// The homepage does the asking now: the scale multiplies, and one row under it
-// sends you to the right portal. No interstitial gate.
+// The gate: the first question is always individual or business.
+// Signed-in users skip it and go straight to the home page for their portal.
 app.get('/', (req, res) => {
   if (req.session.userId) {
     const acct = res.locals.me && res.locals.me.account_type;
     return res.redirect(acct === 'business' ? '/business' : '/dashboard');
   }
-  res.render('home');
+  res.render('gate');
 });
 
-// The marketing homepage, always reachable even when signed in.
+// The individual marketing home page, reachable from the gate and the switch.
 app.get('/home', (req, res) => res.render('home'));
 
 // ---- Business portal ----
