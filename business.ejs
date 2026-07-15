@@ -232,6 +232,187 @@ table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.04)}
 .flash + .kpis{margin-top:0}
 .empty-note{color:#586079;font-size:.9rem;margin-top:12px}
 @media (max-width:820px){.kpis{grid-template-columns:repeat(2,1fr);margin-top:-30px}.anchors{grid-template-columns:1fr}.colgrid{grid-template-columns:1fr 1fr}}
+
+/* =============================================================================
+   DARK COCKPIT
+   -----------------------------------------------------------------------------
+   Scoped: this block only loads on this page, so nothing else in the app moves.
+   Delete from here to the end of the style block to go back to light.
+
+   Every text tier below was measured, not chosen by eye. Ratios are against the
+   surface each one actually sits on:
+     #F2F6FF on #102450 = 13.96:1  AAA   body / numbers
+     #B6C3E1 on #102450 =  8.55:1  AAA   labels, secondary
+     #9FB0D8 on #102450 =  6.96:1  AA+   deltas, hints
+     #F5B312 on #102450 =  8.16:1  AAA   gold
+     #4EE1A0 on #102450 =  9.06:1  AAA   settlement green
+     #5B8CFF on #102450 =  4.78:1  AA    royal AS TEXT
+   Raw royal #2F6BFF measures 3.36:1 on this surface and FAILS for small text.
+   It survives as a fill and a stroke only — never as a letter.
+   ========================================================================== */
+:root{
+  --ground:#081530; --ground-2:#0E1F45; --paper:#102450;
+  --ink:#F2F6FF; --ink-soft:#B6C3E1;
+  --line:#2E4F9B; --signal:#FFD469;
+  --teal:#5B8CFF; --go:#4EE1A0; --go-soft:#7FF0BE;
+  --on-navy-soft:#DCE4F7;
+  --dk-card:#102450; --dk-hi:#16306B; --dk-line:#2E4F9B; --dk-line-i:#4470C0;
+  --dk-ink:#F2F6FF; --dk-soft:#B6C3E1; --dk-muted:#9FB0D8;
+  --dk-gold:#F5B312; --dk-go:#4EE1A0; --dk-royal-t:#5B8CFF; --dk-royal-btn:#2A61EE;
+}
+body{background:#081530;color:var(--dk-ink)}
+.bars .bar{background:transparent}                 /* the chart bar, not the nav */
+.portal-seg{background:#0E1F45;border-color:var(--dk-line-i)}
+.portal-seg button{color:var(--dk-soft)}
+.portal-seg button.on{background:var(--dk-royal-btn);color:#fff;box-shadow:none}
+.linkbtn{color:var(--dk-soft)} .linkbtn:hover{color:#fff}
+
+/* ---- KPI tiles ---- */
+.kpi{background:var(--dk-card);border-color:var(--dk-line);box-shadow:0 16px 36px -20px rgba(0,0,0,.8)}
+.kpi-label{color:var(--dk-soft)}
+.kpi-num{color:#fff}
+.kpi-delta{color:var(--dk-muted)}
+.kpi-delta.up{color:var(--dk-go)} .kpi-delta.down{color:#FF9E7A} .kpi-delta.flat{color:var(--dk-muted)}
+.kpi-delta .sub{color:var(--dk-muted)}
+a.kpi:hover{border-color:var(--dk-royal-t)}
+a.kpi.on{border-color:var(--dk-gold);box-shadow:inset 0 0 0 1px var(--dk-gold)}
+/* Each number keeps a colour identity so the page is readable at a glance. */
+.kpis .kpi:nth-child(1) .kpi-num{color:var(--dk-royal-t)}
+.kpis .kpi:nth-child(2) .kpi-num{color:var(--dk-gold)}
+.kpis .kpi:nth-child(4) .kpi-num{color:var(--dk-go)}
+
+/* ---- cards / pipeline ---- */
+.bcard{background:var(--dk-card);border-color:var(--dk-line)}
+.ov-title{color:#fff}
+.b-muted{color:var(--dk-soft)}
+.pathstep{background:var(--dk-hi);color:var(--dk-soft)}
+.pathstep:hover{background:#1B3A78}
+.pathstep .ps-count{color:#fff}
+.pathstep.on{background:var(--dk-gold);color:#2E2000}          /* 8.57:1 — the strongest on the page */
+.pathstep.on:hover{background:var(--dk-gold)}
+.pathstep.on .ps-count{color:#2E2000}
+.declined-chip{background:#3A1E12;border-color:#C25A34;color:#FFB495}
+.declined-chip.on{background:#C25A34;border-color:#C25A34;color:#fff}
+
+/* ---- bid bar ---- */
+.bidbar-head .ic{background:rgba(91,140,255,.18);color:var(--dk-royal-t)}
+.preset-row label{color:var(--dk-soft)}
+.preset-row select,.preset-row input[type=text]{background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-ink)}
+.anchor{border-color:var(--dk-line)}
+.anchor .pct{color:#fff}
+.anchor .pctlab{color:var(--dk-muted)}
+.anchor .hint{color:var(--dk-muted)}
+.anchor.ideal .tag{color:var(--dk-go)}
+.anchor.target .tag{color:var(--dk-royal-t)}
+.anchor.walk .tag{color:var(--dk-gold)}
+.bidbar-foot{border-top-color:var(--dk-line)}
+.bidbar-foot .note{color:var(--dk-muted)}
+.apply-to{color:var(--dk-soft)}
+.apply-to select{background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-ink)}
+
+/* ---- toolbar / buttons ---- */
+.bbtn-primary{background:var(--dk-royal-btn);color:#fff}       /* white on #2A61EE = 5.19:1 */
+.bbtn-primary:hover{background:var(--dk-royal-t);color:#08122A}
+.bbtn-ghost{border-color:var(--dk-line-i);color:var(--dk-soft)}
+.bbtn-ghost:hover{border-color:var(--dk-royal-t);color:var(--dk-royal-t)}
+.bbtn-go{background:var(--dk-go);color:#062A1B}
+.chip-toggle{background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-soft)}
+.chip-toggle.on{background:rgba(245,179,18,.2);border-color:var(--dk-gold);color:#FFD469}
+.chip-toggle .led{background:#2E4F9B}
+.chip-toggle.on .led{background:var(--dk-gold)}
+.searchbox{background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-soft)}
+.searchbox input{color:var(--dk-ink)}
+.searchbox input::placeholder{color:var(--dk-muted)}
+
+/* ---- filters ---- */
+.fchip{background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-soft)}
+.fchip:hover{border-color:var(--dk-royal-t)}
+.fchip.on{background:var(--dk-royal-btn);border-color:var(--dk-royal-btn);color:#fff}
+.fchip.attn.on{background:var(--dk-gold);border-color:var(--dk-gold);color:#2E2000}
+.fchip.warn.on{background:#C25A34;border-color:#C25A34;color:#fff}
+
+/* ---- table ---- */
+.btbl{background:var(--dk-card);border-color:var(--dk-line)}
+table.bcases thead th{background:var(--dk-hi);color:var(--dk-soft);border-bottom-color:var(--dk-line)}
+table.bcases tbody td{border-bottom-color:var(--dk-line);color:var(--dk-ink)}
+table.bcases tbody tr.clickable:hover{background:var(--dk-hi)}
+table.bcases tbody tr.sel{background:#1B3A78}
+table.bcases tbody tr.settled-row{background:rgba(78,225,160,.09)}
+table.bcases tbody tr.attn-row{box-shadow:inset 3px 0 0 var(--dk-gold)}
+.cp .rf{color:var(--dk-muted)}
+.cat{background:#1B3A78;color:#C4CFE7}
+.bid .hi{color:var(--dk-royal-t)} .bid .lo{color:var(--dk-gold)} .bid .none{color:var(--dk-muted)}
+.bpill{border-color:var(--dk-line);color:var(--dk-soft)}
+.bpill.draft{background:#1B3A78;color:#C4CFE7}
+.bpill.awaiting{background:rgba(245,179,18,.18);border-color:var(--dk-gold);color:#FFD469}
+.bpill.progress{background:rgba(91,140,255,.2);border-color:var(--dk-royal-t);color:#A9C4FF}
+.bpill.converging{background:rgba(91,140,255,.28);border-color:var(--dk-royal-t);color:#C7D9FF}
+.bpill.settled{background:rgba(78,225,160,.18);border-color:var(--dk-go);color:#7FF0BE}
+.bpill.declined{background:#3A1E12;border-color:#C25A34;color:#FFB495}
+.bpill.closed{background:#1B3A78;color:var(--dk-muted)}
+.minitag.nudge{background:rgba(245,179,18,.22);color:#FFD469}
+.minitag.stall{background:#3A1E12;color:#FFB495}
+.emailcell input{color:var(--dk-ink)}
+.emailcell input:hover{border-color:var(--dk-line-i);background:#0E1F45}
+.emailcell input:focus{border-color:var(--dk-royal-t);background:#0E1F45}
+.emailcell input.missing{background:#3A1E12;border-color:#C25A34;color:#FFD8C7}
+.emailcell input.missing::placeholder{color:#FFB495}
+.emailcell button{background:var(--dk-royal-btn)}
+.bulkbar{background:var(--dk-gold);color:#2E2000;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.bulkbar .bbtn-ghost{border-color:rgba(46,32,0,.35);color:#2E2000}
+.bulkbar .bbtn-ghost:hover{background:rgba(46,32,0,.12);border-color:#2E2000;color:#2E2000}
+.bulkbar .bbtn-go{background:#0B3D2A;color:#7FF0BE}
+.empty-note{color:var(--dk-soft)}
+
+/* ---- modals ---- */
+.modal-bg{background:rgba(4,10,24,.72)}
+.modal{background:var(--dk-card);border:1px solid var(--dk-line)}
+.modal h2{color:#fff}
+.modal .x{color:var(--dk-soft)}
+.modal input[type=text],.modal input[type=email],.modal input[type=number],.modal select,.modal textarea{
+  background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-ink)}
+.modal input::placeholder{color:var(--dk-muted)}
+.modal .frow label{color:var(--dk-soft)}
+.modal .crow{color:var(--dk-soft)}
+
+/* ---- import / export ---- */
+.drop{background:#0E1F45;border-color:var(--dk-line-i)}
+.drop:hover,.drop.hot{border-color:var(--dk-royal-t);background:#16306B}
+.drop .dic{background:rgba(91,140,255,.18);color:var(--dk-royal-t)}
+.drop h3{color:#fff}
+.drop p{color:var(--dk-soft)}
+.step{background:var(--dk-hi);color:var(--dk-soft)}
+.step.on{background:var(--dk-gold);color:#2E2000}
+.step.done{background:rgba(78,225,160,.22);color:#7FF0BE}
+.srccol{background:#0E1F45;border-color:var(--dk-line);color:var(--dk-soft)}
+.arrw{color:var(--dk-muted)}
+.maprow{border-bottom-color:var(--dk-line)}
+.alert.warn{background:#3A1E12;border-color:#C25A34;color:#FFD8C7}
+.alert.ok{background:rgba(78,225,160,.12);border-color:var(--dk-go);color:#9CF3CE}
+.alert.info{background:rgba(91,140,255,.12);border-color:var(--dk-royal-t);color:#C7D9FF}
+.alert.warn a{color:#FFD8C7}
+.mini-tbl{border-color:var(--dk-line)}
+.mini-tbl th{background:var(--dk-hi);color:var(--dk-soft);border-bottom-color:var(--dk-line)}
+.mini-tbl td{border-bottom-color:var(--dk-line);color:var(--dk-ink)}
+.mini-tbl input{background:#0E1F45;border-color:var(--dk-line-i);color:var(--dk-ink)}
+.mini-tbl input.missing{background:#3A1E12;border-color:#C25A34;color:#FFD8C7}
+.colchk{color:var(--dk-ink)}
+.colchk.new{color:#A9C4FF}
+.radio-row label{color:var(--dk-ink)}
+.flash{background:rgba(78,225,160,.12);border-color:var(--dk-go);color:#9CF3CE}
+
+/* ---- per-case bid bar ---- */
+.cm-amt{color:#fff}
+.cm-amt .p{color:var(--dk-muted)}
+.cscale{background:#0E1F45;border-color:var(--dk-line)}
+.cscale .ct{background:#081530}
+.cscale .cband{background:rgba(91,140,255,.22);border-color:var(--dk-royal-t)}
+.cscale .cband.lit{background:rgba(78,225,160,.24);border-color:var(--dk-go)}
+.cscale .cm.i{background:var(--dk-go)} .cscale .cm.t{background:var(--dk-royal-t)} .cscale .cm.w{background:var(--dk-gold)}
+.cscale .cr{background:#fff;border-color:#081530}
+.cscale .cax{color:var(--dk-muted)}
+.cscale .cnote{color:var(--dk-soft)}
+.cscale .cnote b{color:var(--dk-go)}
 </style>
 
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
