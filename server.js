@@ -8,6 +8,8 @@ const pgSession = require('connect-pg-simple')(session);
 const bcrypt = require('bcryptjs');
 const { pool, db, init } = require('./db');
 const mailer = require('./mailer');
+// Business portal: its own routes + its own migrations. Mounted below.
+const { router: businessRouter, initBusiness, casesForIndividual, decorate } = require('./business');
 
 // --- Self-heal folder layout -------------------------------------------------
 // The app expects templates in views/ (+ views/partials/) and the stylesheet in
@@ -23,7 +25,7 @@ const fs = require('node:fs');
   fs.mkdirSync(publicDir, { recursive: true });
   const pages = ['admin-case','admin-cases','admin-users','admin','case',
     'dashboard','home','join','login','message','new-case','signup','signup-invite',
-    'terms','fees','privacy'];
+    'terms','fees','privacy','business'];
   for (const p of pages) {
     const src = path.join(__dirname, p + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
@@ -452,7 +454,21 @@ function viewerStatus(c, role) {
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 // ---- Auth ----
-app.get('/', (req, res) => { if (req.session.userId) return res.redirect('/dashboard'); res.render('home'); });
+// The homepage does the asking now: the scale multiplies, and one row under it
+// sends you to the right portal. No interstitial gate.
+app.get('/', (req, res) => {
+  if (req.session.userId) {
+    const acct = res.locals.me && res.locals.me.account_type;
+    return res.redirect(acct === 'business' ? '/business' : '/dashboard');
+  }
+  res.render('home');
+});
+
+// The marketing homepage, always reachable even when signed in.
+app.get('/home', (req, res) => res.render('home'));
+
+// ---- Business portal ----
+app.use('/business', businessRouter);
 
 // ---- Public policy pages ----
 app.get('/terms', (req, res) => res.render('terms'));
@@ -492,9 +508,12 @@ app.post('/login', wrap(async (req, res) => {
 app.post('/logout', (req, res) => req.session.destroy(() => res.redirect('/')));
 
 // ---- Dashboard / cases (user-facing) ----
+// The individual workspace: cases you raised as yourself, PLUS every case you
+// were invited into. Business-raised cases never appear here — and a case you
+// were invited into always does, whoever invited you.
 app.get('/dashboard', requireLogin, wrap(async (req, res) => {
-  const cases = await db.casesForUser(req.session.userId);
-  res.render('dashboard', { cases });
+  const cases = (await casesForIndividual(req.session.userId)).map(decorate);
+  res.render('dashboard', { cases, filter: req.query.filter || 'all' });
 }));
 
 app.get('/cases/new', requireLogin, (req, res) => {
@@ -1124,5 +1143,6 @@ app.get('/admin/users.csv', requireLogin, requireAdmin, wrap(async (req, res) =>
 }));
 
 init()
+  .then(() => initBusiness())
   .then(() => app.listen(PORT, () => console.log('MidBid running on http://localhost:' + PORT)))
   .catch((err) => { console.error('Database setup failed:', err); process.exit(1); });
