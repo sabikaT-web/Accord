@@ -1,0 +1,264 @@
+<%
+  // The same instruments as the business portal, asking an individual's questions.
+  const openC   = cases.filter(c => !['settled','declined','closed'].includes(c.status));
+  const mineC   = cases.filter(c => c.claimant_id === me.id);         // ones I raised
+  const owedC   = openC.filter(c => c.claimant_id === me.id);
+  const settled = cases.filter(c => c.status === 'settled');
+  const sum = (arr, k) => arr.reduce((a, c) => a + (c[k] || 0), 0);
+
+  const owed = sum(owedC, 'amount');
+  const needs = cases.filter(c => c.stage === 'converging' || c.stalled).length;
+  const recovered = sum(settled.filter(c => c.claimant_id === me.id), 'settled_value');
+
+  const spans = settled
+    .filter(c => c.settled_at && c.created_at)
+    .map(c => Math.max(0, Math.round((new Date(c.settled_at) - new Date(c.created_at)) / 86400000)));
+  const typical = spans.length ? Math.round(spans.reduce((a, b) => a + b, 0) / spans.length) : null;
+
+  const cur = cases[0] ? cases[0].currency : 'GBP';
+  const STAGE_META = {
+    draft:      { label: 'Draft',       color: '#B4B2A9' },
+    awaiting:   { label: 'Awaiting',    color: '#F5B312' },
+    progress:   { label: 'In progress', color: '#2F6BFF' },
+    converging: { label: 'Converging',  color: '#16306B' },
+    settled:    { label: 'Settled',     color: '#15B877' }
+  };
+  const STAGES = ['draft','awaiting','progress','converging','settled'];
+  const countAt = (s) => cases.filter(c => c.stage === s).length;
+
+  // Eight-week trends from the timestamps already on each case — real, not mocked.
+  const WEEKS = 8, WEEK = 7 * 86400000, now = Date.now();
+  const edges = [];
+  for (let k = WEEKS - 1; k >= 0; k--) edges.push(now - k * WEEK);
+  const madeBy = (c, t) => new Date(c.created_at).getTime() <= t;
+  const doneBy = (c, t) => c.settled_at && new Date(c.settled_at).getTime() <= t;
+  const sOwed = edges.map(t => cases.filter(c => c.claimant_id === me.id && madeBy(c, t) && !doneBy(c, t) && !['closed','declined'].includes(c.status)).reduce((a, c) => a + c.amount, 0));
+  const sRec  = edges.map(t => cases.filter(c => c.claimant_id === me.id && doneBy(c, t)).reduce((a, c) => a + (c.settled_value || 0), 0));
+  const sNeed = edges.map(t => cases.filter(c => madeBy(c, t) && c.stage === 'converging').length);
+  const delta = (arr) => arr[arr.length - 1] - arr[Math.max(0, arr.length - 5)];
+
+  function sparkPts(points) {
+    const w = 100, h = 26;
+    const max = Math.max.apply(null, points), min = Math.min.apply(null, points);
+    const range = (max - min) || 1;
+    return points.map((p, i) => ((i / (points.length - 1)) * w).toFixed(1) + ',' + (h - 2 - ((p - min) / range) * (h - 4)).toFixed(1)).join(' ');
+  }
+  const filter = typeof f === 'undefined' ? (locals.filter || 'all') : f;
+%>
+<%- include('partials/head', { pageHead: {
+  eyebrow: 'Your cases',
+  title: cases.length ? (openC.length + ' open, ' + settled.length + ' settled') : 'No cases yet',
+  sub: "Open a new dispute, or continue one you're already part of."
+} }) %>
+
+<style>
+/* Scoped to the individual dashboard so styles.css needs no changes. */
+.ikpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:-44px 0 22px;position:relative;z-index:5}
+.ikpi{background:#fff;border:1px solid #DCE3EF;border-radius:14px;padding:16px 16px 12px;text-decoration:none;color:inherit;display:block}
+a.ikpi{transition:border-color .15s,transform .15s}
+a.ikpi:hover{border-color:#2F6BFF;transform:translateY(-2px);text-decoration:none}
+.ikpi-label{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#586079;font-weight:700}
+.ikpi-num{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.8rem;line-height:1.1;margin-top:.35rem}
+.ikpi-num .u{font-size:1rem;color:#586079}
+.ikpi-delta{font-size:.75rem;font-weight:600;margin-top:.2rem}
+.ikpi-delta .sub{color:#586079;font-weight:500}
+.ikpi-delta.up{color:#1c5e3f}.ikpi-delta.flat{color:#586079}
+.ikpi-spark{margin-top:8px;display:block;width:100%;height:26px}
+
+.icard{background:#fff;border:1px solid #DCE3EF;border-radius:14px;padding:22px;margin-bottom:18px}
+.i-title{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.2rem}
+.i-muted{color:#586079;font-size:.9rem}
+.ipath{display:flex;align-items:stretch;flex-wrap:wrap}
+.ipathstep{flex:1;min-width:112px;background:#EEF2F8;color:#1E2A45;padding:12px 14px 12px 30px;margin-left:-14px;display:flex;flex-direction:column;justify-content:center;text-decoration:none;transition:background .15s;clip-path:polygon(16px 50%,0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%)}
+.ipathstep:first-child{margin-left:0;padding-left:18px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%)}
+.ipathstep:last-child{clip-path:polygon(16px 50%,0 0,100% 0,100% 100%,0 100%)}
+.ipathstep:hover{background:#E2E9F5;text-decoration:none}
+.ipathstep.on{background:#16306B;color:#fff}
+.ips-name{font-size:.78rem;font-weight:600;display:flex;align-items:center;white-space:nowrap}
+.ips-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;flex:none}
+.ips-count{font-family:"Spline Sans Mono",monospace;font-weight:700;font-size:1.1rem;margin-top:.1rem}
+
+.itbl{background:#fff;border:1px solid #DCE3EF;border-radius:14px;overflow:hidden}
+.itbl-scroll{overflow-x:auto}
+table.icases{width:100%;border-collapse:collapse;font-size:.9rem;min-width:720px}
+table.icases thead th{text-align:left;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:#586079;font-weight:700;padding:11px 14px;border-bottom:1px solid #DCE3EF;background:#F5F7FB;white-space:nowrap}
+table.icases tbody td{padding:12px 14px;border-bottom:1px solid #DCE3EF;vertical-align:middle}
+table.icases tbody tr:last-child td{border-bottom:none}
+table.icases tbody tr.done{background:rgba(21,184,119,.06)}
+table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
+.icp .nm{font-weight:600}
+.icp .nm a{color:#1E2A45;text-decoration:none}
+.icp .nm a:hover{color:#2F6BFF}
+.icp .sub{font-size:.8rem;color:#586079}
+.iamt{font-family:"Spline Sans Mono",monospace;font-weight:500;white-space:nowrap}
+.ibid{font-family:"Spline Sans Mono",monospace;font-size:.8rem;white-space:nowrap}
+.ibid .hi{color:#2F6BFF}.ibid .lo{color:#B5790F}
+.ibid .none{color:#586079;font-style:italic;font-family:inherit}
+.ipill{font-size:.72rem;font-weight:600;padding:.26em .68em;border-radius:999px;border:1px solid #DCE3EF;color:#586079;white-space:nowrap;display:inline-block}
+.ipill.draft{background:#EAEFF7}
+.ipill.awaiting{background:rgba(245,179,18,.14);border-color:#FAD56A;color:#B5790F}
+.ipill.progress{background:rgba(47,107,255,.10);border-color:#2F6BFF;color:#2F6BFF}
+.ipill.converging{background:rgba(47,107,255,.16);border-color:#2F6BFF;color:#16306B}
+.ipill.settled{background:rgba(21,184,119,.16);border-color:#15B877;color:#1c5e3f}
+.ipill.declined{background:#fbeae2;border-color:#e6b39a;color:#8a3d1a}
+.ipill.closed{background:#EAEFF7;color:#586079}
+.ibtn{display:inline-flex;align-items:center;gap:.5em;font:inherit;font-weight:600;font-size:.86rem;padding:.42em .9em;border-radius:999px;border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap}
+.ibtn-primary{background:#16306B;color:#F4F2EB}.ibtn-primary:hover{background:#2F6BFF;text-decoration:none}
+.ibtn-ghost{background:transparent;border-color:#DCE3EF;color:#1E2A45}.ibtn-ghost:hover{border-color:#2F6BFF;color:#2F6BFF;text-decoration:none}
+.ibtn-go{background:#15B877;color:#fff}
+.itoolbar{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.itoolbar .sp{flex:1}
+@media (max-width:820px){.ikpis{grid-template-columns:repeat(2,1fr);margin-top:-30px}}
+
+
+/* ===== Colour — same identities as the business portal, sized for a few cases.
+   Deep variants for the numbers; see the note in business.ejs for the ratios. */
+.ikpis .ikpi{border-left:5px solid var(--line)}
+.ikpis .ikpi:nth-child(1){border-left-color:#2F6BFF;background:linear-gradient(180deg,rgba(47,107,255,.08),#fff 62%)}
+.ikpis .ikpi:nth-child(1) .ikpi-num{color:#2F6BFF}
+.ikpis .ikpi:nth-child(2){border-left-color:#F5B312;background:linear-gradient(180deg,rgba(245,179,18,.13),#fff 62%)}
+.ikpis .ikpi:nth-child(3){border-left-color:#15B877;background:linear-gradient(180deg,rgba(21,184,119,.10),#fff 62%)}
+.ikpis .ikpi:nth-child(3) .ikpi-num{color:#1c5e3f}
+.ikpis .ikpi:nth-child(4){border-left-color:#16306B;background:linear-gradient(180deg,rgba(22,48,107,.08),#fff 62%)}
+.ikpis .ikpi:nth-child(4) .ikpi-num{color:#16306B}
+
+.ipathstep{--st:#B4B2A9;--sto:#1E2A45;background:color-mix(in srgb,var(--st) 14%,#F3F6FB)}
+.ipathstep:nth-child(2){--st:#F5B312;--sto:#2E2000}
+.ipathstep:nth-child(3){--st:#2A61EE;--sto:#FFFFFF}
+.ipathstep:nth-child(4){--st:#16306B;--sto:#FFFFFF}
+.ipathstep:nth-child(5){--st:#15B877;--sto:#062A1B}
+.ipathstep:hover{background:color-mix(in srgb,var(--st) 26%,#F3F6FB)}
+.ipathstep.on{background:var(--st);color:var(--sto)}
+.ipathstep.on:hover{background:var(--st)}
+.ipathstep.on .ips-count{color:var(--sto)}
+.ipathstep .ips-count{color:#16306B}
+</style>
+
+<% if (cases.length === 0) { %>
+  <div class="icard" style="margin-top:1.4rem">
+    <p class="i-muted">No cases yet. Start one to invite the other party.</p>
+    <a class="ibtn ibtn-primary" href="/cases/new" style="margin-top:1rem">+ Start a new case</a>
+  </div>
+<% } else { %>
+
+<!-- ============ KPI TILES ============ -->
+<div class="ikpis">
+  <div class="ikpi">
+    <div class="ikpi-label">You're owed</div>
+    <div class="ikpi-num"><%= money(owed, cur) %></div>
+    <% const dO = delta(sOwed); %>
+    <div class="ikpi-delta flat">Across <%= owedC.length %> open case<%= owedC.length === 1 ? '' : 's' %> <span class="sub"></span></div>
+    <svg class="ikpi-spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline points="<%= sparkPts(sOwed) %>" fill="none" stroke="#2F6BFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <a class="ikpi" href="/dashboard?filter=<%= filter === 'attn' ? 'all' : 'attn' %>">
+    <div class="ikpi-label">Needs you today</div>
+    <div class="ikpi-num" style="color:<%= needs ? '#B5790F' : '#586079' %>"><%= needs %></div>
+    <div class="ikpi-delta flat"><%= needs ? 'In the band or gone quiet' : 'Nothing waiting on you' %> <span class="sub"></span></div>
+    <svg class="ikpi-spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline points="<%= sparkPts(sNeed) %>" fill="none" stroke="#16306B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+
+  <div class="ikpi">
+    <div class="ikpi-label">Recovered</div>
+    <div class="ikpi-num"><%= money(recovered, cur) %></div>
+    <% const dR = delta(sRec); %>
+    <div class="ikpi-delta <%= dR > 0 ? 'up' : 'flat' %>"><%= dR > 0 ? '▲ ' + money(dR, cur) : '—' %> <span class="sub">last 4 weeks</span></div>
+    <svg class="ikpi-spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline points="<%= sparkPts(sRec) %>" fill="none" stroke="#15B877" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="ikpi">
+    <div class="ikpi-label">Typical time to settle</div>
+    <div class="ikpi-num"><%= typical === null ? '—' : typical %> <% if (typical !== null) { %><span class="u">day<%= typical === 1 ? '' : 's' %></span><% } %></div>
+    <div class="ikpi-delta flat"><%= typical === null ? 'No settlements yet' : 'From opening to agreement' %> <span class="sub"></span></div>
+    <svg class="ikpi-spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline points="0,20 14,18 28,19 42,12 57,13 71,9 85,10 100,5" fill="none" stroke="#586079" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+</div>
+
+<!-- ============ TOOLBAR ============ -->
+<div class="itoolbar">
+  <a class="ibtn ibtn-primary" href="/cases/new">+ Start a new case</a>
+  <button type="button" class="ibtn ibtn-ghost" onclick="downloadMine()">⬇ Download my cases</button>
+  <div class="sp"></div>
+</div>
+
+<!-- ============ PIPELINE ============ -->
+<div class="icard">
+  <div style="margin-bottom:14px"><div class="i-title">Your cases</div><div class="i-muted">Click a stage to filter.</div></div>
+  <div class="ipath">
+    <% STAGES.forEach(function (s) { const m = STAGE_META[s]; %>
+      <a class="ipathstep <%= filter === s ? 'on' : '' %>" href="/dashboard?filter=<%= filter === s ? 'all' : s %>">
+        <div class="ips-name"><span class="ips-dot" style="background:<%= m.color %>"></span><%= m.label %></div>
+        <div class="ips-count"><%= countAt(s) %></div>
+      </a>
+    <% }); %>
+  </div>
+</div>
+
+<!-- ============ TABLE ============ -->
+<%
+  const visible = cases.filter(function (c) {
+    if (filter === 'all') return true;
+    if (filter === 'attn') return c.stage === 'converging' || c.stalled;
+    return c.stage === filter;
+  });
+%>
+<div class="itbl"><div class="itbl-scroll">
+  <table class="icases">
+    <thead><tr><th>Case</th><th>Amount</th><th>Highest / lowest bid</th><th>Status</th><th style="text-align:right">Action</th></tr></thead>
+    <tbody>
+    <% visible.forEach(function (c) {
+         const mine = c.claimant_id === me.id;
+         const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
+         let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
+         if (c.stage === 'draft') pillText = 'Draft — not invited';
+         if (c.stage === 'awaiting') pillText = 'Awaiting other party';
+         if (c.status === 'settled') pillText = 'Settled at ' + money(c.settled_value, c.currency);
+         if (c.status === 'declined') pillText = 'Declined';
+         if (c.status === 'closed') pillText = 'Closed';
+    %>
+      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= (c.stage === 'converging' || c.stalled) ? 'attn' : '' %>">
+        <td>
+          <div class="icp">
+            <div class="nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
+            <div class="sub">you <%= mine ? 'are owed' : 'owe' %><%= c.stalled ? ' · quiet for ' + c.age + ' days' : '' %></div>
+          </div>
+        </td>
+        <td class="iamt"><%= money(c.amount, c.currency) %></td>
+        <td class="ibid">
+          <% if (c.highest == null && c.lowest == null) { %><span class="none">no bids yet</span>
+          <% } else { %><span class="hi"><%= c.highest != null ? money(c.highest, c.currency) : '—' %></span> / <span class="lo"><%= c.lowest != null ? money(c.lowest, c.currency) : '—' %></span><% } %>
+        </td>
+        <td><span class="ipill <%= pillClass %>"><%= pillText %></span></td>
+        <td style="text-align:right">
+          <% if (c.stage === 'converging') { %><a class="ibtn ibtn-go" href="/cases/<%= c.id %>">Approve</a>
+          <% } else if (c.status === 'settled') { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Agreement</a>
+          <% } else { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Open</a><% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div></div>
+<% if (!visible.length) { %><p class="i-muted" style="margin-top:12px">No cases match this view.</p><% } %>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// Only cases you raised yourself can move workspace — ones you were invited into
+// belong to you as a person, wherever they came from.
+var MINE = <%- JSON.stringify(mineC.map(function (c) { return {
+  'MidBid case ID': c.id, 'Debtor Company': c.title, 'Debtor Email': c.other_email || '',
+  'Amount Owed': c.amount, 'Currency': c.currency, 'MidBid status': c.stage,
+  'Highest bid': c.highest == null ? '' : c.highest, 'Lowest bid': c.lowest == null ? '' : c.lowest,
+  'Settled amount': c.settled_value == null ? '' : c.settled_value
+}; })) %>;
+function downloadMine(){
+  if(!MINE.length){alert('You have no cases of your own to download.');return;}
+  var ws=XLSX.utils.json_to_sheet(MINE);
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'My cases');
+  XLSX.writeFile(wb,'midbid-my-cases.xlsx');
+}
+</script>
+
+<% } %>
+<%- include('partials/foot') %>
