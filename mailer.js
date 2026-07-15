@@ -25,6 +25,20 @@ if (process.env.RESEND_API_KEY) {
   }
 }
 
+(function mailerSelfCheck() {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[mailer] WARNING: RESEND_API_KEY is not set — NO EMAIL WILL BE SENT.');
+    return;
+  }
+  if (/onboarding@resend\.dev/i.test(MAIL_FROM)) {
+    console.warn('[mailer] WARNING: MAIL_FROM is still ' + MAIL_FROM + ' (Resend\'s test sender). '
+      + 'Resend will ONLY deliver to your own account address — invites to anyone else will be refused. '
+      + 'Set MAIL_FROM to an address on your verified domain, e.g. "MidBid <hello@midbid.org>".');
+    return;
+  }
+  console.log('[mailer] ready — sending as ' + MAIL_FROM);
+})();
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -35,17 +49,43 @@ const btn = (href, label) =>
   '<p><a href="' + href + '" style="display:inline-block;background:#16306B;color:#fff;' +
   'text-decoration:none;padding:10px 18px;border-radius:8px;font-family:sans-serif">' + label + '</a></p>';
 
+// The Resend SDK RESOLVES with { data, error } — it does NOT throw when the API
+// rejects a message. A bare try/catch therefore never fires, and every send looks
+// like a success even when it was refused. Check the payload, not just the throw.
 async function send(to, subject, html) {
   if (!resendClient) {
-    console.log('[mailer] (no RESEND_API_KEY) would email', to, '—', subject);
-    return;
+    console.log('[mailer] NOT SENT (no RESEND_API_KEY):', to, '—', subject);
+    return { ok: false, error: 'Email is not configured — RESEND_API_KEY is not set on the server.' };
   }
+  if (!to) return { ok: false, error: 'No email address on this case.' };
   try {
-    await resendClient.emails.send({ from: MAIL_FROM, to, subject, html });
-    console.log('[mailer] sent "' + subject + '" to', to);
+    const res = await resendClient.emails.send({ from: MAIL_FROM, to, subject, html });
+    if (res && res.error) {
+      const msg = res.error.message || String(res.error);
+      console.error('[mailer] REJECTED by Resend for', to, '—', msg);
+      return { ok: false, error: explain(msg) };
+    }
+    console.log('[mailer] sent "' + subject + '" to', to, '(id ' + ((res && res.data && res.data.id) || '?') + ')');
+    return { ok: true, id: res && res.data && res.data.id };
   } catch (e) {
-    console.error('[mailer] could not send to', to, '-', e.message);
+    console.error('[mailer] could not send to', to, '—', e.message);
+    return { ok: false, error: e.message };
   }
+}
+
+// Turn Resend's wording into something that says what to actually do about it.
+function explain(msg) {
+  const m = String(msg || '');
+  if (/testing emails|own email address|verify a domain/i.test(m)) {
+    return 'Resend is still in test mode: it will only deliver to your own account address. '
+         + 'Verify midbid.org in Resend, then set MAIL_FROM to an address on that domain (e.g. "MidBid <hello@midbid.org>").';
+  }
+  if (/domain is not verified|not verified/i.test(m)) {
+    return 'The sending domain in MAIL_FROM is not verified in Resend. Finish DNS verification, then try again.';
+  }
+  if (/API key|unauthorized|invalid/i.test(m)) return 'Resend rejected the API key. Check RESEND_API_KEY on Render.';
+  if (/rate/i.test(m)) return 'Resend rate limit hit. Wait a moment and retry.';
+  return m;
 }
 
 // 1) Admin: a new account was created
@@ -122,7 +162,7 @@ function scaleGraphic(amount, recipientPosition, href, currency) {
 async function notifyCaseInvite(c, opts) {
   const o = opts || {};
   const href = o.inviteUrl;
-  await send(c.other_email,
+  return send(c.other_email,
     'You\'re invited to settle "' + c.title + '" on MidBid',
     '<div style="background:#F3EFE4;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">' +
     '<table role="presentation" align="center" width="100%" style="max-width:520px;margin:0 auto;' +

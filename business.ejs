@@ -211,7 +211,25 @@ table.bcases tbody tr.attn-row{box-shadow:inset 3px 0 0 #F5B312}
 .radio-row{display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:.4rem}
 .radio-row label{display:flex;align-items:center;gap:.4em;font-size:.86rem}
 .radio-row input{accent-color:#2F6BFF;margin:0;width:auto}
-.flash{background:rgba(21,184,119,.12);border:1px solid #7FE0AC;color:#1c5e3f;padding:.8em 1.1em;border-radius:12px;font-size:.9rem;margin-bottom:16px}
+/* Per-case bid bar */
+table.bcases tbody tr.clickable{cursor:pointer}
+table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.04)}
+.cm-amt{font-family:"Fraunces",Georgia,serif;font-size:1.05rem;font-weight:500;margin-top:.2rem}
+.cm-amt .p{color:#586079;font-family:"Hanken Grotesk",sans-serif;font-size:.78rem;font-weight:400}
+.cscale{margin:18px 0 6px;padding:18px 14px 10px;border:1px solid #DCE3EF;border-radius:12px;background:#F5F7FB}
+.cscale .ct{position:relative;height:10px;background:#EAEFF7;border-radius:999px;margin:26px 0 8px}
+.cscale .cband{position:absolute;top:-5px;bottom:-5px;border-radius:999px;background:rgba(47,107,255,.14);border:1px solid #bcd0fb}
+.cscale .cband.lit{background:rgba(21,184,119,.18);border-color:#7FE0AC}
+.cscale .cm{position:absolute;top:50%;width:3px;height:22px;transform:translate(-50%,-50%);border-radius:2px}
+.cscale .cm.i{background:#15B877}.cscale .cm.t{background:#2F6BFF}.cscale .cm.w{background:#F5B312}
+.cscale .cr{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);background:#16306B;border:2px solid #fff;box-shadow:0 1px 4px rgba(22,48,107,.4)}
+.cscale .cax{display:flex;justify-content:space-between;font-family:"Spline Sans Mono",monospace;font-size:.68rem;color:#586079}
+.cscale .cnote{font-size:.8rem;color:#586079;text-align:center;margin-top:8px;min-height:1.4em}
+.cscale .cnote b{color:#1c5e3f}
+.flash{background:rgba(21,184,119,.12);border:1px solid #7FE0AC;color:#1c5e3f;padding:.8em 1.1em;border-radius:12px;font-size:.9rem;margin-bottom:16px;position:relative;z-index:6}
+/* The tiles tuck up into the navy banner by -44px. When a message is showing it
+   would sit underneath them, so the tiles drop back into normal flow instead. */
+.flash + .kpis{margin-top:0}
 .empty-note{color:#586079;font-size:.9rem;margin-top:12px}
 @media (max-width:820px){.kpis{grid-template-columns:repeat(2,1fr);margin-top:-30px}.anchors{grid-template-columns:1fr}.colgrid{grid-template-columns:1fr 1fr}}
 </style>
@@ -386,7 +404,7 @@ table.bcases tbody tr.attn-row{box-shadow:inset 3px 0 0 #F5B312}
       </tr></thead>
       <tbody>
       <% visible.forEach(function (c) { %>
-        <tr class="<%= c.status === 'settled' ? 'settled-row' : '' %> <%= c.attention ? 'attn-row' : '' %>">
+        <tr class="<%= c.status === 'settled' ? 'settled-row' : '' %> <%= c.attention ? 'attn-row' : '' %> <%= ['settled','closed','declined'].includes(c.status) ? '' : 'clickable' %>" onclick="rowClick(event, <%= c.id %>)">
           <td><% if (!['settled','declined','closed'].includes(c.status)) { %><input type="checkbox" name="ids" value="<%= c.id %>" onchange="onSelect()" aria-label="Select <%= c.title %>" /><% } %></td>
           <td><div class="cp"><div class="nm"><%= c.title %></div><div class="rf">MB-<%= c.id %><%= c.our_ref ? ' · ' + c.our_ref : '' %><%= c.due_date ? ' · due ' + String(c.due_date).slice(0,10) : '' %></div></div></td>
           <td><% if (c.category) { %><span class="cat"><%= c.category %></span><% } else { %><span class="b-muted">—</span><% } %></td>
@@ -559,6 +577,56 @@ table.bcases tbody tr.attn-row{box-shadow:inset 3px 0 0 #F5B312}
   </div>
 </div>
 
+<!-- ============ PER-CASE BID BAR ============ -->
+<div class="modal-bg" id="caseModal">
+  <div class="modal narrow">
+    <button class="x" type="button" onclick="closeModal('caseModal')" aria-label="Close">&times;</button>
+    <h2 id="cmTitle">Case</h2>
+    <p class="b-muted" id="cmSub"></p>
+
+    <form method="POST" id="cmForm">
+      <div class="anchors" style="grid-template-columns:repeat(3,1fr)">
+        <div class="anchor ideal">
+          <div class="tag"><span class="dot"></span>Ideal</div>
+          <div class="pctline"><span class="pct" id="cmPI">95</span><span class="pctlab">%</span></div>
+          <input type="range" min="50" max="100" value="95" id="cmRI" name="ideal" oninput="cmAnchor()" aria-label="Ideal percentage" />
+          <div class="cm-amt" id="cmVI">&mdash;</div>
+        </div>
+        <div class="anchor target">
+          <div class="tag"><span class="dot"></span>Target</div>
+          <div class="pctline"><span class="pct" id="cmPT">80</span><span class="pctlab">%</span></div>
+          <input type="range" min="30" max="100" value="80" id="cmRT" name="target" oninput="cmAnchor()" aria-label="Target percentage" />
+          <div class="cm-amt" id="cmVT">&mdash;</div>
+        </div>
+        <div class="anchor walk">
+          <div class="tag"><span class="dot"></span>Walk-away</div>
+          <div class="pctline"><span class="pct" id="cmPW">65</span><span class="pctlab">%</span></div>
+          <input type="range" min="10" max="100" value="65" id="cmRW" name="walk" oninput="cmAnchor()" aria-label="Walk-away percentage" />
+          <div class="cm-amt" id="cmVW">&mdash;</div>
+        </div>
+      </div>
+
+      <div class="cscale">
+        <div class="ct" id="cmTrack">
+          <div class="cband" id="cmBand"></div>
+          <div class="cm w" id="cmMW"></div>
+          <div class="cm t" id="cmMT"></div>
+          <div class="cm i" id="cmMI"></div>
+          <div class="cr" id="cmResp" style="display:none"></div>
+        </div>
+        <div class="cax"><span>0</span><span id="cmMax"></span></div>
+        <p class="cnote" id="cmNote"></p>
+      </div>
+
+      <div class="foot">
+        <a class="bbtn bbtn-ghost bbtn-sm" id="cmOpen" href="#">Open full case</a>
+        <button type="button" class="bbtn bbtn-ghost bbtn-sm" onclick="closeModal('caseModal')">Cancel</button>
+        <button type="submit" class="bbtn bbtn-primary bbtn-sm">Save this case's bar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ============ APPROVE ============ -->
 <div class="modal-bg" id="approveModal">
   <div class="modal narrow">
@@ -578,6 +646,7 @@ var ALL = <%- JSON.stringify(cases.map(function (c) { return {
   amount: c.amount, currency: c.currency, issue_date: c.issue_date ? String(c.issue_date).slice(0,10) : '',
   due_date: c.due_date ? String(c.due_date).slice(0,10) : '', source_status: c.source_status,
   stage: c.stage, highest: c.highest, lowest: c.lowest, settled: c.settled_value,
+  ideal: c.claim_ideal, target: c.claim_fair, walk: c.claim_value, status: c.status,
   settled_at: c.settled_at ? String(c.settled_at).slice(0,10) : '', notes: c.notes
 }; })) %>;
 var VISIBLE_IDS = <%- JSON.stringify(visible.map(function (c) { return c.id; })) %>;
@@ -811,6 +880,69 @@ function readMove(file){
     }catch(err){document.getElementById('moveOut').innerHTML='<div class="alert warn"><div>Could not read that file: '+err.message+'</div></div>';}
   };
   r.readAsArrayBuffer(file);
+}
+
+/* ---------- per-case bid bar ---------- */
+var SYM = <%- JSON.stringify(Object.keys(CURRENCIES).reduce(function(a,k){a[k]=CURRENCIES[k].symbol;return a;},{})) %>;
+var CM = null;
+function m(n,c){ return (SYM[c]||'\u00a3') + Math.round(n).toLocaleString('en-GB'); }
+
+// Clicking the row opens this case's own bar — but never when the click was
+// meant for a control inside the row.
+function rowClick(e, id){
+  if (e.target.closest('input, button, a, label, .emailcell')) return;
+  openCase(id);
+}
+function openCase(id){
+  var c = null;
+  for (var i=0;i<ALL.length;i++) if (ALL[i].id===id) c = ALL[i];
+  if (!c) return;
+  CM = c;
+  document.getElementById('cmTitle').textContent = c.title;
+  document.getElementById('cmSub').innerHTML = m(c.amount, c.currency) + ' in dispute · MB-' + c.id +
+    (c.our_ref ? ' · ' + c.our_ref : '') + ' — <b>set this case on its own</b>, without touching the other cases.';
+  document.getElementById('cmForm').action = '/business/cases/' + c.id + '/anchors';
+  document.getElementById('cmOpen').href = '/cases/' + c.id;
+  document.getElementById('cmMax').textContent = m(c.amount, c.currency);
+  // Start from this case's own figures if it has them, else the group bar.
+  var pc = function(v){ return v==null ? null : Math.round(v / c.amount * 100); };
+  document.getElementById('cmRI').value = pc(c.ideal)  != null ? pc(c.ideal)  : <%= bar.i %>;
+  document.getElementById('cmRT').value = pc(c.target) != null ? pc(c.target) : <%= bar.t %>;
+  document.getElementById('cmRW').value = pc(c.walk)   != null ? pc(c.walk)   : <%= bar.w %>;
+  cmAnchor();
+  openModal('caseModal');
+}
+function cmAnchor(){
+  if (!CM) return;
+  var ri=document.getElementById('cmRI'), rt=document.getElementById('cmRT'), rw=document.getElementById('cmRW');
+  var i=+ri.value, t=+rt.value, w=+rw.value;
+  if (t>i){ t=i; rt.value=i; } if (w>t){ w=t; rw.value=t; }
+  document.getElementById('cmPI').textContent=i;
+  document.getElementById('cmPT').textContent=t;
+  document.getElementById('cmPW').textContent=w;
+  var vi=CM.amount*i/100, vt=CM.amount*t/100, vw=CM.amount*w/100;
+  document.getElementById('cmVI').innerHTML=m(vi,CM.currency)+' <span class="p">at '+i+'%</span>';
+  document.getElementById('cmVT').innerHTML=m(vt,CM.currency)+' <span class="p">at '+t+'%</span>';
+  document.getElementById('cmVW').innerHTML=m(vw,CM.currency)+' <span class="p">at '+w+'%</span>';
+  document.getElementById('cmMI').style.left=i+'%';
+  document.getElementById('cmMT').style.left=t+'%';
+  document.getElementById('cmMW').style.left=w+'%';
+  var band=document.getElementById('cmBand');
+  band.style.left=w+'%'; band.style.right=(100-i)+'%';
+  // Where the other side actually is, if they have bid.
+  var resp=document.getElementById('cmResp'), note=document.getElementById('cmNote');
+  if (CM.lowest != null){
+    var rp = Math.max(0, Math.min(100, CM.lowest / CM.amount * 100));
+    resp.style.display=''; resp.style.left=rp+'%';
+    var close = (vw - CM.lowest) <= 0.10*CM.amount;
+    band.classList.toggle('lit', close);
+    note.innerHTML = close
+      ? 'They are at ' + m(CM.lowest,CM.currency) + '. <b>Your walk-away is within reach — this one can settle.</b>'
+      : 'They are at ' + m(CM.lowest,CM.currency) + ', ' + m(vw-CM.lowest,CM.currency) + ' below your walk-away.';
+  } else {
+    resp.style.display='none'; band.classList.remove('lit');
+    note.textContent = CM.stage === 'draft' ? 'Not invited yet — they have not bid.' : 'They have not bid yet.';
+  }
 }
 
 onAnchor(); onSelect();

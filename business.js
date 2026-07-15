@@ -199,13 +199,31 @@ const asDate = (v) => {
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 };
 
+// Returns { ok, error }. The invite email IS the product — if it doesn't land,
+// the respondent never joins. So we wait for the result and report it honestly
+// rather than firing and forgetting.
 async function inviteOne(req, c, meEmail) {
-  await db.setStatus('awaiting_other', c.id);
-  await db.addEvent(c.id, 'invited', 'Invited ' + c.other_email);
   const inviteUrl = baseUrl(req) + '/join/' + c.invite_token;
   const payload = { id: c.id, title: c.title, amount: c.amount, currency: c.currency, other_email: c.other_email };
-  mailer.notifyNewCase(payload, meEmail, c.other_email).catch(() => {});
-  mailer.notifyCaseInvite(payload, { creatorEmail: meEmail, recipientPosition: 'owe', inviteUrl }).catch(() => {});
+
+  let res = { ok: false, error: 'Unknown mail error.' };
+  try {
+    res = (await mailer.notifyCaseInvite(payload, { creatorEmail: meEmail, recipientPosition: 'owe', inviteUrl })) || { ok: true };
+  } catch (e) {
+    res = { ok: false, error: e.message };
+  }
+
+  if (!res.ok) {
+    // Leave the case as a draft. It is still invitable once mail is fixed, and
+    // the list keeps telling the truth about what has actually gone out.
+    await db.addEvent(c.id, 'error', 'Invite to ' + c.other_email + ' FAILED — ' + res.error);
+    return res;
+  }
+
+  await db.setStatus('awaiting_other', c.id);
+  await db.addEvent(c.id, 'invited', 'Invited ' + c.other_email);
+  mailer.notifyNewCase(payload, meEmail, c.other_email).catch(() => {});   // admin copy; not critical
+  return { ok: true };
 }
 
 // =============================================================================
@@ -273,6 +291,31 @@ router.post('/cases/:id/email', requireLogin, wrap(async (req, res) => {
   await bz.setEmail(Number(req.params.id), req.session.userId, email || null);
   await db.addEvent(Number(req.params.id), 'updated', 'Counterparty email set to ' + (email || '(cleared)'));
   res.redirect('/business?msg=' + encodeURIComponent(email ? 'Email saved. You can invite this one now.' : 'Email cleared.'));
+}));
+
+// ---- One case's own bid bar --------------------------------------------------
+// The group bar is the fast way to set a sensible default across a whole ledger.
+// This is the override for the cases that deserve individual attention. Stored as
+// money on the case (like every other case in the system), but set as a
+// percentage so it reads the same way as the group bar.
+router.post('/cases/:id/anchors', requireLogin, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const c = await db.caseById(id);
+  if (!c || c.claimant_id !== req.session.userId || c.portal !== 'business') {
+    return res.redirect('/business?msg=' + encodeURIComponent('That case is not yours to change.'));
+  }
+  if (['settled', 'closed'].includes(c.status)) {
+    return res.redirect('/business?msg=' + encodeURIComponent('That case is finished — its figures are locked.'));
+  }
+  const i = pct(req.body.ideal, 95), t = pct(req.body.target, 80), w = pct(req.body.walk, 65);
+  if (!(i >= t && t >= w)) {
+    return res.redirect('/business?msg=' + encodeURIComponent('Ideal must be at or above Target, and Target at or above Walk-away.'));
+  }
+  const vi = Math.round(c.amount * i / 100), vt = Math.round(c.amount * t / 100), vw = Math.round(c.amount * w / 100);
+  await db.setClaimAnchors(vi, vt, vw, id);
+  await db.addEvent(id, 'updated', 'Bid bar set for this case alone: ' + i + '/' + t + '/' + w + '%');
+  res.redirect('/business?msg=' + encodeURIComponent(
+    c.title + ' set on its own — walk-away ' + res.locals.money(vw, c.currency) + ' (' + w + '%). Other cases untouched.'));
 }));
 
 // ---- Create one dispute ------------------------------------------------------
@@ -415,14 +458,17 @@ router.post('/bulk', requireLogin, wrap(async (req, res) => {
   let n = 0, msg = '', blocked = 0;
 
   if (action === 'invite') {
+    let failed = 0, firstErr = '';
     for (const c of mine) {
       if (stageOf(c) !== 'draft') continue;
       if (!c.other_email) { blocked++; continue; }        // cannot invite without an address
-      await inviteOne(req, c, me.email);
-      n++;
+      const r = await inviteOne(req, c, me.email);
+      if (r.ok) { n++; } else { failed++; if (!firstErr) firstErr = r.error; }
     }
-    msg = n ? 'Invited ' + n + ' counterpart' + (n === 1 ? 'y' : 'ies') + '.' : 'Nothing invited.';
+    msg = n ? 'Invited ' + n + ' counterpart' + (n === 1 ? 'y' : 'ies') + '.' : '';
     if (blocked) msg += ' ' + blocked + ' skipped — no email address yet.';
+    if (failed) msg += ' ' + failed + ' could NOT be sent: ' + firstErr;
+    if (!msg) msg = 'Nothing invited.';
 
   } else if (action === 'remind') {
     for (const c of mine) {
