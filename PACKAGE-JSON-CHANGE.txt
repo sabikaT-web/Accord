@@ -1,0 +1,12 @@
+Add this dependency inside the existing "dependencies" object in package.json:
+
+"xlsx": "^0.18.5"
+
+Example:
+"dependencies": {
+  ...your existing dependencies...,
+  "xlsx": "^0.18.5"
+}
+
+Multer is already used by server.js, so it should already be present. If it is not, also add:
+"multer": "^1.4.5-lts.1"
