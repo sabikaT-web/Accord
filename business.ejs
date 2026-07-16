@@ -269,6 +269,60 @@ table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.04)}
 .pathstep.on:hover{background:var(--st)}
 .pathstep.on .ps-count{color:var(--sto)}
 .pathstep .ps-count{color:#16306B}
+
+/* =============================================================================
+   THE CASE TABLE
+   -----------------------------------------------------------------------------
+   head.ejs wraps every page in .wrap (760px). That is right for a case page and
+   far too narrow for a nine-column ledger, so this page — and only this page —
+   opens up. styles.css is untouched; so is head.ejs.
+   ========================================================================== */
+.wrap{max-width:1180px}
+
+/* Header: reads as part of the site, not a spreadsheet dropped into it. */
+table.bcases{min-width:1080px;font-size:.88rem}
+table.bcases thead th{background:linear-gradient(180deg,#F7F9FD,#EEF2F8);border-bottom:2px solid #16306B;
+  font-family:"Spline Sans Mono",monospace;font-size:.66rem;letter-spacing:.1em;color:#16306B;padding:12px 12px}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:#2F6BFF}
+th.sortable .ar{opacity:.25;margin-left:.3em;font-size:.8em}
+th.sortable.act .ar{opacity:1;color:#2F6BFF}
+
+/* Every row carries its stage colour down the left edge, so the table and the
+   pipeline above it are visibly the same object. */
+table.bcases tbody tr{box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
+table.bcases tbody td{padding:12px}
+table.bcases tbody tr.attn-row{background:rgba(245,179,18,.07);box-shadow:inset 4px 0 0 var(--st,#F5B312)}
+table.bcases tbody tr.settled-row{background:rgba(21,184,119,.07)}
+table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.06)}
+
+/* MidBid's own reference — its own column, and what you search by. */
+.refchip{display:inline-block;font-family:"Spline Sans Mono",monospace;font-size:.74rem;font-weight:500;
+  background:#EEF2F8;border:1px solid #DCE3EF;border-radius:7px;padding:.24em .5em;color:#16306B;white-space:nowrap}
+tr:hover .refchip{border-color:#2F6BFF;color:#2F6BFF}
+.yourref{font-family:"Spline Sans Mono",monospace;font-size:.72rem;color:#586079;margin-top:.25rem}
+
+.cp .nm{font-weight:600;font-size:.95rem}
+.cp .due{font-size:.73rem;color:#586079;margin-top:.15rem}
+.cp .due b{color:#B5790F;font-weight:600}
+
+.amtcell{text-align:right}
+.amtcell .a{font-family:"Fraunces",Georgia,serif;font-size:1.05rem;font-weight:500;color:#1E2A45;white-space:nowrap}
+.amtcell .cur{font-family:"Spline Sans Mono",monospace;font-size:.66rem;color:#586079;letter-spacing:.06em}
+
+/* The bid spread, drawn as a miniature of the settlement scale. The table stops
+   looking generic the moment the rows show the thing the product actually does. */
+.spread{min-width:132px}
+.sp-track{position:relative;height:6px;background:#EAEFF7;border-radius:999px;margin:6px 0 5px}
+.sp-band{position:absolute;top:-2px;bottom:-2px;border-radius:999px;background:rgba(47,107,255,.22)}
+.sp-band.lit{background:rgba(21,184,119,.4)}
+.sp-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);border:1.5px solid #fff}
+.sp-dot.hi{background:#2F6BFF}
+.sp-dot.lo{background:#F5B312}
+.sp-val{font-family:"Spline Sans Mono",monospace;font-size:.73rem;white-space:nowrap}
+.sp-val .h{color:#2F6BFF}.sp-val .l{color:#B5790F}
+.sp-none{font-size:.78rem;color:#8A93A8;font-style:italic}
+.sp-close{font-size:.68rem;font-weight:700;color:#1c5e3f;letter-spacing:.04em}
 </style>
 
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
@@ -436,14 +490,33 @@ table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.04)}
     <table class="bcases">
       <thead><tr>
         <th style="width:34px"><input type="checkbox" id="selAll" onchange="toggleAll(this.checked)" aria-label="Select all" /></th>
-        <th>Debtor</th><th>Category</th><th>Email</th><th>Amount</th><th>Highest / lowest bid</th><th>Status</th>
+        <th class="sortable" onclick="sortBy('ref',this)">Ref <span class="ar">↕</span></th>
+        <th class="sortable" onclick="sortBy('name',this)">Debtor <span class="ar">↕</span></th>
+        <th class="sortable" onclick="sortBy('cat',this)">Category <span class="ar">↕</span></th>
+        <th>Email</th>
+        <th class="sortable" style="text-align:right" onclick="sortBy('amt',this)">Amount <span class="ar">↕</span></th>
+        <th>Bid spread</th>
+        <th class="sortable" onclick="sortBy('stage',this)">Status <span class="ar">↕</span></th>
         <th style="text-align:right">Actions</th>
       </tr></thead>
       <tbody>
       <% visible.forEach(function (c) { %>
-        <tr class="<%= c.status === 'settled' ? 'settled-row' : '' %> <%= c.attention ? 'attn-row' : '' %> <%= ['settled','closed','declined'].includes(c.status) ? '' : 'clickable' %>" onclick="rowClick(event, <%= c.id %>)">
+        <%
+          const stColour = { draft:'#B4B2A9', awaiting:'#F5B312', progress:'#2F6BFF', converging:'#16306B', settled:'#15B877' }[c.stage] || '#C25A34';
+          const stOrder  = { draft:0, awaiting:1, progress:2, converging:3, settled:4 }[c.stage];
+          const overdue  = c.due_date && new Date(c.due_date) < new Date() && !['settled','closed'].includes(c.status);
+        %>
+        <tr style="--st:<%= stColour %>"
+            data-ref="<%= c.id %>" data-name="<%= c.title.toLowerCase() %>" data-cat="<%= (c.category || '').toLowerCase() %>"
+            data-amt="<%= c.amount %>" data-stage="<%= stOrder === undefined ? 9 : stOrder %>"
+            class="<%= c.status === 'settled' ? 'settled-row' : '' %> <%= c.attention ? 'attn-row' : '' %> <%= ['settled','closed','declined'].includes(c.status) ? '' : 'clickable' %>" onclick="rowClick(event, <%= c.id %>)">
           <td><% if (!['settled','declined','closed'].includes(c.status)) { %><input type="checkbox" name="ids" value="<%= c.id %>" onchange="onSelect()" aria-label="Select <%= c.title %>" /><% } %></td>
-          <td><div class="cp"><div class="nm"><%= c.title %></div><div class="rf">MB-<%= c.id %><%= c.our_ref ? ' · ' + c.our_ref : '' %><%= c.due_date ? ' · due ' + String(c.due_date).slice(0,10) : '' %></div></div></td>
+          <td><span class="refchip">MB-<%= c.id %></span></td>
+          <td><div class="cp">
+            <div class="nm"><%= c.title %></div>
+            <% if (c.our_ref) { %><div class="yourref"><%= c.our_ref %></div><% } %>
+            <% if (c.due_date) { %><div class="due"><% if (overdue) { %><b>overdue</b> · <% } else { %>due <% } %><%= new Date(c.due_date).toISOString().slice(0,10) %></div><% } %>
+          </div></td>
           <td><% if (c.category) { %><span class="cat"><%= c.category %></span><% } else { %><span class="b-muted">—</span><% } %></td>
           <td>
             <div class="emailcell" data-id="<%= c.id %>">
@@ -451,11 +524,28 @@ table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.04)}
               <button type="button" onclick="saveEmail(this)">Save</button>
             </div>
           </td>
-          <td class="amt"><%= money(c.amount, c.currency) %></td>
-          <td class="bid">
-            <% if (c.highest == null && c.lowest == null) { %><span class="none">no bids yet</span>
-            <% } else { %>
-              <span class="hi"><%= c.highest != null ? money(c.highest, c.currency) : '—' %></span> / <span class="lo"><%= c.lowest != null ? money(c.lowest, c.currency) : '—' %></span>
+          <td class="amtcell"><div class="a"><%= money(c.amount, c.currency) %></div><div class="cur"><%= c.currency %></div></td>
+          <td>
+            <% if (c.highest == null && c.lowest == null) { %>
+              <span class="sp-none">no bids yet</span>
+            <% } else {
+                 const hp = c.highest != null ? Math.max(0, Math.min(100, c.highest / c.amount * 100)) : null;
+                 const lp = c.lowest  != null ? Math.max(0, Math.min(100, c.lowest  / c.amount * 100)) : null;
+                 const close = c.stage === 'converging' || c.status === 'settled';
+            %>
+              <div class="spread" title="Highest <%= c.highest != null ? money(c.highest, c.currency) : '—' %> · Lowest <%= c.lowest != null ? money(c.lowest, c.currency) : '—' %> of <%= money(c.amount, c.currency) %>">
+                <div class="sp-track">
+                  <% if (hp != null && lp != null) { %><span class="sp-band <%= close ? 'lit' : '' %>" style="left:<%= Math.min(hp,lp) %>%;right:<%= 100 - Math.max(hp,lp) %>%"></span><% } %>
+                  <% if (lp != null) { %><span class="sp-dot lo" style="left:<%= lp %>%"></span><% } %>
+                  <% if (hp != null) { %><span class="sp-dot hi" style="left:<%= hp %>%"></span><% } %>
+                </div>
+                <div class="sp-val">
+                  <span class="h"><%= c.highest != null ? money(c.highest, c.currency) : '—' %></span>
+                  <span style="color:#B0B8C9">/</span>
+                  <span class="l"><%= c.lowest != null ? money(c.lowest, c.currency) : 'waiting' %></span>
+                </div>
+                <% if (close && c.status !== 'settled') { %><div class="sp-close">IN THE BAND</div><% } %>
+              </div>
             <% } %>
           </td>
           <td>
@@ -980,6 +1070,25 @@ function cmAnchor(){
     resp.style.display='none'; band.classList.remove('lit');
     note.textContent = CM.stage === 'draft' ? 'Not invited yet — they have not bid.' : 'They have not bid yet.';
   }
+}
+
+/* ---------- sort ---------- */
+var SORT={key:null,dir:1};
+function sortBy(key, th){
+  SORT.dir = (SORT.key === key) ? -SORT.dir : 1;
+  SORT.key = key;
+  document.querySelectorAll('th.sortable').forEach(function(h){h.classList.remove('act');h.querySelector('.ar').textContent='\u2195';});
+  th.classList.add('act');
+  th.querySelector('.ar').textContent = SORT.dir === 1 ? '\u2191' : '\u2193';
+  var tb = document.querySelector('table.bcases tbody');
+  var rows = [].slice.call(tb.querySelectorAll('tr'));
+  var num = (key === 'amt' || key === 'ref' || key === 'stage');
+  rows.sort(function(a,b){
+    var x = a.dataset[key], y = b.dataset[key];
+    if (num){ x = parseFloat(x)||0; y = parseFloat(y)||0; return (x-y)*SORT.dir; }
+    return String(x).localeCompare(String(y))*SORT.dir;
+  });
+  rows.forEach(function(r){ tb.appendChild(r); });
 }
 
 onAnchor(); onSelect();
