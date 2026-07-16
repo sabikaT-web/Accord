@@ -43,33 +43,40 @@ router.use(express.json({ limit: '4mb' }));
 //   converging -> both bid and within reach       ('active' + close)
 //   settled    -> agreed                          ('settled')
 // Off-pipeline: declined, closed.
-const STAGES = ['draft', 'awaiting', 'progress', 'converging', 'settled'];
-const CLOSE_THRESHOLD = 0.10;   // must match server.js
+const STAGES = ['draft', 'awaiting', 'bidding', 'settled'];
 
-function isClose(c) {
-  if (c.claim_value == null || c.resp_value == null) return false;
-  if (c.resp_value >= c.claim_value) return true;                  // overlap
-  return (c.claim_value - c.resp_value) <= CLOSE_THRESHOLD * c.amount;
-}
+// There is deliberately no "converging" stage any more. It appeared exactly when
+// the two figures came within 10% of each other — which told the claimant, for
+// free and without committing anything, roughly where the respondent was. That is
+// the same probing oracle as the live gauge, just wearing a badge. Under sealed
+// bidding the only states that can honestly exist are: not invited, invited,
+// bidding, settled. Nothing in between is knowable without leaking.
 function stageOf(c) {
   if (c.status === 'settled') return 'settled';
   if (c.status === 'declined') return 'declined';
   if (c.status === 'closed') return 'closed';
   if (c.status === 'draft' || c.status === 'pending_payment') return 'draft';
   if (c.status === 'awaiting_other') return 'awaiting';
-  return isClose(c) ? 'converging' : 'progress';                   // 'active'
+  return 'bidding';                                                // 'active' — rounds in play
 }
 const isOpen = (c) => !['settled', 'declined', 'closed'].includes(c.status);
 const daysSince = (ts) => Math.floor((Date.now() - new Date(ts)) / 86400000);
 const isStalled = (c) => c.status === 'awaiting_other' && daysSince(c.created_at) >= 14;
-const needsAttention = (c) => stageOf(c) === 'converging' || c.status === 'declined' || isStalled(c);
+// Attention can only be driven by things that don't leak: they declined, or they
+// have gone quiet. Never by how close the figures are.
+const needsAttention = (c) => c.status === 'declined' || isStalled(c);
 
 // The two bids that leave the building. The three anchors stay private; only the
 // live position of each side is ever exported or shown in a list.
 //   highest = what the claimant is holding out for  (claim_value)
 //   lowest  = what the respondent has put up        (resp_value)
+// Your own committed figure — yours to see.
 const highestBid = (c) => c.claim_value;
-const lowestBid = (c) => c.resp_value;
+// The respondent's figure is NEVER shown to the claimant. Printing it here made
+// the blind bid decorative: the whole mechanic assumes neither side can see the
+// other's number until it settles. Once settled, the agreed figure is public to
+// both parties — that, and only that, is what comes back.
+const lowestBid = (c) => (c.status === 'settled' ? c.settled_value : null);
 
 function decorate(c) {
   return Object.assign({}, c, {
@@ -247,7 +254,7 @@ router.get('/', requireLogin, wrap(async (req, res) => {
   const sum = (arr, k) => arr.reduce((a, c) => a + (c[k] || 0), 0);
 
   const invited = cases.filter((c) => c.stage !== 'draft');
-  const joined = cases.filter((c) => ['progress', 'converging', 'settled'].includes(c.stage) || c.status === 'declined');
+  const joined = cases.filter((c) => ['bidding', 'settled'].includes(c.stage) || c.status === 'declined');
   const joinRate = invited.length ? Math.round((joined.length / invited.length) * 100) : 0;
 
   const counts = { all: open.length, attn: cases.filter((c) => c.attention).length,
@@ -265,7 +272,7 @@ router.get('/', requireLogin, wrap(async (req, res) => {
     kpis: {
       totalInDispute: sum(open, 'amount'),
       joinRate,
-      inBand: at('converging').length,
+      inBand: at('bidding').length,          // rounds in play — not how close anyone is
       settledValue: sum(cases.filter((c) => c.status === 'settled'), 'settled_value'),
       currency: cases[0] ? cases[0].currency : 'GBP',
     },
@@ -515,26 +522,9 @@ router.post('/bulk', requireLogin, wrap(async (req, res) => {
     msg = n ? 'Reminder sent to ' + n + ' counterpart' + (n === 1 ? 'y' : 'ies') + '.' : 'Nothing to remind.';
 
   } else if (action === 'approve') {
-    // Binding. Only cases genuinely in the settle band; the rest are skipped.
-    for (const c of mine) {
-      if (c.status === 'settled' || c.status === 'closed' || !isClose(c)) continue;
-      await db.setApproval('claim', c.id);
-      await db.addEvent(c.id, 'approved', 'Claimant approved the settlement (business portal)');
-      const u = await db.caseById(c.id);
-      if (u.claim_approved && u.resp_approved) {
-        const settled = Math.round((u.claim_value + u.resp_value) / 2 / 100) * 100;
-        await db.settle('settled', settled, u.id);
-        await db.addEvent(u.id, 'settled', 'Agreed at ' + res.locals.money(settled, u.currency) + ' — both sides approved');
-        const full = await db.caseDetail(u.id);
-        mailer.notifySettled(
-          { id: full.id, title: full.title, settled_value: settled, currency: full.currency, other_email: full.other_email },
-          full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
-      }
-      n++;
-    }
-    msg = n ? 'Approved ' + n + ' case' + (n === 1 ? '' : 's') + '. Any where the other side also approved are now settled.'
-            : 'None of those are in the settle band yet.';
-
+    // Retired. Under sealed bidding your submitted figure is the commitment, so a
+    // round that overlaps settles on its own — there is nothing left to approve.
+    msg = 'Settlement is automatic now — if two ranges meet, the round settles itself.';
   } else if (action === 'close') {
     for (const c of mine) {
       if (!isOpen(c)) continue;

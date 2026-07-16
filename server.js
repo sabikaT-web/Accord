@@ -417,37 +417,76 @@ function coachNudge(c, role) {
 }
 
 // The blind-bid brain: returns ONLY what the asking side may see.
-function viewerStatus(c, role) {
-  const p = proximity(c);                                  // coarse, safe band
+// ---- Sealed-bid status --------------------------------------------------------
+// The rule this function exists to enforce: NOTHING returned here may vary with
+// the other side's figures until the case has settled. If the screen changes when
+// you move your slider, the slider is not a bid — it is a query, and the blindness
+// is decoration. That is why there is no proximity band, no "you're close", and no
+// coach line that reads the gap.
+async function viewerStatus(c, role) {
+  const party  = role === 'claim' ? 'claimant' : 'respondent';
+  const other  = party === 'claimant' ? 'respondent' : 'claimant';
+  const round  = c.round || 1;
   const mine = role === 'claim'
     ? { ideal: c.claim_ideal, fair: c.claim_fair, reservation: c.claim_value }
     : { ideal: c.resp_ideal,  fair: c.resp_fair,  reservation: c.resp_value };
-  const myValue = mine.reservation;                        // the binding walk-away figure
-  const bothIn = c.claim_value != null && c.resp_value != null;
-  const close = p.canApprove;                              // overlap OR within 10% on walk-aways
-  const mineApproved = role === 'claim' ? !!c.claim_approved : !!c.resp_approved;
-  const otherApproved = role === 'claim' ? !!c.resp_approved : !!c.claim_approved;
+
+  const myBid    = await db.bidFor(c.id, party, round);
+  const theirBid = await db.bidFor(c.id, other, round);
+  const prev     = await db.lastBid(c.id, party);
+
   let s;
-  if (c.status === 'settled') s = { state: 'settled', colour: 'deal', title: 'Agreed at ' + money(c.settled_value, c.currency), sub: 'Both sides approved. This is your agreed settlement.' };
-  else if (myValue == null) s = { state: 'need_bid', colour: 'idle', title: 'Set your three figures to begin', sub: role === 'claim' ? 'Your ideal, a figure you would consider, and the least you will accept.' : 'Your ideal, a figure you would consider, and the most you will pay.' };
-  else if (!bothIn) s = { state: 'waiting', colour: 'idle', title: 'Waiting for the other side', sub: 'You are in. Nothing is revealed until your figures are close.' };
-  else if (close) s = { state: 'close', colour: 'close', title: p.level === 'overlap' ? 'Your ranges meet — you can approve' : "Within 10% — you can approve", sub: 'Either side can approve to settle.' };
-  else if (p.level === 'near') s = { state: 'near', colour: 'close', title: 'Within ~15% — nearly there', sub: 'Close the last gap on your walk-away figure to settle.' };
-  else s = { state: 'far', colour: 'idle', title: 'No signal yet', sub: 'Keep adjusting — nothing leaks while you are apart.' };
-  s.myValue = myValue;
-  s.mine = mine;                          // this viewer's own three anchors (safe — they are theirs)
-  s.amount = c.amount;
-  s.role = role;
-  s.bothIn = bothIn;
-  s.close = close;
-  s.prox = { level: p.level, fill: p.fill, text: PROX_TEXT[p.level] || '' };
-  s.mineApproved = mineApproved;
-  s.otherApproved = otherApproved;
-  s.settledValue = c.settled_value != null ? c.settled_value : null;
+  if (c.status === 'settled') {
+    s = { state: 'settled', colour: 'deal',
+          title: 'Agreed at ' + money(c.settled_value, c.currency),
+          sub: 'Your ranges met, so it settled automatically at the midpoint.',
+          coach: { tone: 'deal', text: 'Settled. Nothing further to bid.' } };
+  } else if (c.status === 'closed' || c.status === 'declined') {
+    s = { state: 'closed', colour: 'idle', title: 'This case is closed', sub: '',
+          coach: { tone: 'idle', text: '' } };
+  } else if (myBid) {
+    s = { state: 'submitted', colour: 'idle',
+          title: 'Round ' + round + ' — your figures are locked in',
+          sub: 'You cannot change them this round. If your ranges meet, this settles on its own.',
+          coach: { tone: 'idle', text: theirBid ? 'Both bids are in — resolving.' : 'Waiting for the other side to bid this round.' } };
+  } else if (round > 1) {
+    s = { state: 'round_open', colour: 'idle',
+          title: 'Round ' + round,
+          sub: 'Round ' + (round - 1) + ' closed without a settlement. You can move again — but only toward them.',
+          coach: { tone: 'idle', text: 'No deal last round. Move if you want to; nothing about their figure is shown.' } };
+  } else {
+    s = { state: 'need_bid', colour: 'idle', title: 'Set your three figures to begin',
+          sub: role === 'claim'
+            ? 'Your ideal, a figure you would consider, and the least you will accept.'
+            : 'Your ideal, a figure you would consider, and the most you will pay.',
+          coach: { tone: 'idle', text: 'Nothing you set is shown to the other side.' } };
+  }
+
+  s.myValue = mine.reservation;
+  s.mine    = mine;                 // your own three figures — safe, they are yours
+  s.amount  = c.amount;
+  s.role    = role;
+  s.round   = round;
+  s.locked  = !!myBid;              // this round's bid is in and cannot be changed
+  s.theirBidIn = !!theirBid;        // that they have bid, never what they bid
+  // The one-way rule, sent so the sliders can enforce it before you submit.
+  s.limit = prev ? prev.walk : null;
+  s.limitText = prev
+    ? (role === 'claim'
+        ? 'Last round you would accept ' + money(prev.walk, c.currency) + '. You can only come down from there.'
+        : 'Last round you would pay ' + money(prev.walk, c.currency) + '. You can only go up from there.')
+    : null;
+  s.settledValue     = c.settled_value != null ? c.settled_value : null;
   s.mediatorRequested = !!c.mediator_requested;
-  s.myDetailsDone = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
-  s.bothDetailsDone = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
-  s.coach = coachNudge(c, role);          // friendly nudge, safe for this viewer to see
+  s.myDetailsDone    = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
+  s.bothDetailsDone  = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
+  // Deliberately dead. Kept so any older client reading them degrades to "nothing
+  // to see" rather than crashing.
+  s.prox   = { level: 'sealed', fill: 0, text: '' };
+  s.close  = false;
+  s.bothIn = false;
+  s.mineApproved = false;
+  s.otherApproved = false;
   return s;
 }
 
@@ -512,7 +551,15 @@ app.post('/logout', (req, res) => req.session.destroy(() => res.redirect('/')));
 // were invited into. Business-raised cases never appear here — and a case you
 // were invited into always does, whoever invited you.
 app.get('/dashboard', requireLogin, wrap(async (req, res) => {
-  const cases = (await casesForIndividual(req.session.userId)).map(decorate);
+  const me = req.session.userId;
+  // On this dashboard you may be the claimant on one case and the respondent on
+  // another, so the masking has to be per case, per viewer. You see YOUR committed
+  // figure and nothing else — the other side's number only ever appears as the
+  // agreed amount, once it has settled.
+  const cases = (await casesForIndividual(me)).map(decorate).map((c) => Object.assign(c, {
+    highest: c.claimant_id === me ? c.claim_value : c.resp_value,   // your own figure
+    lowest:  c.status === 'settled' ? c.settled_value : null,       // the deal, if there is one
+  }));
   res.render('dashboard', { cases, filter: req.query.filter || 'all' });
 }));
 
@@ -818,7 +865,7 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
   if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
-  const status = viewerStatus(c, role);
+  const status = await viewerStatus(c, role);
   const inviteUrl = req.protocol + '://' + req.get('host') + '/join/' + c.invite_token;
   const led = c.status === 'settled' ? feeLedger(c) : null;
   const pay = {
@@ -845,56 +892,87 @@ app.post('/cases/:id/bid', requireLogin, wrap(async (req, res) => {
   if (!c) return res.status(404).json({ error: 'not found' });
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).json({ error: 'forbidden' });
-  if (c.status === 'settled' || c.status === 'closed') return res.json(viewerStatus(c, role));
+  if (['settled', 'closed', 'declined'].includes(c.status)) return res.json(await viewerStatus(c, role));
+
+  const party = role === 'claim' ? 'claimant' : 'respondent';
+  const round = c.round || 1;
+
+  // The lock. One bid per party per round — no edits, no re-saves. This is the
+  // whole fix: a figure you can revise for free is a probe, not a bid.
+  if (await db.bidFor(c.id, party, round)) {
+    return res.status(409).json({ error: 'Your figures for round ' + round + ' are locked in. Wait for the other side.' });
+  }
 
   const A = c.amount;
   const clamp = (raw) => { let v = parseInt(raw, 10); if (!(v >= 0)) v = 0; if (v > A) v = A; return v; };
   let ideal = clamp(req.body.ideal);
   let fair  = clamp(req.body.fair);
-  let resv  = clamp(req.body.reservation);   // reservation = walk-away (floor for claimant / ceiling for respondent)
+  let resv  = clamp(req.body.reservation);
 
-  // Enforce the natural ordering of the three anchors so the data always makes sense.
-  // Claimant wants high:   reservation (floor)  <= fair <= ideal (high)
-  // Respondent wants low:  ideal (low)          <= fair <= reservation (ceiling)
-  if (role === 'claim') {
-    fair  = Math.max(resv, fair);
-    ideal = Math.max(fair, ideal);
-    await db.setClaimAnchors(ideal, fair, resv, c.id);
-  } else {
-    fair  = Math.min(resv, fair);
-    ideal = Math.min(fair, ideal);
-    await db.setRespAnchors(ideal, fair, resv, c.id);
+  if (role === 'claim') { fair = Math.max(resv, fair); ideal = Math.max(fair, ideal); }
+  else                  { fair = Math.min(resv, fair); ideal = Math.min(fair, ideal); }
+
+  // One-way movement. Without this you could bid low, get "no deal", and jump
+  // back up — learning a free upper bound on their figure. A concession has to
+  // be a concession.
+  const prev = await db.lastBid(c.id, party);
+  if (prev) {
+    if (role === 'claim' && resv > prev.walk) {
+      return res.status(400).json({ error: 'Your walk-away can only come down. Last round you would accept ' + money(prev.walk, c.currency) + '.' });
+    }
+    if (role === 'resp' && resv < prev.walk) {
+      return res.status(400).json({ error: 'Your ceiling can only go up. Last round you would pay ' + money(prev.walk, c.currency) + '.' });
+    }
   }
 
-  // A changed figure changes the terms, so any earlier approval no longer holds.
-  await db.resetApprovals(c.id);
-  await db.addEvent(c.id, 'bid', (role === 'claim' ? 'Claimant' : 'Respondent') + ' set their three figures');
-  const fresh = await db.caseById(c.id);
-  res.json(viewerStatus(fresh, role));
+  try {
+    await db.addBid(c.id, party, round, ideal, fair, resv);
+  } catch (e) {
+    // The unique index caught a double submit that slipped past the check above.
+    return res.status(409).json({ error: 'Your figures for this round are already in.' });
+  }
+  if (role === 'claim') await db.setClaimAnchors(ideal, fair, resv, c.id);
+  else                  await db.setRespAnchors(ideal, fair, resv, c.id);
+  await db.addEvent(c.id, 'bid', (role === 'claim' ? 'Claimant' : 'Respondent') + ' submitted round ' + round);
+
+  const bids = await db.bidsInRound(c.id, round);
+  if (bids.length < 2) {
+    return res.json(await viewerStatus(await db.caseById(c.id), role));   // -> "locked in, waiting"
+  }
+
+  // Both are in: the round resolves now. Settlement is automatic, because asking
+  // you to approve would mean first telling you that you are close — and that
+  // message is the leak we are removing.
+  const cl = bids.find((b) => b.party === 'claimant');
+  const rp = bids.find((b) => b.party === 'respondent');
+  if (rp.walk >= cl.walk) {
+    const value = Math.round((cl.walk + rp.walk) / 2);
+    await db.settle('settled', value, c.id);
+    await db.addEvent(c.id, 'settled', 'Round ' + round + ' — ranges met. Settled at ' + money(value, c.currency));
+    const full = await db.caseDetail(c.id);
+    mailer.notifySettled(
+      { id: full.id, title: full.title, settled_value: value, currency: full.currency, other_email: full.other_email },
+      full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
+  } else {
+    await db.bumpRound(c.id);
+    await db.addEvent(c.id, 'round', 'Round ' + round + ' closed — no settlement');
+    const full = await db.caseDetail(c.id);
+    mailer.notifyRoundClosed(full, round, full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
+  }
+  res.json(await viewerStatus(await db.caseById(c.id), role));
 }));
 
-// Either side may approve once both figures are in and within 10%. The case
-// only settles when BOTH sides have approved — that is the agreement.
+// Approval no longer exists. Under sealed bidding your submitted figure IS the
+// commitment — "I will settle at anything at or beyond this" — so a round that
+// overlaps settles itself. Kept as a route only so an old cached page gets a
+// sensible answer instead of a 404.
 app.post('/cases/:id/approve', requireLogin, wrap(async (req, res) => {
   const c = await db.caseById(Number(req.params.id));
   if (!c) return res.status(404).json({ error: 'not found' });
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).json({ error: 'forbidden' });
-  if (c.status === 'settled' || c.status === 'closed') return res.json(viewerStatus(c, role));
-  const close = proximity(c).canApprove;   // overlap, or within 10% on the walk-away figures
-  if (!close) return res.status(400).json(viewerStatus(c, role));
-  await db.setApproval(role, c.id);
-  await db.addEvent(c.id, 'approved', (role === 'claim' ? 'Claimant' : 'Respondent') + ' approved the settlement');
-  const updated = await db.caseById(c.id);
-  if (updated.claim_approved && updated.resp_approved) {
-    const settled = Math.round((updated.claim_value + updated.resp_value) / 2 / 100) * 100;
-    await db.settle('settled', settled, updated.id);
-    await db.addEvent(updated.id, 'settled', 'Agreed at ' + money(settled, updated.currency) + ' — both sides approved');
-    const full = await db.caseDetail(updated.id);
-    mailer.notifySettled({ id: full.id, title: full.title, settled_value: settled, currency: full.currency, other_email: full.other_email }, full.claimant_acc_email, full.respondent_acc_email).catch(() => {});
-  }
-  const fresh = await db.caseById(c.id);
-  res.json(viewerStatus(fresh, role));
+  return res.status(400).json(Object.assign(await viewerStatus(c, role),
+    { error: 'Settlement is automatic now — if your ranges meet, the round settles itself.' }));
 }));
 
 app.get('/cases/:id/status', requireLogin, wrap(async (req, res) => {
@@ -902,7 +980,7 @@ app.get('/cases/:id/status', requireLogin, wrap(async (req, res) => {
   if (!c) return res.status(404).json({ error: 'not found' });
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).json({ error: 'forbidden' });
-  res.json(viewerStatus(c, role));
+  res.json(await viewerStatus(c, role));
 }));
 
 // After both sides settle, each party fills in the details needed to name them

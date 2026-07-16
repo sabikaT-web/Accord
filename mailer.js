@@ -225,8 +225,36 @@ async function notifyCaseDeclined(c, toEmail) {
 module.exports = {
   notifyNewSignup, sendWelcome, notifyNewCase, notifySettled,
   notifyCaseInvite, notifyCaseAccepted, notifyCaseDeclined,
-  notifyMediatorRequest
+  notifyMediatorRequest, notifyRoundClosed
 };
+
+// A round closed without a deal. Both sides get the same message, and it says
+// nothing about the other side's figure — only that the round is over. Without
+// this email nobody knows to come back, and the case simply stalls.
+async function notifyRoundClosed(c, round, claimantEmail, respondentEmail) {
+  const body = function (who) {
+    return '<div style="background:#F3EFE4;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">' +
+      '<table role="presentation" align="center" width="100%" style="max-width:520px;margin:0 auto;' +
+        'background:#fff;border:1px solid #E8DFC9;border-radius:16px;border-collapse:separate"><tr><td style="padding:26px">' +
+        brandHeader() +
+        '<h1 style="font-family:Georgia,serif;font-weight:500;color:#1E2A45;font-size:22px;text-align:center;margin:18px 0 6px">' +
+          'Round ' + round + ' closed — no settlement</h1>' +
+        '<p style="color:#586079;font-size:15px;line-height:1.6;text-align:center;margin:0 0 18px">' +
+          'Your figures did not meet on <b>' + esc(c.title) + '</b>. Nothing about either side\'s numbers has been shared.</p>' +
+        '<p style="color:#586079;font-size:15px;line-height:1.6;text-align:center;margin:0 0 20px">' +
+          'You can bid again — but only toward the other side. If your ranges meet, it settles on the spot.</p>' +
+        '<p style="text-align:center;margin:0"><a href="' + (process.env.APP_URL || '') + '/cases/' + c.id + '" ' +
+          'style="background:#16306B;color:#F4F2EB;text-decoration:none;padding:12px 22px;border-radius:999px;' +
+          'font-weight:700;font-size:15px;display:inline-block">Open round ' + (round + 1) + '</a></p>' +
+      '</td></tr></table></div>';
+  };
+  const subject = 'Round ' + round + ' closed — no settlement yet on "' + c.title + '"';
+  const to1 = claimantEmail;
+  const to2 = respondentEmail || c.other_email;      // the respondent may not have an account yet
+  const a = to1 ? await send(to1, subject, body('claimant')) : { ok: false };
+  const b = to2 ? await send(to2, subject, body('respondent')) : { ok: false };
+  return { ok: a.ok || b.ok };
+}
 
 // Human-mediator escalation: alert the admin + acknowledge the parties.
 async function notifyMediatorRequest(c, claimantEmail, respondentEmail, role) {

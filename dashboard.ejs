@@ -7,7 +7,7 @@
   const sum = (arr, k) => arr.reduce((a, c) => a + (c[k] || 0), 0);
 
   const owed = sum(owedC, 'amount');
-  const needs = cases.filter(c => c.stage === 'converging' || c.stalled).length;
+  const needs = cases.filter(c => c.stalled).length;
   const recovered = sum(settled.filter(c => c.claimant_id === me.id), 'settled_value');
 
   const spans = settled
@@ -20,10 +20,10 @@
     draft:      { label: 'Draft',       color: '#B4B2A9' },
     awaiting:   { label: 'Awaiting',    color: '#F5B312' },
     progress:   { label: 'In progress', color: '#2F6BFF' },
-    converging: { label: 'Converging',  color: '#16306B' },
+    bidding:    { label: 'Bidding — rounds in play',  color: '#2F6BFF' },
     settled:    { label: 'Settled',     color: '#15B877' }
   };
-  const STAGES = ['draft','awaiting','progress','converging','settled'];
+  const STAGES = ['draft','awaiting','bidding','settled'];
   const countAt = (s) => cases.filter(c => c.stage === s).length;
 
   // Eight-week trends from the timestamps already on each case — real, not mocked.
@@ -34,7 +34,7 @@
   const doneBy = (c, t) => c.settled_at && new Date(c.settled_at).getTime() <= t;
   const sOwed = edges.map(t => cases.filter(c => c.claimant_id === me.id && madeBy(c, t) && !doneBy(c, t) && !['closed','declined'].includes(c.status)).reduce((a, c) => a + c.amount, 0));
   const sRec  = edges.map(t => cases.filter(c => c.claimant_id === me.id && doneBy(c, t)).reduce((a, c) => a + (c.settled_value || 0), 0));
-  const sNeed = edges.map(t => cases.filter(c => madeBy(c, t) && c.stage === 'converging').length);
+  const sNeed = edges.map(t => cases.filter(c => madeBy(c, t) && c.stalled).length);
   const delta = (arr) => arr[arr.length - 1] - arr[Math.max(0, arr.length - 5)];
 
   function sparkPts(points) {
@@ -97,8 +97,8 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
 .ipill{font-size:.72rem;font-weight:600;padding:.26em .68em;border-radius:999px;border:1px solid #DCE3EF;color:#586079;white-space:nowrap;display:inline-block}
 .ipill.draft{background:#EAEFF7}
 .ipill.awaiting{background:rgba(245,179,18,.14);border-color:#FAD56A;color:#B5790F}
-.ipill.progress{background:rgba(47,107,255,.10);border-color:#2F6BFF;color:#2F6BFF}
-.ipill.converging{background:rgba(47,107,255,.16);border-color:#2F6BFF;color:#16306B}
+.ipill.progress-old{background:rgba(47,107,255,.10);border-color:#2F6BFF;color:#2F6BFF}
+.ipill.bidding{background:rgba(47,107,255,.16);border-color:#2F6BFF;color:#16306B}
 .ipill.settled{background:rgba(21,184,119,.16);border-color:#15B877;color:#1c5e3f}
 .ipill.declined{background:#fbeae2;border-color:#e6b39a;color:#8a3d1a}
 .ipill.closed{background:#EAEFF7;color:#586079}
@@ -125,8 +125,7 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
 .ipathstep{--st:#B4B2A9;--sto:#1E2A45;background:color-mix(in srgb,var(--st) 14%,#F3F6FB)}
 .ipathstep:nth-child(2){--st:#F5B312;--sto:#2E2000}
 .ipathstep:nth-child(3){--st:#2A61EE;--sto:#FFFFFF}
-.ipathstep:nth-child(4){--st:#16306B;--sto:#FFFFFF}
-.ipathstep:nth-child(5){--st:#15B877;--sto:#062A1B}
+.ipathstep:nth-child(4){--st:#15B877;--sto:#062A1B}
 .ipathstep:hover{background:color-mix(in srgb,var(--st) 26%,#F3F6FB)}
 .ipathstep.on{background:var(--st);color:var(--sto)}
 .ipathstep.on:hover{background:var(--st)}
@@ -198,13 +197,13 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
 <%
   const visible = cases.filter(function (c) {
     if (filter === 'all') return true;
-    if (filter === 'attn') return c.stage === 'converging' || c.stalled;
+    if (filter === 'attn') return c.stalled;
     return c.stage === filter;
   });
 %>
 <div class="itbl"><div class="itbl-scroll">
   <table class="icases">
-    <thead><tr><th>Case</th><th>Amount</th><th>Highest / lowest bid</th><th>Status</th><th style="text-align:right">Action</th></tr></thead>
+    <thead><tr><th>Case</th><th>Amount</th><th>Your figure</th><th>Status</th><th style="text-align:right">Action</th></tr></thead>
     <tbody>
     <% visible.forEach(function (c) {
          const mine = c.claimant_id === me.id;
@@ -216,7 +215,7 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
          if (c.status === 'declined') pillText = 'Declined';
          if (c.status === 'closed') pillText = 'Closed';
     %>
-      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= (c.stage === 'converging' || c.stalled) ? 'attn' : '' %>">
+      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= c.stalled ? 'attn' : '' %>">
         <td>
           <div class="icp">
             <div class="nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
@@ -225,13 +224,13 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
         </td>
         <td class="iamt"><%= money(c.amount, c.currency) %></td>
         <td class="ibid">
-          <% if (c.highest == null && c.lowest == null) { %><span class="none">no bids yet</span>
-          <% } else { %><span class="hi"><%= c.highest != null ? money(c.highest, c.currency) : '—' %></span> / <span class="lo"><%= c.lowest != null ? money(c.lowest, c.currency) : '—' %></span><% } %>
+          <% if (c.status === 'settled') { %><span class="lo"><%= money(c.lowest, c.currency) %></span>
+          <% } else if (c.highest != null) { %><span class="hi"><%= money(c.highest, c.currency) %></span>
+          <% } else { %><span class="none">not set yet</span><% } %>
         </td>
         <td><span class="ipill <%= pillClass %>"><%= pillText %></span></td>
         <td style="text-align:right">
-          <% if (c.stage === 'converging') { %><a class="ibtn ibtn-go" href="/cases/<%= c.id %>">Approve</a>
-          <% } else if (c.status === 'settled') { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Agreement</a>
+          <% if (c.status === 'settled') { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Agreement</a>
           <% } else { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Open</a><% } %>
         </td>
       </tr>

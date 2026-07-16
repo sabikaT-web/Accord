@@ -64,6 +64,42 @@
   .coach.pop{animation:mb-bpop .34s ease}
   @keyframes mb-bpop{0%{transform:translateY(7px) scale(.98);opacity:.45}100%{transform:translateY(0) scale(1);opacity:1}}
   .mb-actions{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
+  /* One-way reminder. Gold, not green: green is reserved for settlement across the
+     whole product, and firing it here would make the same colour mean two things. */
+  .mb-oneway{display:flex;align-items:center;gap:.6em;margin:14px 0 2px;padding:.7em .9em;
+    background:rgba(245,179,18,.12);border:1px solid #F5B312;border-radius:12px;
+    font-size:.86rem;font-weight:600;color:#8A5A0B;line-height:1.45}
+  .mb-oneway svg{width:16px;height:16px;flex:none;color:#B5790F}
+  .mb-oneway.locked{background:rgba(22,48,107,.07);border-color:#DCE3EF;color:#586079}
+  .mb-oneway.locked svg{color:#586079}
+  .mb-oneway b{color:#6E4708}
+
+  /* Submit dialog. The browser's confirm() box is grey, system-fonted, and says
+     nothing about what is at stake. This is the same question, in your own voice. */
+  .mb-ask{position:fixed;inset:0;background:rgba(10,20,45,.58);display:none;
+    align-items:center;justify-content:center;z-index:90;padding:20px}
+  .mb-ask.on{display:flex}
+  .mb-ask-box{background:#fff;border:1px solid #DCE3EF;border-top:5px solid #F5B312;
+    border-radius:16px;max-width:470px;width:100%;padding:24px 24px 20px;
+    box-shadow:0 34px 80px -24px rgba(22,48,107,.55)}
+  .mb-ask-ic{width:36px;height:36px;border-radius:50%;background:rgba(245,179,18,.2);
+    color:#B5790F;display:flex;align-items:center;justify-content:center;margin-bottom:.7rem}
+  .mb-ask-ic svg{width:19px;height:19px}
+  .mb-ask h3{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.35rem;
+    color:#1E2A45;margin:0 0 .3rem;letter-spacing:-.01em}
+  .mb-ask p{color:#586079;font-size:.92rem;line-height:1.55;margin:0 0 .9rem}
+  .mb-ask-figs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 .9rem}
+  .mb-ask-fig{border:1px solid #DCE3EF;border-radius:10px;padding:.5em .6em;background:#F7F9FD}
+  .mb-ask-fig .k{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.09em;
+    text-transform:uppercase;color:#586079;font-weight:700}
+  .mb-ask-fig .v{font-family:"Fraunces",Georgia,serif;font-size:1.02rem;color:#1E2A45;margin-top:.1rem}
+  .mb-ask-fig.walk{border-color:#F5B312;background:rgba(245,179,18,.1)}
+  .mb-ask-warn{background:rgba(245,179,18,.13);border:1px solid #F5B312;border-radius:10px;
+    padding:.6em .8em;font-size:.85rem;color:#8A5A0B;font-weight:600;margin:0 0 1rem}
+  .mb-ask-foot{display:flex;gap:.5em;justify-content:flex-end}
+  .btn-gold{background:#F5B312;color:#2E2000;border:1px solid #F5B312;font-weight:700}
+  .btn-gold:hover{background:#E0A30C;border-color:#E0A30C}
+
   .mb-approve{position:relative;border:none;border-radius:999px;padding:.55rem .7rem;cursor:pointer;opacity:.72;background:linear-gradient(90deg,#2b54e6 0 50%,#f5b400 50% 100%);transition:opacity .4s ease,background .5s ease,box-shadow .5s ease}
   .mb-approve .lbl{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:.9rem;font-weight:600;color:#fff;background:rgba(0,0,0,.32);padding:.3rem .85rem;border-radius:999px;transition:background .5s ease}
   .mb-approve.ready{opacity:1;animation:mb-pulse 1.7s ease-in-out infinite}
@@ -133,9 +169,14 @@
   </div>
   <div class="mb-scale"><span><%= cur.symbol %>0</span><span><%= cur.symbol %><%= fmt(Math.round(c.amount/2)) %></span><span><%= cur.symbol %><%= fmt(c.amount) %></span></div>
 
-  <div class="mb-prox">
-    <div class="mb-prox-bar"><div class="mb-prox-fill" id="proxFill"></div></div>
-    <div class="mb-prox-text" id="proxText"></div>
+  <%# This slot used to hold the proximity bar — the thing that told you how close
+      you were, and so let you find the other side's number by nudging. It is gone.
+      What belongs here instead is the rule that replaced it. %>
+  <div class="mb-oneway" id="onewayNote">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 5v14M5 12l7 7 7-7" id="onewayArrow" />
+    </svg>
+    <span id="onewayText"></span>
   </div>
 
   <div class="coach tone-<%= status.coach ? status.coach.tone : 'idle' %>" id="coachBox" <%= status.coach ? '' : 'style="display:none"' %>>
@@ -143,10 +184,29 @@
     <span class="coach-text" id="coachText"><%= status.coach ? status.coach.text : '' %></span>
   </div>
 
+  <div class="mb-ask" id="bidAsk" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+    <div class="mb-ask-box">
+      <div class="mb-ask-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 8v5M12 16.5v.01" /><circle cx="12" cy="12" r="9" />
+        </svg>
+      </div>
+      <h3 id="askTitle">Submit these figures?</h3>
+      <p id="askBody"></p>
+      <div class="mb-ask-figs" id="askFigs"></div>
+      <p class="mb-ask-warn" id="askWarn"></p>
+      <div class="mb-ask-foot">
+        <button type="button" class="btn btn-ghost" id="askNo">Not yet</button>
+        <button type="button" class="btn btn-gold" id="askYes">Submit &amp; lock</button>
+      </div>
+    </div>
+  </div>
+
   <div class="mb-actions">
     <button class="btn btn-primary" type="button" id="saveBtn">Save my figures</button>
-    <button class="mb-approve" type="button" id="approve"><span class="lbl" id="approveLbl">Settle</span></button>
+    <button class="mb-approve" type="button" id="approve" style="display:none"><span class="lbl" id="approveLbl">Settle</span></button>
     <span class="muted" id="saveHint"></span>
+    <span class="muted" id="roundLine" style="display:block;width:100%;margin-top:.4rem;font-size:.82rem"></span>
   </div>
 
   <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
@@ -309,7 +369,9 @@
   var CUR = { symbol: <%- JSON.stringify(cur.symbol) %>, locale: <%- JSON.stringify(cur.locale) %> };
   var CASE_ID = <%= c.id %>;
   var ROLE = '<%= role %>';                       // 'claim' (wants high) or 'resp' (wants low)
-  var INIT = <%- JSON.stringify({ mine: status.mine, close: !!status.close, prox: status.prox, mineApproved: !!status.mineApproved, otherApproved: !!status.otherApproved, state: status.state }) %>;
+  var INIT = <%- JSON.stringify({ mine: status.mine, state: status.state, locked: !!status.locked,
+    round: status.round, limit: status.limit, limitText: status.limitText,
+    coach: status.coach, theirBidIn: !!status.theirBidIn }) %>;
 
   var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
   var hIdeal=document.getElementById('hIdeal'), hFair=document.getElementById('hFair'), band=document.getElementById('band');
@@ -323,6 +385,31 @@
   var medWrap=document.getElementById('medWrap'), chips=document.getElementById('chips');
 
   // Role-aware labels. Both roles read left->right as [low, mid, high].
+  // The rule, said the way it actually applies to you. A claimant's walk-away can
+  // only fall; a respondent's ceiling can only rise. "Cannot be reduced" is only
+  // true for one of them, so neither gets told the other's version.
+  function setOneway(s){
+    var box = document.getElementById('onewayNote');
+    var txt = document.getElementById('onewayText');
+    var arw = document.getElementById('onewayArrow');
+    if(!box || !txt) return;
+    if(s && s.state === 'settled'){ box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    if(s && s.locked){
+      box.classList.add('locked');
+      arw.setAttribute('d','M5 12h14M12 5l7 7-7 7');
+      txt.innerHTML = 'Locked for this round. Your figures cannot be changed until the other side has bid.';
+      return;
+    }
+    box.classList.remove('locked');
+    arw.setAttribute('d', ROLE==='claim' ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7');
+    var base = ROLE==='claim'
+      ? 'One way only — your walk-away can come <b>down</b>, never back up. Once you lower it, it stays lowered.'
+      : 'One way only — your ceiling can go <b>up</b>, never back down. Once you raise it, it cannot be reduced.';
+    if(s && s.limitText) base += ' ' + s.limitText;
+    txt.innerHTML = base;
+  }
+
   var LBL = ROLE==='claim'
     ? { res:'The least you’ll accept', fair:'Your target figure', ideal:'Your ideal outcome', kIdeal:'Ideal', kRes:'Walk-away' }
     : { res:'The most you’ll pay',     fair:'Your target figure', ideal:'Your ideal outcome', kIdeal:'Ideal', kRes:'Walk-away' };
@@ -348,7 +435,7 @@
   }
 
   var dragging=null, lastPopX=null, locked=false;
-  var gClose=INIT.close, phase='negotiate', t=0, btnX=0, btnY=0, btnW=120, btnH=36, circleStart=0;
+  var gClose=false, phase='negotiate', t=0, btnX=0, btnY=0, btnW=120, btnH=36, circleStart=0;
 
   function gbp(n){ return Number(n).toLocaleString(CUR.locale); }
 
@@ -394,13 +481,8 @@
     coachText.textContent=text; coachBox.className='coach tone-'+(tone||'idle'); coachBox.style.display='flex';
     if(changed){ coachBox.classList.remove('pop'); void coachBox.offsetWidth; coachBox.classList.add('pop'); }
   }
-  function setProx(p){
-    if(!p){ proxFill.style.width='0%'; proxText.textContent=''; return; }
-    proxFill.style.width=Math.round((p.fill||0)*100)+'%';
-    proxFill.className='mb-prox-fill lvl-'+(p.level||'far');
-    proxText.textContent=p.text||'';
-    proxText.classList.toggle('hot', p.level==='near');
-  }
+  // setProx() is gone with the proximity bar. Its elements no longer exist, so
+  // calling it would throw on load and take the whole page's script with it.
   function setApprove(state){
     btn.classList.remove('ready');
     if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Settle'; }
@@ -411,15 +493,40 @@
 
   function applyStatus(s){
     if(!s) return;
-    gClose = !!s.close;
-    if(s.prox) setProx(s.prox);
+    gClose = false;                       // there is no "close" signal any more — that WAS the leak
+    LIMIT = (s.limit != null) ? s.limit : null;
+    setOneway(s);
     if(locked) return;
     if(s.state==='settled'){ runSeal(); return; }
-    if(s.mineApproved){ phase='mine'; setApprove('waiting'); setCoach('success',"You've approved — waiting for the other side to accept."); ring.style.animationDuration='2.4s'; return; }
+
+    // Your bid for this round is in. It cannot be changed, and nothing about the
+    // other side is shown — so there is nothing here to probe with.
+    if(s.locked){ lockRound(s); return; }
+
     phase='negotiate';
-    if(s.close && s.otherApproved){ setApprove('ready'); setCoach('success',"The other side has approved — approve to lock it in."); }
-    else if(s.close){ setApprove('ready'); setCoach('success',"You're within range of each other — either side can approve to settle."); }
-    else { setApprove('idle'); if(s.coach) setCoach(s.coach.tone, s.coach.text); }
+    setApprove('idle');
+    roundLine(s);
+    if(s.coach) setCoach(s.coach.tone, s.coach.text);
+  }
+
+  var LIMIT = null;                       // your previous walk-away: the one-way rule
+  function lockRound(s){
+    phase='sealed';
+    setOneway(s);
+    [hIdeal,hFair,you].forEach(function(h){ if(h){ h.style.pointerEvents='none'; h.style.opacity='.55'; } });
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Locked in for round ' + s.round;
+    setApprove('idle');
+    if(btn) btn.style.display='none';
+    setCoach('idle', s.coach ? s.coach.text : 'Submitted. Waiting for the other side.');
+    roundLine(s);
+  }
+  function roundLine(s){
+    var el = document.getElementById('roundLine');
+    if(!el) return;
+    var bits = ['Round ' + s.round];
+    if(s.limitText) bits.push(s.limitText);
+    el.textContent = bits.join(' · ');
   }
 
   function step(sn,tx,ty,e){ sn.x+=(tx-sn.x)*e; sn.y+=(ty-sn.y)*e; sn.hist.unshift({x:sn.x,y:sn.y}); if(sn.hist.length>70)sn.hist.pop(); }
@@ -570,16 +677,50 @@
     },6000);
   })();
 
+  // Ask in the product's own voice rather than the browser's grey system box.
+  function askToSubmit(a){
+    return new Promise(function(resolve){
+      var box=document.getElementById('bidAsk');
+      document.getElementById('askBody').textContent = ROLE==='claim'
+        ? 'These lock for this round. If they will pay at or above your walk-away, this settles automatically at the midpoint.'
+        : 'These lock for this round. If they will accept at or below your ceiling, this settles automatically at the midpoint.';
+      document.getElementById('askFigs').innerHTML =
+        '<div class="mb-ask-fig"><div class="k">Ideal</div><div class="v">'+CUR.symbol+gbp(a.ideal)+'</div></div>' +
+        '<div class="mb-ask-fig"><div class="k">Target</div><div class="v">'+CUR.symbol+gbp(a.fair)+'</div></div>' +
+        '<div class="mb-ask-fig walk"><div class="k">'+(ROLE==='claim'?'Walk-away':'Ceiling')+'</div><div class="v">'+CUR.symbol+gbp(a.reservation)+'</div></div>';
+      document.getElementById('askWarn').innerHTML = ROLE==='claim'
+        ? 'You cannot raise your walk-away later. This is the least you will accept.'
+        : 'You cannot reduce your ceiling later. This is the most you will pay.';
+      box.classList.add('on');
+      var yes=document.getElementById('askYes'), no=document.getElementById('askNo');
+      function done(v){ box.classList.remove('on'); yes.onclick=null; no.onclick=null; box.onclick=null; resolve(v); }
+      yes.onclick=function(){ done(true); };
+      no.onclick=function(){ done(false); };
+      box.onclick=function(e){ if(e.target===box) done(false); };
+    });
+  }
   function saveFigures(){
     var a=anchorsGBP();
-    saveBtn.disabled=true; saveHint.textContent='Saving…';
-    postForm('/cases/'+CASE_ID+'/bid','ideal='+a.ideal+'&fair='+a.fair+'&reservation='+a.reservation)
-      .then(function(s){ applyStatus(s); saveBtn.disabled=false; saveHint.textContent='Saved.'; setTimeout(function(){saveHint.textContent='';},1500); })
-      .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not save — try again.'; });
+    askToSubmit(a).then(function(ok){ if(ok) doSubmit(a); });
   }
+  function doSubmit(a){
+    saveBtn.disabled=true; saveHint.textContent='Submitting…';
+    postForm('/cases/'+CASE_ID+'/bid','ideal='+a.ideal+'&fair='+a.fair+'&reservation='+a.reservation)
+      .then(function(s){
+        if(s && s.error){ saveHint.textContent=s.error; saveBtn.disabled=false; setCoach('warning', s.error); return; }
+        applyStatus(s); saveHint.textContent='Submitted.';
+        setTimeout(function(){saveHint.textContent='';},2000);
+      })
+      .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not submit — try again.'; });
+  }
+  // Settlement is automatic now: your submitted figure IS your approval. Kept only
+  // so any old handler still bound to the button does something harmless.
   function approve(){
+    setCoach('idle', 'There is nothing to approve — if your ranges meet, the round settles itself.');
+    return;
+    /* eslint-disable no-unreachable */
     if(phase!=='negotiate'||locked) return;
-    if(!gClose){ setCoach('warning',"You're not close enough yet — save a closer walk-away figure first."); return; }
+    if(!gClose){ return; }
     btn.classList.remove('ready'); setApprove('waiting'); setCoach('success',"You've approved — letting the other side know…");
     postForm('/cases/'+CASE_ID+'/approve','')
       .then(function(s){ applyStatus(s); })
@@ -665,9 +806,9 @@
 
   placeAll();
   headline('fair');
-  setProx(INIT.prox);
   if(INIT.state==='settled'){ finalizeNow(); }
-  else { applyStatus({state:INIT.state, close:INIT.close, prox:INIT.prox, mineApproved:INIT.mineApproved, otherApproved:INIT.otherApproved, coach:null}); }
+  else { applyStatus(INIT); }   // INIT now carries locked/limit/round — pass it straight through,
+                                // or the page paints unlocked until the first poll corrects it.
   requestAnimationFrame(frame);
 </script>
 <%- include('partials/foot') %>

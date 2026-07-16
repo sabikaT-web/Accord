@@ -51,6 +51,24 @@ async function init() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ;`);
+
+  // ---- Sealed bids -----------------------------------------------------------
+  // One row per party per round, and the unique index below is what actually
+  // enforces "you get one bid per round". Doing it in the application would be a
+  // suggestion; doing it here makes a second bid impossible, even if a route is
+  // wrong or someone replays the request.
+  await pool.query(`CREATE TABLE IF NOT EXISTS bids (
+    id         SERIAL PRIMARY KEY,
+    case_id    INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    party      TEXT NOT NULL,
+    round      INTEGER NOT NULL,
+    ideal      INTEGER,
+    fair       INTEGER,
+    walk       INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS bids_one_per_party_per_round ON bids (case_id, party, round)`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS round INTEGER NOT NULL DEFAULT 1;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_approved BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_approved BOOLEAN NOT NULL DEFAULT false;`);
   // Three-anchor bidding. The existing claim_value / resp_value keep their meaning
@@ -191,6 +209,30 @@ const db = {
   async setRespAnchors(ideal, fair, ceil, id) {
     await pool.query('UPDATE cases SET resp_ideal=$1, resp_fair=$2, resp_value=$3 WHERE id=$4', [ideal, fair, ceil, id]);
   },
+  // ---- Sealed bids ----
+  async bidFor(caseId, party, round) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 AND party=$2 AND round=$3', [caseId, party, round]);
+    return rows[0] || null;
+  },
+  async bidsInRound(caseId, round) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 AND round=$2', [caseId, round]);
+    return rows;
+  },
+  // The party's most recent bid in any round — what the one-way rule is measured against.
+  async lastBid(caseId, party) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 AND party=$2 ORDER BY round DESC LIMIT 1', [caseId, party]);
+    return rows[0] || null;
+  },
+  async addBid(caseId, party, round, ideal, fair, walk) {
+    await pool.query('INSERT INTO bids (case_id, party, round, ideal, fair, walk) VALUES ($1,$2,$3,$4,$5,$6)',
+      [caseId, party, round, ideal, fair, walk]);
+  },
+  async bumpRound(caseId) { await pool.query('UPDATE cases SET round = round + 1 WHERE id=$1', [caseId]); },
+  async allBids(caseId) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 ORDER BY round, party', [caseId]);
+    return rows;
+  },
+
   async settle(status, value, id) { await pool.query('UPDATE cases SET status=$1, settled_value=$2, settled_at=now() WHERE id=$3', [status, value, id]); },
   async setApproval(role, id) {
     const col = role === 'claim' ? 'claim_approved' : 'resp_approved';

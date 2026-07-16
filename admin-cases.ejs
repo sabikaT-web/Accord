@@ -1,0 +1,71 @@
+<%- include('partials/head') %>
+<style>
+main>.wrap{max-width:1160px}.bar-in{max-width:1160px}
+table.ac{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+table.ac thead th{text-align:left;background:linear-gradient(180deg,#F7F9FD,#EEF2F8);border-bottom:2px solid var(--navy,#16306B);
+  font-family:"Spline Sans Mono",monospace;font-size:.66rem;letter-spacing:.1em;color:#16306B;padding:11px 12px;white-space:nowrap}
+table.ac tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.ac tbody tr:last-child td{border-bottom:none}
+table.ac tbody tr{box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
+.ref{font-family:"Spline Sans Mono",monospace;font-size:.74rem;background:#EEF2F8;border:1px solid #DCE3EF;border-radius:7px;padding:.2em .45em;color:#16306B}
+.parties{font-size:.78rem;color:#586079;line-height:1.5}
+.amt{font-family:"Fraunces",Georgia,serif;font-size:1rem;text-align:right;white-space:nowrap}
+.pill{font-size:.7rem;font-weight:600;padding:.22em .6em;border-radius:999px;border:1px solid #DCE3EF;color:#586079;white-space:nowrap}
+.pill.settled{background:rgba(21,184,119,.16);border-color:#15B877;color:#1c5e3f}
+.pill.declined{background:#FDF3EF;border-color:#C25A34;color:#C25A34}
+.rnd{font-family:"Spline Sans Mono",monospace;font-size:.78rem;color:#586079}
+.empty{color:#586079;padding:22px;text-align:center}
+</style>
+
+<nav class="admin-nav">
+  <a href="/admin">Dashboard</a>
+  <a href="/admin/users">Users</a>
+  <a href="/admin/cases" class="on">Cases</a>
+</nav>
+
+<div class="admin-head">
+  <h1 class="page serif">Cases <span class="count">(<%= cases.length %>)</span></h1>
+</div>
+
+<form class="search" method="GET" action="/admin/cases">
+  <input type="text" name="q" value="<%= q %>" placeholder="Search title, email or case ID…" />
+  <button class="btn btn-primary" type="submit">Search</button>
+  <% if (q) { %><a class="muted" href="/admin/cases">clear</a><% } %>
+</form>
+
+<% if (!cases.length) { %>
+  <p class="empty">No cases<%= q ? ' match that search' : ' yet' %>.</p>
+<% } else { %>
+<table class="ac">
+  <thead><tr>
+    <th>Ref</th><th>Title</th><th>Parties</th><th style="text-align:right">Amount</th>
+    <th>Round</th><th>Status</th><th>Raised</th><th></th>
+  </tr></thead>
+  <tbody>
+  <% cases.forEach(function (c) {
+       const st = { draft:'#B4B2A9', pending_payment:'#B4B2A9', awaiting_other:'#F5B312',
+                    active:'#2F6BFF', settled:'#15B877', declined:'#C25A34', closed:'#B4B2A9' }[c.status] || '#DCE3EF';
+       const cls = c.status === 'settled' ? 'settled' : (c.status === 'declined' ? 'declined' : '');
+       const label = c.status === 'settled'
+         ? 'Settled at ' + money(c.settled_value, c.currency)
+         : String(c.status).replace('_', ' ');
+  %>
+    <tr style="--st:<%= st %>">
+      <td><span class="ref">MB-<%= c.id %></span></td>
+      <td><b><%= c.title %></b><% if (c.our_ref) { %><div class="parties"><%= c.our_ref %></div><% } %></td>
+      <td class="parties">
+        <%= c.claimant_acc_email || '—' %><br />
+        <%= c.respondent_acc_email || c.other_email || 'not joined' %>
+      </td>
+      <td class="amt"><%= money(c.amount, c.currency) %></td>
+      <td class="rnd"><%= c.round || 1 %></td>
+      <td><span class="pill <%= cls %>"><%= label %></span></td>
+      <td class="parties"><%= new Date(c.created_at).toISOString().slice(0,10) %></td>
+      <td style="text-align:right"><a class="btn btn-ghost" href="/admin/cases/<%= c.id %>">Open</a></td>
+    </tr>
+  <% }); %>
+  </tbody>
+</table>
+<% } %>
+
+<%- include('partials/foot') %>
