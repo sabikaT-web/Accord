@@ -225,8 +225,36 @@ async function notifyCaseDeclined(c, toEmail) {
 module.exports = {
   notifyNewSignup, sendWelcome, notifyNewCase, notifySettled,
   notifyCaseInvite, notifyCaseAccepted, notifyCaseDeclined,
-  notifyMediatorRequest, notifyRoundClosed
+  notifyMediatorRequest, notifyRoundClosed, notifyBusinessRequest
 };
+
+// Someone asked for the business portal. This goes to you, not to them.
+async function notifyBusinessRequest(user, company, caseCount) {
+  const to = process.env.NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com';
+  const rows = [
+    ['Name', user.name || '-'],
+    ['Email', user.email || '-'],
+    ['Company', company || '-'],
+    ['Disputes on their account', String(caseCount == null ? '-' : caseCount)]
+  ].map(function (r) {
+    return '<tr><td style="padding:6px 10px;color:#586079;font-size:13px">' + esc(r[0]) + '</td>'
+         + '<td style="padding:6px 10px;color:#1E2A45;font-size:13px;font-weight:700">' + esc(r[1]) + '</td></tr>';
+  }).join('');
+  return send(to, 'Business portal request - ' + (company || user.email),
+    '<div style="background:#F3EFE4;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">'
+    + '<table role="presentation" align="center" width="100%" style="max-width:520px;margin:0 auto;'
+    + 'background:#fff;border:1px solid #E8DFC9;border-radius:16px;border-collapse:separate"><tr><td style="padding:26px">'
+    + brandHeader()
+    + '<h1 style="font-family:Georgia,serif;font-weight:500;color:#1E2A45;font-size:22px;text-align:center;margin:18px 0 14px">'
+    + 'Someone wants the business portal</h1>'
+    + '<table role="presentation" width="100%" style="border-collapse:collapse;background:#F7F9FD;border-radius:10px">' + rows + '</table>'
+    + '<p style="color:#586079;font-size:14px;line-height:1.6;margin:16px 0 18px;text-align:center">'
+    + 'It is logged against their account. Approve it in Admin &gt; Users &gt; Open portal.</p>'
+    + '<p style="text-align:center;margin:0"><a href="' + (process.env.APP_URL || '') + '/admin/users" '
+    + 'style="background:#16306B;color:#F4F2EB;text-decoration:none;padding:12px 22px;border-radius:999px;'
+    + 'font-weight:700;font-size:15px;display:inline-block">Open Admin - Users</a></p>'
+    + '</td></tr></table></div>');
+}
 
 // A round closed without a deal. Both sides get the same message, and it says
 // nothing about the other side's figure — only that the round is over. Without

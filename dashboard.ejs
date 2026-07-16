@@ -142,6 +142,10 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
 .bizhint b{color:#16306B}
 .bizhint.earned b{color:#6E4708}
 .bizhint .sp{flex:1}
+.bizask{font:inherit;font-size:.85rem;font-weight:700;color:#2F6BFF;background:none;border:none;
+  cursor:pointer;white-space:nowrap;padding:0}
+.bizask:hover{text-decoration:underline}
+.bizhint.earned .bizask{color:#B5790F}
 .bizhint a{color:#2F6BFF;font-weight:700;white-space:nowrap;text-decoration:none}
 .bizhint.earned a{color:#B5790F}
 .bizhint.pending{border-color:var(--line);background:#F7F9FD;color:#586079}
@@ -291,7 +295,12 @@ function downloadMine(){
           Handling <b>25 disputes or more</b>? There's a <b>business portal</b> for that — spreadsheet import, one bid bar across the lot, bulk invites.
         <% } %>
       </span>
-      <a href="mailto:<%= ADMIN_EMAIL || 'midbid.settle@gmail.com' %>?subject=Business%20portal%20%E2%80%94%20demo%20request">Ask for a demo →</a>
+      <%# A real request, not a mailto: draft. mailto only opens the visitor's mail app
+          and relies on them hitting send — on a machine with no mail client set up it
+          does nothing at all, and the request never reaches you. %>
+      <form method="POST" action="/business/request" style="margin:0">
+        <button type="submit" class="bizask">Ask for a demo &rarr;</button>
+      </form>
     </div>
   <% } %>
 <% } %>

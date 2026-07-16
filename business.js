@@ -36,6 +36,25 @@ const router = express.Router();
 // Imports can carry a few hundred rows of JSON; the default 100kb is too small.
 router.use(express.json({ limit: '4mb' }));
 
+// Asking for access must sit ABOVE the gate below, or the gate blocks the very
+// request it tells people to make. Express matches in order.
+router.post('/request', requireLogin, wrap(async (req, res) => {
+  const me = res.locals.me;
+  if (me.account_type === 'business') return res.redirect('/business');
+  const company = (req.body.company || '').trim();
+  await db.requestBusiness(me.id, company);
+
+  // Recorded whether or not the email lands. If mail is misconfigured you still see
+  // the request in Admin > Users - the database is the record, not your inbox.
+  let n = null;
+  try {
+    const r = await pool.query('SELECT count(*)::int AS n FROM cases WHERE claimant_id=$1', [me.id]);
+    n = r.rows[0].n;
+  } catch (e) { /* count is a nicety, not a reason to fail the request */ }
+  mailer.notifyBusinessRequest(me, company || me.company_name, n).catch(() => {});
+  res.redirect('/dashboard');
+}));
+
 // The business portal is not self-serve. An individual chasing one debt has no use
 // for a 25-row ledger, and the switch was clutter for them; more importantly, this
 // stops anyone simply typing /business to get in.
@@ -45,9 +64,6 @@ router.use((req, res, next) => {
   if (me.account_type === 'business') return next();
   if (res.locals.isAdmin) return next();                   // you can always look
   const asked = !!me.business_requested;
-  const mail = 'mailto:' + (process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com')
-    + '?subject=' + encodeURIComponent('Business portal — demo request')
-    + '&body=' + encodeURIComponent('Hello,\n\nI would like a demo of the MidBid business portal.\n\nRoughly how many disputes I am handling: \n\nThanks,\n');
   return res.status(403).render('message', {
     title: asked ? 'Your business portal request is with us' : 'The business portal',
     body: (asked ? 'Thanks for asking — we will be in touch to set up a demo and switch it on. ' : '')
@@ -55,8 +71,9 @@ router.use((req, res, next) => {
       + 'the lot, and bulk invites. Because it changes how a whole book of debt gets handled, we '
       + 'switch it on by hand after a demo.',
     html: asked
-      ? '<p style="color:#586079;font-size:.92rem">Nothing to do — your disputes carry on as normal in the meantime.</p>'
-      : '<a class="btn btn-primary" href="' + mail + '">Ask for a demo</a>',
+      ? '<p style="color:#586079;font-size:.92rem">Nothing to do &mdash; your disputes carry on as normal in the meantime.</p>'
+      : '<form method="POST" action="/business/request" style="margin:0">'
+        + '<button class="btn btn-primary" type="submit">Ask for a demo</button></form>',
   });
 ;
 });
