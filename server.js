@@ -300,6 +300,7 @@ app.use(async (req, res, next) => {
     const me = req.session.userId ? await db.userById(req.session.userId) : null;
     res.locals.me = me;
     res.locals.isAdmin = !!(me && me.email && me.email.toLowerCase() === ADMIN_EMAIL);
+    res.locals.currentPath = req.path;          // so the nav can mark itself
     res.locals.fmt = fmt;
     res.locals.money = money;
     res.locals.curOf = curOf;
@@ -1137,6 +1138,14 @@ app.get('/admin/users', requireLogin, requireAdmin, wrap(async (req, res) => {
 }));
 app.post('/admin/users/:id/suspend', requireLogin, requireAdmin, wrap(async (req, res) => { await db.setSuspended(Number(req.params.id), true); res.redirect('/admin/users'); }));
 app.post('/admin/users/:id/unsuspend', requireLogin, requireAdmin, wrap(async (req, res) => { await db.setSuspended(Number(req.params.id), false); res.redirect('/admin/users'); }));
+// Business portal access. Not self-serve: you grant it, having looked at how many
+// cases the account actually has. The Cases column on this page is the evidence.
+app.post('/admin/users/:id/business', requireLogin, requireAdmin, wrap(async (req, res) => {
+  const on = req.body.on === '1';
+  await pool.query('UPDATE users SET account_type=$1 WHERE id=$2', [on ? 'business' : 'individual', Number(req.params.id)]);
+  res.redirect('/admin/users');
+}));
+
 app.post('/admin/users/:id/reset', requireLogin, requireAdmin, wrap(async (req, res) => {
   const u = await db.userById(Number(req.params.id));
   if (!u) return res.redirect('/admin/users');

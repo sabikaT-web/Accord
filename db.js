@@ -172,12 +172,12 @@ const db = {
   async listUsers(search) {
     const s = '%' + (search || '') + '%';
     const r = await pool.query(`
-      SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.suspended,
+      SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type,
              count(c.id) AS case_count
       FROM users u
       LEFT JOIN cases c ON (c.claimant_id = u.id OR c.respondent_id = u.id)
       WHERE ($1='%%' OR u.email ILIKE $1 OR u.name ILIKE $1)
-      GROUP BY u.id, u.email, u.name, u.created_at, u.last_login, u.suspended
+      GROUP BY u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type
       ORDER BY u.created_at DESC`, [s]);
     return r.rows;
   },

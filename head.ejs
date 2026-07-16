@@ -12,8 +12,8 @@
 /* Portal switch. Scoped here so styles.css needs no changes. */
 .portal-seg{display:flex;background:#EAEFF7;border:1px solid #DCE3EF;border-radius:999px;padding:3px;font-size:.84rem;font-weight:600;margin:0 auto}
 .portal-seg form{margin:0;display:flex}
-.portal-seg button{border:none;background:none;font:inherit;font-weight:600;color:#586079;padding:.4em 1em;border-radius:999px;cursor:pointer;white-space:nowrap}
-.portal-seg button.on{background:#fff;color:#16306B;box-shadow:0 1px 3px rgba(22,48,107,.12)}
+.portal-seg button,.portal-seg a{border:none;background:none;font:inherit;font-weight:600;color:#586079;padding:.4em 1em;border-radius:999px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
+.portal-seg button.on,.portal-seg a.on{background:#fff;color:#16306B;box-shadow:0 1px 3px rgba(22,48,107,.12)}
 @media (max-width:760px){.portal-seg{font-size:.78rem;margin:0}.portal-seg button{padding:.35em .7em}}
 </style>
 </head>
@@ -39,16 +39,17 @@
 
     <%# Individual / business switch. Only for signed-in users. %>
     <% if (me) { %>
+      <%# Only business accounts see this, and it is now plain navigation. It used to
+          POST /business/switch, which rewrote account_type — so clicking "For
+          individuals" would revoke your own access and lock you out of the portal
+          you were standing in. Which view you are looking at and what you are
+          allowed to open are two different things. %>
+      <% if (me.account_type === 'business') { %>
       <div class="portal-seg" role="group" aria-label="Choose portal">
-        <form method="POST" action="/business/switch">
-          <input type="hidden" name="type" value="individual" />
-          <button type="submit" class="<%= me.account_type === 'business' ? '' : 'on' %>">For individuals</button>
-        </form>
-        <form method="POST" action="/business/switch">
-          <input type="hidden" name="type" value="business" />
-          <button type="submit" class="<%= me.account_type === 'business' ? 'on' : '' %>">For business</button>
-        </form>
+        <a href="/dashboard" class="<%= (typeof currentPath !== 'undefined' && currentPath.indexOf('/business') === 0) ? '' : 'on' %>">For individuals</a>
+        <a href="/business" class="<%= (typeof currentPath !== 'undefined' && currentPath.indexOf('/business') === 0) ? 'on' : '' %>">For business</a>
       </div>
+      <% } %>
     <% } %>
 
     <div class="bar-right">

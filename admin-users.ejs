@@ -21,11 +21,11 @@
 <div class="table-wrap">
   <table class="grid">
     <thead><tr>
-      <th>Name</th><th>Email</th><th>Joined</th><th>Status</th><th>Last login</th><th>Cases</th><th>Actions</th>
+      <th>Name</th><th>Email</th><th>Joined</th><th>Status</th><th>Last login</th><th>Cases</th><th>Portal</th><th>Actions</th>
     </tr></thead>
     <tbody>
       <% if (users.length === 0) { %>
-        <tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No users found.</td></tr>
+        <tr><td colspan="8" class="muted" style="text-align:center;padding:24px">No users found.</td></tr>
       <% } %>
       <% users.forEach(function(u){ %>
         <tr>
@@ -34,8 +34,28 @@
           <td><%= fmtDay(u.created_at) %></td>
           <td><% if (u.suspended) { %><span class="badge red">Suspended</span><% } else { %><span class="badge green">Active</span><% } %></td>
           <td><%= fmtDate(u.last_login) %></td>
-          <td><%= u.case_count %></td>
+          <td><b><%= u.case_count %></b></td>
+          <%# Business access is granted here and nowhere else. The Cases count to the
+              left is the thing to look at before switching it on. %>
+          <td>
+            <% if (u.account_type === 'business') { %>
+              <span class="badge green">Business</span>
+            <% } else { %>
+              <span class="muted" style="font-size:.8rem">Individual</span>
+            <% } %>
+          </td>
           <td class="actions">
+            <% if (u.account_type === 'business') { %>
+              <form method="POST" action="/admin/users/<%= u.id %>/business"
+                    onsubmit="return confirm('Close the business portal for this account? Their cases stay exactly as they are — they just lose the ledger view.')">
+                <input type="hidden" name="on" value="0" /><button class="mini">Close portal</button>
+              </form>
+            <% } else { %>
+              <form method="POST" action="/admin/users/<%= u.id %>/business"
+                    onsubmit="return confirm('Open the business portal for this account?')">
+                <input type="hidden" name="on" value="1" /><button class="mini">Open portal</button>
+              </form>
+            <% } %>
             <% if (u.suspended) { %>
               <form method="POST" action="/admin/users/<%= u.id %>/unsuspend"><button class="mini">Unsuspend</button></form>
             <% } else { %>

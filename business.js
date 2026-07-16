@@ -36,6 +36,21 @@ const router = express.Router();
 // Imports can carry a few hundred rows of JSON; the default 100kb is too small.
 router.use(express.json({ limit: '4mb' }));
 
+// The business portal is not self-serve. An individual chasing one debt has no use
+// for a 25-row ledger, and the switch was clutter for them; more importantly, this
+// stops anyone simply typing /business to get in.
+router.use((req, res, next) => {
+  const me = res.locals.me;
+  if (!me) return next();                                  // requireLogin handles this
+  if (me.account_type === 'business') return next();
+  if (res.locals.isAdmin) return next();                   // you can always look
+  return res.status(403).render('message', {
+    title: 'The business portal is not open on this account',
+    body: 'It is for people managing a ledger of disputes rather than one or two. '
+        + 'If that is you, reply to any MidBid email and we will switch it on.',
+  });
+});
+
 // ---- Stage model -------------------------------------------------------------
 //   draft      -> created, not yet invited        ('draft' | 'pending_payment')
 //   awaiting   -> invited, other side not joined  ('awaiting_other')
@@ -237,16 +252,19 @@ async function inviteOne(req, c, meEmail) {
 // Routes
 // =============================================================================
 
-router.post('/switch', requireLogin, wrap(async (req, res) => {
-  const type = req.body.type === 'business' ? 'business' : 'individual';
-  await bz.setAccountType(req.session.userId, type, req.body.company_name);
-  res.redirect(type === 'business' ? '/business' : '/dashboard');
-}));
+// Kept so an old cached page or a bookmark does something sensible instead of
+// 404ing. It no longer touches account_type — access is granted in Admin > Users,
+// and a nav control has no business rewriting your permissions.
+router.post('/switch', requireLogin, (req, res) => {
+  res.redirect(req.body.type === 'business' ? '/business' : '/dashboard');
+});
 
 // ---- Dashboard ---------------------------------------------------------------
 router.get('/', requireLogin, wrap(async (req, res) => {
   const me = res.locals.me;
-  if (me.account_type !== 'business') await bz.setAccountType(me.id, 'business');
+  // Deliberately NOT promoting anyone here any more. Visiting a URL used to rewrite
+  // your account type without asking, which meant the business portal let itself in.
+  // Access is granted by an admin, in Admin > Users.
 
   const cases = (await bz.casesForBusiness(me.id)).map(decorate);
   const open = cases.filter(isOpen);
