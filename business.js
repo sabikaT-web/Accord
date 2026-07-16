@@ -293,6 +293,37 @@ router.post('/cases/:id/email', requireLogin, wrap(async (req, res) => {
   res.redirect('/business?msg=' + encodeURIComponent(email ? 'Email saved. You can invite this one now.' : 'Email cleared.'));
 }));
 
+// ---- Save a field from the detail panel --------------------------------------
+// Notes and email, saved without a page reload. Form-encoded so it uses the same
+// body parser as every other form here; returns JSON so the panel can show
+// whether it actually worked rather than assuming it did.
+router.post('/cases/:id/patch', requireLogin, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const c = await db.caseById(id);
+  if (!c || c.claimant_id !== req.session.userId || c.portal !== 'business') {
+    return res.status(403).json({ ok: false, error: 'Not your case' });
+  }
+
+  if (typeof req.body.notes === 'string') {
+    await pool.query('UPDATE cases SET notes=$1 WHERE id=$2', [req.body.notes.slice(0, 4000) || null, id]);
+    return res.json({ ok: true });
+  }
+
+  if (typeof req.body.email === 'string') {
+    if (['settled', 'closed', 'declined'].includes(c.status)) {
+      return res.status(400).json({ ok: false, error: 'Case is closed' });
+    }
+    const e = req.body.email.trim();
+    if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
+      return res.status(400).json({ ok: false, error: 'Not an email' });
+    }
+    await pool.query('UPDATE cases SET other_email=$1 WHERE id=$2', [e || null, id]);
+    return res.json({ ok: true });
+  }
+
+  res.status(400).json({ ok: false, error: 'Nothing to save' });
+}));
+
 // ---- One case's own bid bar --------------------------------------------------
 // The group bar is the fast way to set a sensible default across a whole ledger.
 // This is the override for the cases that deserve individual attention. Stored as

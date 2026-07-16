@@ -271,58 +271,82 @@ table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.04)}
 .pathstep .ps-count{color:#16306B}
 
 /* =============================================================================
-   THE CASE TABLE
+   MASTER–DETAIL
    -----------------------------------------------------------------------------
-   head.ejs wraps every page in .wrap (760px). That is right for a case page and
-   far too narrow for a nine-column ledger, so this page — and only this page —
-   opens up. styles.css is untouched; so is head.ejs.
+   A list to scan on the left, the case you're working on the right. Notes live
+   in a real box here, because a useful note ("Retention release. Their QS agrees
+   the measure, arguing over the date.") is a sentence, not a cell.
+
+   head.ejs wraps every page in .wrap (760px). Too narrow for this, so this page
+   — and only this page — opens up. styles.css and head.ejs are untouched.
    ========================================================================== */
 .wrap{max-width:1180px}
 
-/* Header: reads as part of the site, not a spreadsheet dropped into it. */
-table.bcases{min-width:1080px;font-size:.88rem}
-table.bcases thead th{background:linear-gradient(180deg,#F7F9FD,#EEF2F8);border-bottom:2px solid #16306B;
-  font-family:"Spline Sans Mono",monospace;font-size:.66rem;letter-spacing:.1em;color:#16306B;padding:12px 12px}
-th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
-th.sortable:hover{color:#2F6BFF}
-th.sortable .ar{opacity:.25;margin-left:.3em;font-size:.8em}
-th.sortable.act .ar{opacity:1;color:#2F6BFF}
+.md{display:grid;grid-template-columns:340px 1fr;border:1px solid var(--line);border-radius:14px;
+  background:#fff;overflow:hidden;min-height:540px}
+.md-list{border-right:1px solid var(--line);background:#FAFBFE;display:flex;flex-direction:column;max-height:640px}
+.md-lhead{display:flex;align-items:center;gap:.6em;padding:9px 12px;border-bottom:1px solid var(--line);background:#F2F5FA;flex:none}
+.md-all{display:flex;align-items:center;gap:.4em;font-size:.74rem;font-weight:700;color:#586079;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.md-sort{margin-left:auto;font:inherit;font-size:.76rem;border:1px solid var(--line);border-radius:7px;padding:.2em .4em;background:#fff;color:#586079}
+.md-rows{overflow:auto;flex:1}
+.md-row{display:flex;align-items:center;gap:.55em;padding:10px 12px;border-bottom:1px solid var(--line);
+  cursor:pointer;box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
+.md-row:hover{background:#F2F6FD}
+.md-row.on{background:#E8F0FF;box-shadow:inset 4px 0 0 #2F6BFF}
+.md-row.sel{background:rgba(47,107,255,.07)}
+.md-row input[type=checkbox]{width:15px;height:15px;accent-color:#2F6BFF;cursor:pointer;flex:none}
+.md-row .cbspace{width:15px;flex:none}
+.md-row .l{flex:1;min-width:0}
+.md-row .n{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-row .r{font-family:"Spline Sans Mono",monospace;font-size:.7rem;color:#586079;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-row .ra{text-align:right;flex:none}
+.md-row .a{font-family:"Fraunces",Georgia,serif;font-size:.92rem;white-space:nowrap}
+.md-row .flag{color:#F5B312;font-size:.7rem;line-height:1}
 
-/* Every row carries its stage colour down the left edge, so the table and the
-   pipeline above it are visibly the same object. */
-table.bcases tbody tr{box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
-table.bcases tbody td{padding:12px}
-table.bcases tbody tr.attn-row{background:rgba(245,179,18,.07);box-shadow:inset 4px 0 0 var(--st,#F5B312)}
-table.bcases tbody tr.settled-row{background:rgba(21,184,119,.07)}
-table.bcases tbody tr.clickable:hover{background:rgba(47,107,255,.06)}
+.md-pane{padding:22px 24px;overflow:auto;max-height:640px}
+.md-pane h3{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.5rem;letter-spacing:-.01em}
+.md-meta{display:flex;gap:.55em;align-items:center;margin:.35rem 0 1.1rem;flex-wrap:wrap}
+.md-meta .amt{font-family:"Fraunces",Georgia,serif;font-size:1.2rem}
+.md-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.md-f{margin-bottom:15px}
+.md-f .lab{font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:#586079;font-weight:700;margin-bottom:.3rem;
+  display:flex;align-items:center;gap:.5em}
+.md-f input[type=text],.md-f input[type=email],.md-f textarea{width:100%;font:inherit;font-size:.88rem;border:1px solid var(--line);
+  border-radius:10px;padding:.5em .7em;background:#fff;color:#1E2A45}
+.md-f textarea{min-height:110px;resize:vertical;line-height:1.55}
+.md-f input:focus,.md-f textarea:focus{outline:none;border-color:#2F6BFF;box-shadow:0 0 0 3px rgba(47,107,255,.12)}
+.md-f input.bad{border-color:#C25A34;background:#FDF3EF}
+.md-f .hint{font-size:.74rem;color:#586079;margin-top:.3rem}
+.md-f .hint.warn{color:#C25A34;font-weight:600}
+.md-f .saved{font-size:.64rem;font-weight:700;color:#1c5e3f;opacity:0;transition:.2s;letter-spacing:.06em}
+.md-f .saved.on{opacity:1}
+.md-f .saved.err{color:#C25A34;opacity:1}
+.md-scale{border:1px solid var(--line);border-radius:12px;padding:16px 14px 12px;background:#F7F9FD}
+.md-scale .cap{font-size:.78rem;color:#586079;margin-top:.5rem}
+.md-scale .cap b{color:#1c5e3f}
+.md-bar{display:flex;gap:.5em;align-items:center;font-size:.84rem;color:#586079}
+.md-actions{display:flex;gap:.5em;margin-top:6px;padding-top:15px;border-top:1px solid var(--line);flex-wrap:wrap}
+.md-empty{color:#586079;text-align:center;padding:70px 20px}
+.md-empty .big{font-family:"Fraunces",Georgia,serif;font-size:1.2rem;color:#1E2A45;margin-bottom:.3rem}
 
-/* MidBid's own reference — its own column, and what you search by. */
 .refchip{display:inline-block;font-family:"Spline Sans Mono",monospace;font-size:.74rem;font-weight:500;
-  background:#EEF2F8;border:1px solid #DCE3EF;border-radius:7px;padding:.24em .5em;color:#16306B;white-space:nowrap}
-tr:hover .refchip{border-color:#2F6BFF;color:#2F6BFF}
-.yourref{font-family:"Spline Sans Mono",monospace;font-size:.72rem;color:#586079;margin-top:.25rem}
+  background:#EEF2F8;border:1px solid var(--line);border-radius:7px;padding:.24em .5em;color:#16306B;white-space:nowrap}
 
-.cp .nm{font-weight:600;font-size:.95rem}
-.cp .due{font-size:.73rem;color:#586079;margin-top:.15rem}
-.cp .due b{color:#B5790F;font-weight:600}
-
-.amtcell{text-align:right}
-.amtcell .a{font-family:"Fraunces",Georgia,serif;font-size:1.05rem;font-weight:500;color:#1E2A45;white-space:nowrap}
-.amtcell .cur{font-family:"Spline Sans Mono",monospace;font-size:.66rem;color:#586079;letter-spacing:.06em}
-
-/* The bid spread, drawn as a miniature of the settlement scale. The table stops
-   looking generic the moment the rows show the thing the product actually does. */
-.spread{min-width:132px}
-.sp-track{position:relative;height:6px;background:#EAEFF7;border-radius:999px;margin:6px 0 5px}
+/* the settlement scale, in miniature */
+.sp-track{position:relative;height:7px;background:#EAEFF7;border-radius:999px;margin:8px 0 6px}
 .sp-band{position:absolute;top:-2px;bottom:-2px;border-radius:999px;background:rgba(47,107,255,.22)}
 .sp-band.lit{background:rgba(21,184,119,.4)}
-.sp-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);border:1.5px solid #fff}
-.sp-dot.hi{background:#2F6BFF}
-.sp-dot.lo{background:#F5B312}
-.sp-val{font-family:"Spline Sans Mono",monospace;font-size:.73rem;white-space:nowrap}
+.sp-dot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #fff}
+.sp-dot.hi{background:#2F6BFF}.sp-dot.lo{background:#F5B312}
+.sp-val{font-family:"Spline Sans Mono",monospace;font-size:.74rem}
 .sp-val .h{color:#2F6BFF}.sp-val .l{color:#B5790F}
-.sp-none{font-size:.78rem;color:#8A93A8;font-style:italic}
-.sp-close{font-size:.68rem;font-weight:700;color:#1c5e3f;letter-spacing:.04em}
+.sp-none{font-size:.8rem;color:#8A93A8;font-style:italic}
+@media(max-width:900px){
+  .md{grid-template-columns:1fr}
+  .md-list{max-height:260px;border-right:none;border-bottom:1px solid var(--line)}
+  .md-grid{grid-template-columns:1fr}
+  .md-pane{max-height:none}
+}
 </style>
 
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
@@ -486,99 +510,43 @@ tr:hover .refchip{border-color:#2F6BFF;color:#2F6BFF}
 %>
 <form method="POST" action="/business/bulk" id="bulkForm">
   <input type="hidden" name="action" id="bulkAction" />
-  <div class="btbl"><div class="btbl-scroll">
-    <table class="bcases">
-      <thead><tr>
-        <th style="width:34px"><input type="checkbox" id="selAll" onchange="toggleAll(this.checked)" aria-label="Select all" /></th>
-        <th class="sortable" onclick="sortBy('ref',this)">Ref <span class="ar">↕</span></th>
-        <th class="sortable" onclick="sortBy('name',this)">Debtor <span class="ar">↕</span></th>
-        <th class="sortable" onclick="sortBy('cat',this)">Category <span class="ar">↕</span></th>
-        <th>Email</th>
-        <th class="sortable" style="text-align:right" onclick="sortBy('amt',this)">Amount <span class="ar">↕</span></th>
-        <th>Bid spread</th>
-        <th class="sortable" onclick="sortBy('stage',this)">Status <span class="ar">↕</span></th>
-        <th style="text-align:right">Actions</th>
-      </tr></thead>
-      <tbody>
-      <% visible.forEach(function (c) { %>
-        <%
-          const stColour = { draft:'#B4B2A9', awaiting:'#F5B312', progress:'#2F6BFF', converging:'#16306B', settled:'#15B877' }[c.stage] || '#C25A34';
-          const stOrder  = { draft:0, awaiting:1, progress:2, converging:3, settled:4 }[c.stage];
-          const overdue  = c.due_date && new Date(c.due_date) < new Date() && !['settled','closed'].includes(c.status);
+  <div class="md">
+    <div class="md-list">
+      <div class="md-lhead">
+        <label class="md-all"><input type="checkbox" id="selAll" onchange="toggleAll(this.checked)" /> All</label>
+        <select class="md-sort" onchange="sortList(this.value)" aria-label="Sort the list">
+          <option value="stage">Stage</option>
+          <option value="amt">Amount</option>
+          <option value="name">Debtor</option>
+          <option value="ref">Reference</option>
+        </select>
+      </div>
+      <div class="md-rows" id="mdRows">
+        <% visible.forEach(function (c) {
+             const stColour = { draft:'#B4B2A9', awaiting:'#F5B312', progress:'#2F6BFF', converging:'#16306B', settled:'#15B877' }[c.stage] || '#C25A34';
+             const stOrder  = { draft:0, awaiting:1, progress:2, converging:3, settled:4 }[c.stage];
         %>
-        <tr style="--st:<%= stColour %>"
-            data-ref="<%= c.id %>" data-name="<%= c.title.toLowerCase() %>" data-cat="<%= (c.category || '').toLowerCase() %>"
-            data-amt="<%= c.amount %>" data-stage="<%= stOrder === undefined ? 9 : stOrder %>"
-            class="<%= c.status === 'settled' ? 'settled-row' : '' %> <%= c.attention ? 'attn-row' : '' %> <%= ['settled','closed','declined'].includes(c.status) ? '' : 'clickable' %>" onclick="rowClick(event, <%= c.id %>)">
-          <td><% if (!['settled','declined','closed'].includes(c.status)) { %><input type="checkbox" name="ids" value="<%= c.id %>" onchange="onSelect()" aria-label="Select <%= c.title %>" /><% } %></td>
-          <td><span class="refchip">MB-<%= c.id %></span></td>
-          <td><div class="cp">
-            <div class="nm"><%= c.title %></div>
-            <% if (c.our_ref) { %><div class="yourref"><%= c.our_ref %></div><% } %>
-            <% if (c.due_date) { %><div class="due"><% if (overdue) { %><b>overdue</b> · <% } else { %>due <% } %><%= new Date(c.due_date).toISOString().slice(0,10) %></div><% } %>
-          </div></td>
-          <td><% if (c.category) { %><span class="cat"><%= c.category %></span><% } else { %><span class="b-muted">—</span><% } %></td>
-          <td>
-            <div class="emailcell" data-id="<%= c.id %>">
-              <input type="email" value="<%= c.other_email || '' %>" placeholder="add email…" class="<%= c.other_email ? '' : 'missing' %>" aria-label="Counterparty email" />
-              <button type="button" onclick="saveEmail(this)">Save</button>
-            </div>
-          </td>
-          <td class="amtcell"><div class="a"><%= money(c.amount, c.currency) %></div><div class="cur"><%= c.currency %></div></td>
-          <td>
-            <% if (c.highest == null && c.lowest == null) { %>
-              <span class="sp-none">no bids yet</span>
-            <% } else {
-                 const hp = c.highest != null ? Math.max(0, Math.min(100, c.highest / c.amount * 100)) : null;
-                 const lp = c.lowest  != null ? Math.max(0, Math.min(100, c.lowest  / c.amount * 100)) : null;
-                 const close = c.stage === 'converging' || c.status === 'settled';
-            %>
-              <div class="spread" title="Highest <%= c.highest != null ? money(c.highest, c.currency) : '—' %> · Lowest <%= c.lowest != null ? money(c.lowest, c.currency) : '—' %> of <%= money(c.amount, c.currency) %>">
-                <div class="sp-track">
-                  <% if (hp != null && lp != null) { %><span class="sp-band <%= close ? 'lit' : '' %>" style="left:<%= Math.min(hp,lp) %>%;right:<%= 100 - Math.max(hp,lp) %>%"></span><% } %>
-                  <% if (lp != null) { %><span class="sp-dot lo" style="left:<%= lp %>%"></span><% } %>
-                  <% if (hp != null) { %><span class="sp-dot hi" style="left:<%= hp %>%"></span><% } %>
-                </div>
-                <div class="sp-val">
-                  <span class="h"><%= c.highest != null ? money(c.highest, c.currency) : '—' %></span>
-                  <span style="color:#B0B8C9">/</span>
-                  <span class="l"><%= c.lowest != null ? money(c.lowest, c.currency) : 'waiting' %></span>
-                </div>
-                <% if (close && c.status !== 'settled') { %><div class="sp-close">IN THE BAND</div><% } %>
-              </div>
-            <% } %>
-          </td>
-          <td>
-            <%
-              const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
-              let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
-              if (c.stage === 'draft') pillText = 'Draft — not invited';
-              if (c.stage === 'awaiting') pillText = 'Awaiting response';
-              if (c.status === 'settled') pillText = 'Settled at ' + money(c.settled_value, c.currency);
-              if (c.status === 'declined') pillText = 'Declined';
-              if (c.status === 'closed') pillText = 'Closed';
-            %>
-            <span class="bpill <%= pillClass %>"><%= pillText %></span>
-            <% if (c.stage === 'awaiting' && nudgeOn) { %><div class="tags"><span class="minitag nudge">auto-nudge</span><% if (c.stalled) { %><span class="minitag stall">stalled <%= c.age %>d</span><% } %></div><% } %>
-          </td>
-          <td>
-            <div class="rowacts">
-              <% if (c.stage === 'draft') { %>
-                <button type="button" class="bbtn bbtn-primary bbtn-sm" onclick="oneAction(<%= c.id %>,'invite')" <%= c.other_email ? '' : 'disabled title="Add an email first"' %>>Invite</button>
-              <% } else if (c.stage === 'awaiting') { %>
-                <button type="button" class="bbtn bbtn-ghost bbtn-sm" onclick="oneAction(<%= c.id %>,'remind')">Remind</button>
-              <% } else if (c.stage === 'converging') { %>
-                <a class="bbtn bbtn-go bbtn-sm" href="/cases/<%= c.id %>">Approve</a>
-              <% } %>
-              <a class="bbtn bbtn-ghost bbtn-sm" href="/cases/<%= c.id %>">Open</a>
-            </div>
-          </td>
-        </tr>
-      <% }); %>
-      </tbody>
-    </table>
-  </div></div>
-  <% if (!visible.length) { %><p class="empty-note">No disputes match this view.</p><% } %>
+        <div class="md-row" data-id="<%= c.id %>" data-ref="<%= c.id %>" data-name="<%= c.title.toLowerCase() %>"
+             data-amt="<%= c.amount %>" data-stage="<%= stOrder === undefined ? 9 : stOrder %>"
+             style="--st:<%= stColour %>" onclick="pick(<%= c.id %>)">
+          <% if (!['settled','declined','closed'].includes(c.status)) { %>
+            <input type="checkbox" name="ids" value="<%= c.id %>" onclick="event.stopPropagation()" onchange="onSelect()" aria-label="Select <%= c.title %>" />
+          <% } else { %><span class="cbspace"></span><% } %>
+          <div class="l">
+            <div class="n"><%= c.title %></div>
+            <div class="r">MB-<%= c.id %><%= c.our_ref ? ' · ' + c.our_ref : '' %></div>
+          </div>
+          <div class="ra">
+            <div class="a"><%= money(c.amount, c.currency) %></div>
+            <% if (c.attention) { %><span class="flag" title="Needs you today">●</span><% } %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+      <% if (!visible.length) { %><p class="empty-note" style="padding:16px">No disputes match this view.</p><% } %>
+    </div>
+    <div class="md-pane" id="mdp"></div>
+  </div>
 
   <div class="bulkbar" id="bulkbar">
     <span class="cnt"><span id="bulkCount">0</span> selected</span>
@@ -770,12 +738,17 @@ var BAND = <%- JSON.stringify(cases.filter(function (c) { return c.stage === 'co
 var ALL = <%- JSON.stringify(cases.map(function (c) { return {
   id: c.id, our_ref: c.our_ref, title: c.title, creditor: (me.company_name || me.name),
   email: c.other_email, category: c.category, secondary_ref: c.secondary_ref,
-  amount: c.amount, currency: c.currency, issue_date: c.issue_date ? String(c.issue_date).slice(0,10) : '',
-  due_date: c.due_date ? String(c.due_date).slice(0,10) : '', source_status: c.source_status,
+  amount: c.amount, currency: c.currency, issue_date: c.issue_date ? new Date(c.issue_date).toISOString().slice(0,10) : '',
+  due_date: c.due_date ? new Date(c.due_date).toISOString().slice(0,10) : '', source_status: c.source_status,
   stage: c.stage, highest: c.highest, lowest: c.lowest, settled: c.settled_value,
   ideal: c.claim_ideal, target: c.claim_fair, walk: c.claim_value, status: c.status,
-  settled_at: c.settled_at ? String(c.settled_at).slice(0,10) : '', notes: c.notes
-}; })) %>;
+  settled_at: c.settled_at ? new Date(c.settled_at).toISOString().slice(0,10) : '', notes: c.notes
+}; })).replace(/</g, '\\u003c') %>;
+/* The .replace above is not decoration. This JSON is written raw into an inline
+   script tag, so a note or debtor name containing a closing script tag would end
+   it early — breaking the page and running whatever followed. These rows come
+   from uploaded spreadsheets, so that string is not hypothetical. Escaping "<"
+   as \u003c makes it inert and is still valid JSON. */
 var VISIBLE_IDS = <%- JSON.stringify(visible.map(function (c) { return c.id; })) %>;
 
 /* ---------- bid bar ---------- */
@@ -798,7 +771,7 @@ function savePreset(){var nm=(document.getElementById('presetName').value||'').t
 /* ---------- selection ---------- */
 function checks(){return [].slice.call(document.querySelectorAll('#bulkForm input[name=ids]'));}
 function selected(){return checks().filter(function(c){return c.checked;});}
-function onSelect(){checks().forEach(function(cb){cb.closest('tr').classList.toggle('sel',cb.checked);});
+function onSelect(){checks().forEach(function(cb){cb.closest('.md-row').classList.toggle('sel',cb.checked);});
   var n=selected().length;document.getElementById('bulkCount').textContent=n;
   document.getElementById('bulkbar').classList.toggle('show',n>0);}
 function toggleAll(on){checks().forEach(function(cb){cb.checked=on;});onSelect();}
@@ -810,18 +783,26 @@ function barFromSelection(){var f=document.getElementById('barForm');
   selected().forEach(function(cb){var h=document.createElement('input');h.type='hidden';h.name='ids';h.value=cb.value;f.appendChild(h);});
   document.getElementById('barScope').value='selected';f.scrollIntoView({behavior:'smooth',block:'center'});}
 
-/* ---------- editable email ---------- */
-document.querySelectorAll('.emailcell input').forEach(function(inp){
-  inp.addEventListener('input',function(){inp.closest('.emailcell').classList.add('dirty');});
-  inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();saveEmail(inp.nextElementSibling);}});
-});
-function saveEmail(btn){
-  var cell=btn.closest('.emailcell');
-  var val=cell.querySelector('input').value.trim();
-  var f=document.getElementById('emailForm');
-  f.action='/business/cases/'+cell.dataset.id+'/email';
-  document.getElementById('efVal').value=val;
-  f.submit();
+/* ---------- saving from the panel ----------
+   Sent as form-encoded rather than JSON so it rides the same body parser every
+   other form on the site uses — no new middleware, nothing new to break. */
+function saveField(id, field, value, el){
+  var tag = el.parentNode.querySelector('.saved');
+  return fetch('/business/cases/' + id + '/patch', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams(Object.defineProperty({}, field, {value:value, enumerable:true}))
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if (!j.ok) throw new Error(j.error || 'Could not save.');
+    var c = null; for (var i=0;i<ALL.length;i++) if (ALL[i].id===id) c = ALL[i];
+    if (c) c[field] = value;                       // keep the client copy honest
+    if (tag){ tag.textContent='SAVED'; tag.className='saved on'; setTimeout(function(){ tag.className='saved'; },1200); }
+    el.classList.remove('bad');
+    if (field === 'email') drawList();             // the list shows who has no email
+  }).catch(function(e){
+    if (tag){ tag.textContent=e.message.toUpperCase(); tag.className='saved err'; }
+    el.classList.add('bad');
+  });
 }
 
 /* ---------- modals ---------- */
@@ -1014,11 +995,102 @@ var SYM = <%- JSON.stringify(Object.keys(CURRENCIES).reduce(function(a,k){a[k]=C
 var CM = null;
 function m(n,c){ return (SYM[c]||'\u00a3') + Math.round(n).toLocaleString('en-GB'); }
 
-// Clicking the row opens this case's own bar — but never when the click was
-// meant for a control inside the row.
-function rowClick(e, id){
-  if (e.target.closest('input, button, a, label, .emailcell')) return;
-  openCase(id);
+/* ---------- master–detail ---------- */
+var SEL = null;
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function byId(id){ for (var i=0;i<ALL.length;i++) if (ALL[i].id===id) return ALL[i]; return null; }
+
+function pick(id){ SEL = id; drawList(); drawPane(); }
+function drawList(){
+  [].slice.call(document.querySelectorAll('.md-row')).forEach(function(r){
+    r.classList.toggle('on', +r.dataset.id === SEL);
+  });
+}
+function sortList(key){
+  var box = document.getElementById('mdRows');
+  var rows = [].slice.call(box.querySelectorAll('.md-row'));
+  var num = (key === 'amt' || key === 'ref' || key === 'stage');
+  rows.sort(function(a,b){
+    var x=a.dataset[key], y=b.dataset[key];
+    if (num) return (parseFloat(x)||0) - (parseFloat(y)||0);
+    return String(x).localeCompare(String(y));
+  });
+  rows.forEach(function(r){ box.appendChild(r); });
+}
+
+function drawPane(){
+  var c = byId(SEL), p = document.getElementById('mdp');
+  if (!c){
+    p.innerHTML = '<div class="md-empty"><div class="big">Pick a dispute</div>'
+      + 'Choose one on the left to add a note, set its bid bar, or invite the other side.</div>';
+    return;
+  }
+  var pill = { draft:'Draft — not invited', awaiting:'Awaiting response', progress:'In progress',
+               converging:'Converging', settled:'Settled at ' + m(c.settled, c.currency),
+               declined:'Declined', closed:'Closed' }[c.stage] || c.stage;
+  if (c.status === 'declined') pill = 'Declined';
+  if (c.status === 'closed') pill = 'Closed';
+  var pc = { draft:'draft', awaiting:'awaiting', progress:'progress', converging:'converging', settled:'settled' }[c.stage] || 'draft';
+  if (c.status === 'declined') pc = 'declined';
+  var live = ['settled','closed','declined'].indexOf(c.status) === -1;
+
+  p.innerHTML =
+    '<h3>' + esc(c.title) + '</h3>' +
+    '<div class="md-meta"><span class="refchip">MB-' + c.id + '</span>' +
+      '<span class="bpill ' + pc + '">' + esc(pill) + '</span>' +
+      '<span class="amt">' + m(c.amount, c.currency) + '</span>' +
+      (c.our_ref ? '<span class="mono" style="font-size:.7rem;color:#586079">' + esc(c.our_ref) + '</span>' : '') +
+      (c.due_date ? '<span class="mono" style="font-size:.7rem;color:#586079">due ' + esc(c.due_date) + '</span>' : '') +
+    '</div>' +
+    '<div class="md-grid"><div>' +
+      '<div class="md-f"><div class="lab">Notes <span class="saved"></span></div>' +
+        '<textarea id="mdNotes" placeholder="What happened, what they said, what you agreed…" ' +
+          'onblur="saveField(' + c.id + ',\'notes\',this.value,this)">' + esc(c.notes) + '</textarea>' +
+        '<div class="hint">Yours only — never shown to the other side. Saves when you click away.</div></div>' +
+      '<div class="md-f"><div class="lab">Their email <span class="saved"></span></div>' +
+        '<input type="email" id="mdEmail" value="' + esc(c.email) + '" placeholder="Needed before you can invite" ' +
+          (live ? 'onblur="saveField(' + c.id + ',\'email\',this.value.trim(),this)"' : 'disabled') + ' />' +
+        (c.email ? '' : '<div class="hint warn">No email yet — this one can’t be invited.</div>') +
+      '</div>' +
+    '</div><div>' +
+      '<div class="md-f"><div class="lab">Where you both stand</div><div class="md-scale">' + paneScale(c) + '</div></div>' +
+      '<div class="md-f"><div class="lab">This case’s bid bar</div><div class="md-bar">' +
+        (c.walk != null
+          ? '<span class="mono">' + Math.round(c.ideal/c.amount*100) + ' / ' + Math.round(c.target/c.amount*100) + ' / ' + Math.round(c.walk/c.amount*100) + '%</span>'
+          : '<span style="color:#8A93A8;font-style:italic">not set — using the group bar</span>') +
+        (live ? '<button type="button" class="bbtn bbtn-ghost bbtn-sm" onclick="openCase(' + c.id + ')">Adjust</button>' : '') +
+        '</div>' +
+        (c.walk != null ? '<div class="hint">Walk-away ' + m(c.walk, c.currency) + '</div>' : '') +
+      '</div>' +
+    '</div></div>' +
+    '<div class="md-actions">' +
+      (c.stage === 'draft'
+        ? '<button type="button" class="bbtn bbtn-primary" onclick="oneAction(' + c.id + ',\'invite\')"' +
+          (c.email ? '' : ' disabled title="Add an email first"') + '>Invite the other side</button>' : '') +
+      (c.stage === 'awaiting' ? '<button type="button" class="bbtn bbtn-ghost" onclick="oneAction(' + c.id + ',\'remind\')">Send a reminder</button>' : '') +
+      (c.stage === 'converging' ? '<a class="bbtn bbtn-go" href="/cases/' + c.id + '">Approve &amp; settle</a>' : '') +
+      (c.status === 'settled' ? '<a class="bbtn bbtn-ghost" href="/cases/' + c.id + '">Download agreement</a>' : '') +
+      '<a class="bbtn bbtn-ghost" href="/cases/' + c.id + '">Open full case</a>' +
+    '</div>';
+}
+
+function paneScale(c){
+  if (c.highest == null && c.lowest == null)
+    return '<span class="sp-none">No bids yet.</span>' +
+           '<div class="cap">' + (c.stage === 'draft' ? 'They haven’t been invited.' : 'Waiting on them.') + '</div>';
+  var hp = c.highest != null ? Math.max(0, Math.min(100, c.highest / c.amount * 100)) : null;
+  var lp = c.lowest  != null ? Math.max(0, Math.min(100, c.lowest  / c.amount * 100)) : null;
+  var close = (c.stage === 'converging' || c.status === 'settled');
+  return '<div class="sp-track">' +
+      ((hp!=null && lp!=null) ? '<span class="sp-band' + (close?' lit':'') + '" style="left:' + Math.min(hp,lp) + '%;right:' + (100-Math.max(hp,lp)) + '%"></span>' : '') +
+      (lp!=null ? '<span class="sp-dot lo" style="left:' + lp + '%"></span>' : '') +
+      (hp!=null ? '<span class="sp-dot hi" style="left:' + hp + '%"></span>' : '') +
+    '</div>' +
+    '<div class="sp-val"><span class="h">' + (c.highest!=null ? m(c.highest,c.currency) : '—') + '</span>' +
+      ' <span style="color:#B0B8C9">/</span> <span class="l">' + (c.lowest!=null ? m(c.lowest,c.currency) : 'waiting') + '</span></div>' +
+    '<div class="cap">' + (c.lowest != null
+        ? (close ? 'They’re at ' + m(c.lowest,c.currency) + '. <b>This one can settle.</b>' : 'They’re at ' + m(c.lowest,c.currency) + '.')
+        : 'They haven’t bid yet.') + '</div>';
 }
 function openCase(id){
   var c = null;
@@ -1072,26 +1144,8 @@ function cmAnchor(){
   }
 }
 
-/* ---------- sort ---------- */
-var SORT={key:null,dir:1};
-function sortBy(key, th){
-  SORT.dir = (SORT.key === key) ? -SORT.dir : 1;
-  SORT.key = key;
-  document.querySelectorAll('th.sortable').forEach(function(h){h.classList.remove('act');h.querySelector('.ar').textContent='\u2195';});
-  th.classList.add('act');
-  th.querySelector('.ar').textContent = SORT.dir === 1 ? '\u2191' : '\u2193';
-  var tb = document.querySelector('table.bcases tbody');
-  var rows = [].slice.call(tb.querySelectorAll('tr'));
-  var num = (key === 'amt' || key === 'ref' || key === 'stage');
-  rows.sort(function(a,b){
-    var x = a.dataset[key], y = b.dataset[key];
-    if (num){ x = parseFloat(x)||0; y = parseFloat(y)||0; return (x-y)*SORT.dir; }
-    return String(x).localeCompare(String(y))*SORT.dir;
-  });
-  rows.forEach(function(r){ tb.appendChild(r); });
-}
-
 onAnchor(); onSelect();
+if (VISIBLE_IDS.length) pick(VISIBLE_IDS[0]); else drawPane();
 </script>
 
 <%- include('partials/foot') %>
