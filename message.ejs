@@ -1,5 +1,9 @@
 <%- include('partials/head') %>
 <h1 class="page serif"><%= title %></h1>
 <p class="sub"><%= body %></p>
-<a class="btn btn-primary" href="/">Go home</a>
+<%# Optional, and opt-in. body stays escaped for every existing caller — one of them
+    interpolates a user's email address, and signup does not validate its format, so
+    making body unescaped would turn a hostile signup into an admin-page XSS. %>
+<% if (typeof html !== 'undefined' && html) { %><div class="sub"><%- html %></div><% } %>
+<a class="btn <%= (typeof html !== 'undefined' && html) ? 'btn-ghost' : 'btn-primary' %>" href="/">Go home</a>
 <%- include('partials/foot') %>

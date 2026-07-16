@@ -131,6 +131,21 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
 .ipathstep.on:hover{background:var(--st)}
 .ipathstep.on .ips-count{color:var(--sto)}
 .ipathstep .ips-count{color:#16306B}
+
+/* The business portal has to be discoverable, or nobody can ask for it. Quiet by
+   default; it only sharpens once someone actually has a ledger-sized problem. */
+.bizhint{display:flex;align-items:center;gap:.7em;margin-top:18px;padding:.75em 1em;
+  border:1px solid var(--line);border-radius:12px;background:#fff;font-size:.85rem;color:#586079}
+.bizhint.earned{border-color:#F5B312;background:rgba(245,179,18,.09);color:#8A5A0B}
+.bizhint svg{width:16px;height:16px;flex:none;color:#2F6BFF}
+.bizhint.earned svg{color:#B5790F}
+.bizhint b{color:#16306B}
+.bizhint.earned b{color:#6E4708}
+.bizhint .sp{flex:1}
+.bizhint a{color:#2F6BFF;font-weight:700;white-space:nowrap;text-decoration:none}
+.bizhint.earned a{color:#B5790F}
+.bizhint.pending{border-color:var(--line);background:#F7F9FD;color:#586079}
+.bizhint.pending svg{color:#586079}
 </style>
 
 <% if (cases.length === 0) { %>
@@ -260,4 +275,25 @@ function downloadMine(){
 </script>
 
 <% } %>
+<% if (me.account_type !== 'business') { %>
+  <% if (me.business_requested) { %>
+    <div class="bizhint pending">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span class="sp">Your <b>business portal</b> request is with us — we'll be in touch about a demo.</span>
+    </div>
+  <% } else { %>
+    <div class="bizhint <%= cases.length >= 25 ? 'earned' : '' %>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
+      <span class="sp">
+        <% if (cases.length >= 25) { %>
+          You're handling <b><%= cases.length %> disputes</b>. The <b>business portal</b> is built for exactly this — import them from a spreadsheet, set one bid bar across the lot, invite in bulk.
+        <% } else { %>
+          Handling <b>25 disputes or more</b>? There's a <b>business portal</b> for that — spreadsheet import, one bid bar across the lot, bulk invites.
+        <% } %>
+      </span>
+      <a href="mailto:<%= ADMIN_EMAIL || 'midbid.settle@gmail.com' %>?subject=Business%20portal%20%E2%80%94%20demo%20request">Ask for a demo →</a>
+    </div>
+  <% } %>
+<% } %>
+
 <%- include('partials/foot') %>

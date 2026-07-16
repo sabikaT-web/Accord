@@ -44,11 +44,21 @@ router.use((req, res, next) => {
   if (!me) return next();                                  // requireLogin handles this
   if (me.account_type === 'business') return next();
   if (res.locals.isAdmin) return next();                   // you can always look
+  const asked = !!me.business_requested;
+  const mail = 'mailto:' + (process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com')
+    + '?subject=' + encodeURIComponent('Business portal — demo request')
+    + '&body=' + encodeURIComponent('Hello,\n\nI would like a demo of the MidBid business portal.\n\nRoughly how many disputes I am handling: \n\nThanks,\n');
   return res.status(403).render('message', {
-    title: 'The business portal is not open on this account',
-    body: 'It is for people managing a ledger of disputes rather than one or two. '
-        + 'If that is you, reply to any MidBid email and we will switch it on.',
+    title: asked ? 'Your business portal request is with us' : 'The business portal',
+    body: (asked ? 'Thanks for asking — we will be in touch to set up a demo and switch it on. ' : '')
+      + 'It is built for ledgers of 25 disputes or more: spreadsheet import, one bid bar across '
+      + 'the lot, and bulk invites. Because it changes how a whole book of debt gets handled, we '
+      + 'switch it on by hand after a demo.',
+    html: asked
+      ? '<p style="color:#586079;font-size:.92rem">Nothing to do — your disputes carry on as normal in the meantime.</p>'
+      : '<a class="btn btn-primary" href="' + mail + '">Ask for a demo</a>',
   });
+;
 });
 
 // ---- Stage model -------------------------------------------------------------

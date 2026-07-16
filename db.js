@@ -69,6 +69,12 @@ async function init() {
   )`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS bids_one_per_party_per_round ON bids (case_id, party, round)`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS round INTEGER NOT NULL DEFAULT 1;`);
+
+  // account_type is APPROVED access. business_requested is "they asked". Keeping them
+  // apart is the whole point: with one flag you cannot tell a pending request from a
+  // refusal, and every request looks identical to an account you have already said no to.
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_requested BOOLEAN NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_requested_at TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_approved BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_approved BOOLEAN NOT NULL DEFAULT false;`);
   // Three-anchor bidding. The existing claim_value / resp_value keep their meaning
@@ -169,15 +175,22 @@ const db = {
     await pool.query('DELETE FROM cases WHERE claimant_id=$1 OR respondent_id=$1', [id]);
     await pool.query('DELETE FROM users WHERE id=$1', [id]);
   },
+  async requestBusiness(userId, company) {
+    await pool.query(`UPDATE users SET business_requested=true, business_requested_at=now(),
+                      company_name=coalesce(nullif($2,''), company_name) WHERE id=$1`, [userId, company || null]);
+  },
+
   async listUsers(search) {
     const s = '%' + (search || '') + '%';
     const r = await pool.query(`
       SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type,
+             u.business_requested, u.company_name,
              count(c.id) AS case_count
       FROM users u
       LEFT JOIN cases c ON (c.claimant_id = u.id OR c.respondent_id = u.id)
       WHERE ($1='%%' OR u.email ILIKE $1 OR u.name ILIKE $1)
-      GROUP BY u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type
+      GROUP BY u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type,
+               u.business_requested, u.company_name
       ORDER BY u.created_at DESC`, [s]);
     return r.rows;
   },

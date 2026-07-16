@@ -1,4 +1,16 @@
 <%- include('partials/head') %>
+<style>
+.acct{border:1px solid var(--line);border-radius:12px;padding:.9em 1em 1em;margin:1.1rem 0 .2rem}
+.acct legend{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:0 .4em}
+.acct-opt{display:flex;align-items:flex-start;gap:.6em;padding:.5em 0;cursor:pointer}
+.acct-opt input{margin-top:.35em;accent-color:#2F6BFF}
+.acct-opt span{display:block;line-height:1.4}
+.acct-opt b{display:block;font-size:.92rem}
+.acct-opt em{font-style:normal;font-size:.82rem;color:var(--ink-soft)}
+#acctCo{border-top:1px solid var(--line);margin-top:.5em;padding-top:.8em}
+.acct-note{font-size:.8rem;color:var(--ink-soft);line-height:1.5;margin:.6em 0 0;
+  background:rgba(245,179,18,.1);border:1px solid #F5B312;border-radius:9px;padding:.6em .7em}
+</style>
 <h1 class="page serif">Create your account</h1>
 <p class="sub">Already have one? <a href="/login">Log in</a>.</p>
 <div class="card">
@@ -12,7 +24,35 @@
     <label for="password">Password</label>
     <input id="password" name="password" type="password" minlength="6" required />
     <div class="help">At least 6 characters.</div>
+    <fieldset class="acct">
+      <legend>What are you using MidBid for?</legend>
+      <label class="acct-opt">
+        <input type="radio" name="account" value="individual" checked onchange="acctPick()" />
+        <span><b>Just me</b><em>A dispute or two of my own.</em></span>
+      </label>
+      <label class="acct-opt">
+        <input type="radio" name="account" value="business" onchange="acctPick()" />
+        <span><b>My business</b><em>A ledger of disputes — 25 or more.</em></span>
+      </label>
+      <div id="acctCo" hidden>
+        <label for="company">Company name</label>
+        <input id="company" name="company" type="text" placeholder="Aspen Ltd" />
+        <p class="acct-note">
+          You will start on the individual view. The business portal is switched on by hand,
+          after a quick word with us — it is built for ledgers, not for one-off disputes.
+          We will be in touch about a demo.
+        </p>
+      </div>
+    </fieldset>
+
     <div class="btn-block"><button class="btn btn-primary" type="submit">Create account</button></div>
   </form>
 </div>
+<script>
+function acctPick(){
+  var biz = document.querySelector('input[name=account][value=business]').checked;
+  document.getElementById('acctCo').hidden = !biz;
+}
+acctPick();
+</script>
 <%- include('partials/foot') %>

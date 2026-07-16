@@ -301,6 +301,7 @@ app.use(async (req, res, next) => {
     res.locals.me = me;
     res.locals.isAdmin = !!(me && me.email && me.email.toLowerCase() === ADMIN_EMAIL);
     res.locals.currentPath = req.path;          // so the nav can mark itself
+    res.locals.ADMIN_EMAIL = ADMIN_EMAIL;       // views link to it for demo requests
     res.locals.fmt = fmt;
     res.locals.money = money;
     res.locals.curOf = curOf;
@@ -526,7 +527,14 @@ app.post('/signup', wrap(async (req, res) => {
   if (await db.userByEmail(email)) return res.render('signup', { error: 'An account with that email already exists. Try logging in.', next: req.body.next || '' });
   const hash = bcrypt.hashSync(pw, 10);
   const id = await db.createUser(email, name, hash);
-  mailer.notifyNewSignup({ name, email }).catch(() => {});      // email the admin
+
+  // Asking is not the same as getting. They start as an individual either way; the
+  // request is recorded for you to approve in Admin > Users. Granting it here would
+  // be the old silent-promotion bug wearing a nicer hat.
+  const wantsBusiness = req.body.account === 'business';
+  if (wantsBusiness) await db.requestBusiness(id, (req.body.company || '').trim());
+
+  mailer.notifyNewSignup({ name, email, wantsBusiness, company: (req.body.company || '').trim() }).catch(() => {});
   mailer.sendWelcome({ name, email }).catch(() => {});          // welcome the user (needs verified domain)
   req.session.userId = id;
   res.redirect(nextUrl);
