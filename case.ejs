@@ -154,6 +154,8 @@
     color:#0E8F5B;margin:.2rem 0 .9rem;line-height:1;font-variant-numeric:tabular-nums}
   .mb-cer-sub{color:#586079;font-size:.95rem;line-height:1.6;margin:0 auto 1.4rem;max-width:340px}
   .mb-cer-sub span{color:#12241C;font-weight:600}
+  .mb-cer-why{font-size:.82rem;color:#0E8F5B;background:rgba(21,184,119,.1);border-radius:9px;
+    padding:.55em .8em;margin:0 auto 1.2rem;max-width:340px;line-height:1.5}
   .mb-cer-go{border:none;border-radius:999px;background:#15B877;color:#fff;font:inherit;font-weight:700;
     font-size:.98rem;padding:.85em 1.6em;cursor:pointer;box-shadow:0 10px 24px -8px rgba(21,184,119,.7);
     transition:transform .15s,box-shadow .15s}
@@ -465,7 +467,8 @@
     <div class="mb-cer-eyebrow">Settlement reached</div>
     <h2 class="mb-cer-h">Agreed</h2>
     <div class="mb-cer-fig"><span id="cerFig">£0</span></div>
-    <p class="mb-cer-sub">Both sides' ranges met, so <span id="cerTitle"></span> <b>settled automatically</b> — the figure is the midpoint of what each of you would accept, and it is binding on both parties.</p>
+    <p class="mb-cer-sub"><span id="cerTitle"></span> <b>settled automatically</b> — the figure is the midpoint of both sides' walk-aways, and it is binding on both parties.</p>
+    <p class="mb-cer-why" id="cerWhy"></p>
     <button class="mb-cer-go" type="button" id="cerGo">Continue &rarr;</button>
     <p class="mb-cer-fine">Neither side ever saw the other's figures. The only number revealed is the one you both agreed to.</p>
   </div>
@@ -539,7 +542,8 @@
   var ROLE = '<%= role %>';                       // 'claim' (wants high) or 'resp' (wants low)
   var INIT = <%- JSON.stringify({ mine: status.mine, state: status.state, locked: !!status.locked,
     round: status.round, limit: status.limit, limitText: status.limitText,
-    coach: status.coach, theirBidIn: !!status.theirBidIn, settledValue: status.settledValue }) %>;
+    coach: status.coach, theirBidIn: !!status.theirBidIn, settledValue: status.settledValue,
+    settleReason: status.settleReason }) %>;
   var CASE_TITLE = <%- JSON.stringify(c.title) %>;
 
   var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
@@ -789,6 +793,17 @@
     if(!cer || cer.dataset.shown) return;
     cer.dataset.shown = '1';
     document.getElementById('cerTitle').textContent = CASE_TITLE || 'This case';
+    var why = document.getElementById('cerWhy');
+    if(why){
+      // Only says WHICH rule fired — never the figures, never how close. On overlap it
+      // stays silent; on a band settle it explains the 5%.
+      if(INIT.settleReason === 'band'){
+        why.textContent = 'Your two figures were within 5% of each other, so MidBid closed the gap and settled at the midpoint.';
+        why.style.display = '';
+      } else {
+        why.style.display = 'none';
+      }
+    }
     cer.hidden = false;
     document.body.style.overflow = 'hidden';
 

@@ -222,8 +222,6 @@ async function chargeSavedCard(c, role, amountMinor, label) {
   }
 }
 
-const CLOSE_THRESHOLD = 0.10;                                   // "within 10% of the amount in dispute"
-const FAIR_THRESHOLD  = 0.15;                                   // softer "within 15%" highlight on the middle (Fair) anchors
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com').toLowerCase();
 
 app.set('view engine', 'ejs');
@@ -273,7 +271,7 @@ function progressFor(c) {
   if (!cb && !rb) return 30;
   if (cb !== rb) return 45;
   const gap = c.claim_value - c.resp_value;
-  return gap <= CLOSE_THRESHOLD * c.amount ? 80 : 60;
+  return 70;   // sealed: fill never varies with the other side's figure
 }
 function statusText(c) {
   if (c.status === 'settled') return 'Settled at ' + money(c.settled_value, c.currency);
@@ -285,7 +283,7 @@ function statusText(c) {
   if (!rb) return "Waiting for respondent's figure";
   if (!cb) return "Waiting for claimant's figure";
   const gap = c.claim_value - c.resp_value;
-  return gap <= CLOSE_THRESHOLD * c.amount ? 'Within 10% — close to a deal' : 'Both bid — still apart';
+  return 'Both bid — sealed until it settles';
 }
 function humanDuration(secs) {
   secs = Number(secs) || 0;
@@ -336,25 +334,6 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 //   *_fair      = the middle figure each side would genuinely consider
 // A deal is possible once the walk-aways overlap (ceiling >= floor). The Fair
 // anchors give an earlier, softer "you're nearly there" highlight at 15%.
-function proximity(c) {
-  const A = c.amount || 1;
-  const cFloor = c.claim_value, rCeil = c.resp_value;
-  const cFair = c.claim_fair,  rFair = c.resp_fair;
-  const resIn  = cFloor != null && rCeil != null;
-  const fairIn = cFair  != null && rFair != null;
-  if (!resIn) return { level: 'pending', fill: 0, canApprove: false };
-
-  const overlap = rCeil >= cFloor;                 // ranges meet -> settlement available
-  const resGap  = (cFloor - rCeil) / A;            // >0 still apart, <=0 overlap (walk-aways)
-  const fairGap = fairIn ? Math.abs(cFair - rFair) / A : null;
-
-  if (overlap)                       return { level: 'overlap', fill: 1.00, canApprove: true };
-  if (resGap <= CLOSE_THRESHOLD)     return { level: 'close',   fill: 0.85, canApprove: true };   // within 10% on walk-aways
-  if (fairGap != null && fairGap <= FAIR_THRESHOLD)
-                                     return { level: 'near',    fill: 0.62, canApprove: false };  // within 15% on the Fair figures
-  if (resGap <= 0.30)                return { level: 'apart',   fill: 0.40, canApprove: false };
-  return { level: 'far', fill: 0.20, canApprove: false };
-}
 
 const PROX_TEXT = {
   pending: '',
@@ -369,54 +348,6 @@ const PROX_TEXT = {
 // and how far the two sides are apart. Runs server-side, so it can see both
 // numbers — but it NEVER returns the other side's figure or the actual gap,
 // only a gentle message. Blindness stays intact.
-function coachNudge(c, role) {
-  const A = c.amount || 0;
-  const claim = c.claim_value;            // claimant: the least they'll accept
-  const resp  = c.resp_value;             // respondent: the most they'll pay
-  const mine  = role === 'claim' ? claim : resp;
-  const bothIn = claim != null && resp != null;
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-  // --- Before both figures are in: coach on YOUR position only ---
-  if (!bothIn) {
-    if (mine == null) {
-      return role === 'claim'
-        ? { tone: 'idle', text: pick([
-            "A common opening is around 80% of the amount — it leaves room to move.",
-            "Tip: start near 80% of the value rather than the very top. It signals you're here to settle."
-          ]) }
-        : { tone: 'idle', text: pick([
-            "A common opening is around 20–40% of the amount — low, but not so low it stalls things.",
-            "Tip: open with a little room to climb. Offers that start too low tend to freeze the other side."
-          ]) };
-    }
-    if (role === 'claim' && mine >= 0.9 * A)
-      return { tone: 'warn', text: "You're aiming near the very top. Most cases that settle start closer to 80% — worth a thought." };
-    if (role === 'resp' && mine <= 0.1 * A)
-      return { tone: 'warn', text: "That's a very low opening. Nudging it up a little tends to get things moving." };
-    return { tone: 'idle', text: "You're in. Sit tight — nothing about your figure is shared." };
-  }
-
-  // --- Both walk-aways in: coach on the BAND (never reveals their number) ---
-  const p = proximity(c);
-  if (p.level === 'overlap') return { tone: 'deal',  text: "Your ranges meet — you can settle. Nice work." };
-  if (p.level === 'close')   return { tone: 'close', text: pick([
-    "You're nearly there — a small move closes this.",
-    "So close. A lawyer would take more than this gap in fees anyway — worth finishing here."
-  ]) };
-  if (p.level === 'near')    return { tone: 'close', text: pick([
-    "Your realistic figures are within about 15% — one step from each side does it.",
-    "Within reach now — your middle figures are close. Want to meet around there?"
-  ]) };
-  if (p.level === 'apart')   return { tone: 'warn',  text: pick([
-    "Some distance left — try a slightly bigger move this round.",
-    "You might still be a fair way apart on the figure that binds."
-  ]) };
-  return { tone: 'warn', text: pick([
-    "You might be stretching this a little — big gaps rarely settle on their own.",
-    "Quite far apart right now. A bolder move could be what unlocks it."
-  ]) };
-}
 
 // The blind-bid brain: returns ONLY what the asking side may see.
 // ---- Sealed-bid status --------------------------------------------------------
@@ -479,6 +410,7 @@ async function viewerStatus(c, role) {
         : 'Last round you would pay ' + money(prev.walk, c.currency) + '. You can only go up from there.')
     : null;
   s.settledValue     = c.settled_value != null ? c.settled_value : null;
+  s.settleReason     = c.settle_reason || null;   // 'overlap' | 'band' — for the announcement
   s.mediatorRequested = !!c.mediator_requested;
   s.myDetailsDone    = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
   s.bothDetailsDone  = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
@@ -1007,10 +939,31 @@ app.post('/cases/:id/bid', requireLogin, wrap(async (req, res) => {
   // message is the leak we are removing.
   const cl = bids.find((b) => b.party === 'claimant');
   const rp = bids.find((b) => b.party === 'respondent');
-  if (rp.walk >= cl.walk) {
+  // Two ways a round settles:
+  //   1. Overlap — the respondent's ceiling reaches the claimant's floor. A real deal.
+  //   2. Within 5% of each other — the two walk-aways are close enough that MidBid
+  //      closes the last sliver automatically, at the midpoint.
+  //
+  // The 5% band is measured against the SMALLER of the two figures (the tighter,
+  // more defensible reading of "within 5% of each other"). NOTE: this can settle a
+  // party a little past the number they set as their limit — that is the deliberate
+  // tradeoff of a proximity band, chosen knowingly. See SETTLEMENT-RULES.md.
+  const SETTLE_BAND = 0.05;
+  const overlap = rp.walk >= cl.walk;
+  const gap = Math.abs(cl.walk - rp.walk);
+  const smaller = Math.min(cl.walk, rp.walk);
+  const withinBand = smaller > 0 && (gap <= SETTLE_BAND * smaller);
+
+  if (overlap || withinBand) {
     const value = Math.round((cl.walk + rp.walk) / 2);
+    const reason = overlap ? 'overlap' : 'band';
     await db.settle('settled', value, c.id);
-    await db.addEvent(c.id, 'settled', 'Round ' + round + ' — ranges met. Settled at ' + money(value, c.currency));
+    await db.addEvent(c.id, 'settled',
+      'Round ' + round + (overlap
+        ? ' — ranges met. Settled at ' + money(value, c.currency)
+        : ' — figures within 5% of each other. Settled at ' + money(value, c.currency)));
+    // record WHY, so the announcement can say it (without ever showing the figures)
+    try { await pool.query('UPDATE cases SET settle_reason=$1 WHERE id=$2', [reason, c.id]); } catch (e) {}
     const full = await db.caseDetail(c.id);
     mailer.notifySettled(
       { id: full.id, title: full.title, settled_value: value, currency: full.currency, other_email: full.other_email },
