@@ -119,6 +119,44 @@
   .mb-esc-cap{font-size:.8rem;color:#8a8f99;line-height:1.4;flex:1 1 220px}
   .mb-pay{display:inline-flex;align-items:center;gap:6px;font-size:.92rem;font-weight:700;color:#fff;background:#23a259;border:none;border-radius:999px;padding:.6rem 1.15rem;cursor:pointer;box-shadow:0 0 16px 3px rgba(35,162,89,.35);transition:filter .2s}
   .mb-pay:hover{filter:brightness(1.05)}
+
+  /* Settlement announcement. This is the one moment green is correct — the deal is
+     done. It fires only on the settled state, never on proximity: there is no "you're
+     close" here, because being told you are close is exactly the leak the sealed
+     mechanic removes. What it reveals — the agreed figure — is safe, because the case
+     is over the instant it shows. */
+  .mb-cer{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:1.2rem}
+  .mb-cer[hidden]{display:none}
+  .mb-cer-sky{position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(21,184,119,.28),rgba(16,24,48,.72) 62%);
+    backdrop-filter:blur(3px);animation:cerFade .5s ease}
+  .mb-cer-card{position:relative;background:#fff;border-radius:22px;max-width:440px;width:100%;
+    padding:2.4rem 2rem 1.7rem;text-align:center;
+    box-shadow:0 30px 90px -20px rgba(21,184,119,.5),0 8px 30px rgba(16,24,48,.3);
+    animation:cerRise .6s cubic-bezier(.16,.84,.32,1)}
+  .mb-cer-seal{width:66px;height:66px;margin:0 auto 1.1rem;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    background:linear-gradient(135deg,#15B877,#0E8F5B);
+    box-shadow:0 0 0 8px rgba(21,184,119,.14),0 10px 26px -6px rgba(21,184,119,.6);
+    animation:cerSeal .55s cubic-bezier(.2,.9,.3,1.3) .2s both}
+  .mb-cer-seal svg{width:34px;height:34px}
+  .mb-cer-eyebrow{font-family:"Spline Sans Mono",monospace;font-size:.66rem;letter-spacing:.22em;
+    text-transform:uppercase;font-weight:700;color:#0E8F5B;margin-bottom:.5rem}
+  .mb-cer-h{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:2.1rem;letter-spacing:-.02em;
+    color:#12241C;margin:0 0 .3rem;line-height:1}
+  .mb-cer-fig{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:2.9rem;letter-spacing:-.03em;
+    color:#0E8F5B;margin:.2rem 0 .9rem;line-height:1;font-variant-numeric:tabular-nums}
+  .mb-cer-sub{color:#586079;font-size:.95rem;line-height:1.6;margin:0 auto 1.4rem;max-width:340px}
+  .mb-cer-sub span{color:#12241C;font-weight:600}
+  .mb-cer-go{border:none;border-radius:999px;background:#15B877;color:#fff;font:inherit;font-weight:700;
+    font-size:.98rem;padding:.85em 1.6em;cursor:pointer;box-shadow:0 10px 24px -8px rgba(21,184,119,.7);
+    transition:transform .15s,box-shadow .15s}
+  .mb-cer-go:hover{transform:translateY(-1px);box-shadow:0 14px 30px -8px rgba(21,184,119,.8)}
+  .mb-cer-fine{font-size:.76rem;color:#8a8f99;margin:1rem 0 0;line-height:1.5}
+  @keyframes cerFade{from{opacity:0}to{opacity:1}}
+  @keyframes cerRise{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes cerSeal{from{transform:scale(0) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+  @media(prefers-reduced-motion:reduce){.mb-cer-sky,.mb-cer-card,.mb-cer-seal{animation:none}}
+
   .mb-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem}
   .mb-modal[hidden]{display:none}
   .mb-modal-back{position:absolute;inset:0;background:rgba(16,24,48,.55);backdrop-filter:blur(2px)}
@@ -391,6 +429,24 @@
 <% } %>
 
 <!-- Settlement details + e-signature hand-off -->
+<div class="mb-cer" id="settleCer" hidden aria-live="polite">
+  <div class="mb-cer-sky"></div>
+  <div class="mb-cer-card">
+    <div class="mb-cer-seal">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/>
+        <path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="mb-cer-eyebrow">Settlement reached</div>
+    <h2 class="mb-cer-h">Agreed</h2>
+    <div class="mb-cer-fig"><span id="cerFig">£0</span></div>
+    <p class="mb-cer-sub">Both sides' ranges met. <span id="cerTitle"></span> is settled — the figure is the midpoint of what each of you would accept, and it is binding on both parties.</p>
+    <button class="mb-cer-go" type="button" id="cerGo">Continue to your agreement &rarr;</button>
+    <p class="mb-cer-fine">Neither side ever saw the other's figures. The only number revealed is the one you both agreed to.</p>
+  </div>
+</div>
+
 <div class="mb-modal" id="settleModal" hidden>
   <div class="mb-modal-back" id="settleBack"></div>
   <div class="mb-modal-card" role="dialog" aria-modal="true" aria-labelledby="settleTitle">
@@ -448,7 +504,8 @@
   var ROLE = '<%= role %>';                       // 'claim' (wants high) or 'resp' (wants low)
   var INIT = <%- JSON.stringify({ mine: status.mine, state: status.state, locked: !!status.locked,
     round: status.round, limit: status.limit, limitText: status.limitText,
-    coach: status.coach, theirBidIn: !!status.theirBidIn }) %>;
+    coach: status.coach, theirBidIn: !!status.theirBidIn, settledValue: status.settledValue }) %>;
+  var CASE_TITLE = <%- JSON.stringify(c.title) %>;
 
   var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
   var hIdeal=document.getElementById('hIdeal'), hFair=document.getElementById('hFair'), band=document.getElementById('band');
@@ -670,11 +727,41 @@
     phase='agreed';
     setApprove('green');
     burstAt(btnX,btnY);
-    setCoach('success',"Agreed! The figure is locked in by both sides.");
     var esc=document.getElementById('escalate'); if(esc) esc.style.display='none';
     setTimeout(function(){ blue.layer.style.opacity='0'; yellow.layer.style.opacity='0'; },350);
-    // Reload so the settled view renders the agreement / success-fee step from the server.
-    setTimeout(function(){ location.reload(); },2100);
+    // The scale has driven to green; now the announcement lands. It reads the settled
+    // figure from the just-returned status, so it is the real agreed amount.
+    setTimeout(function(){ showCeremony(SETTLED_VALUE); },700);
+  }
+
+  var SETTLED_VALUE = (INIT && INIT.settledValue != null) ? INIT.settledValue : null;
+
+  // The announcement. Fires only when the case is genuinely settled. It reveals the
+  // agreed figure — which is safe, because the negotiation is over — and nothing about
+  // how the two sides' numbers related on the way there.
+  function showCeremony(value){
+    var cer = document.getElementById('settleCer');
+    if(!cer || cer.dataset.shown) return;
+    cer.dataset.shown = '1';
+    document.getElementById('cerTitle').textContent = CASE_TITLE || 'This case';
+    cer.hidden = false;
+    document.body.style.overflow = 'hidden';
+
+    var target = Number(value) || 0, t0 = null, DUR = 1100;
+    var figEl = document.getElementById('cerFig');
+    function tick(ts){
+      if(t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / DUR);
+      var eased = 1 - Math.pow(1 - p, 3);
+      figEl.textContent = CUR.symbol + gbp(Math.round(target * eased));
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    if(target > 0) requestAnimationFrame(tick); else figEl.textContent = CUR.symbol + '0';
+
+    document.getElementById('cerGo').onclick = function(){
+      cer.hidden = true; document.body.style.overflow = '';
+      location.reload();   // the settled view renders the agreement + service-charge step
+    };
   }
   function finalizeNow(){
     locked=true; phase='agreed';
@@ -883,7 +970,13 @@
 
   placeAll();
   headline('fair');
-  if(INIT.state==='settled'){ finalizeNow(); }
+  if(INIT.state==='settled'){
+    // Landed on an already-settled case (a reload, or the other side settled while you
+    // were away). Show the announcement once; if it has already been seen this load,
+    // finalizeNow just tidies the scale.
+    finalizeNow();
+    if(INIT.settledValue != null) setTimeout(function(){ showCeremony(INIT.settledValue); }, 350);
+  }
   else { applyStatus(INIT); }   // INIT now carries locked/limit/round — pass it straight through,
                                 // or the page paints unlocked until the first poll corrects it.
   requestAnimationFrame(frame);
