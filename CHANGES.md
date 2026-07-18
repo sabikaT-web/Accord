@@ -1,46 +1,53 @@
-# Business portal — ask freely, admin approves
+# Send / Resend invitation
 
-**Six files. Nothing else from the previous batch changes.**
+**Three files. `db.js` first — it adds the columns the other two read.**
 
-| File | Change |
-|------|--------|
-| `db.js` | `business_requested` + `business_requested_at` columns, `requestBusiness()`. |
-| `signup.ejs` | "Just me" / "My business — 25 or more" choice, with a company field. |
-| `server.js` | Signup records the request (does **not** grant it). Exposes `ADMIN_EMAIL` to views. |
-| `business.js` | New 403 copy: 25+, and an "Ask for a demo" button. |
-| `message.ejs` | Optional `html` field (see note). |
-| `dashboard.ejs` | The portal is now discoverable, and sharpens at 25 cases. |
+| # | File | Change |
+|---|------|--------|
+| 1 | `db.js` | `invited_at`, `invite_count`, `last_invite_error` on `cases`, plus `markInvited()`. |
+| 2 | `server.js` | Invite send is now honest. New `POST /cases/:id/invite`. Flash message passed to the case page. |
+| 3 | `case.ejs` | The panel: Send / Resend, when it was last sent, and why it failed. |
 
-## The model
+## The bug this fixes
 
-- **`account_type`** = approved access. Only you set it, in Admin > Users.
-- **`business_requested`** = they asked. Set at signup.
+`server.js` line 595 was:
 
-Two flags, not one. With a single flag you cannot tell "waiting on you" from "you said no",
-and every request looks identical to an account you have already turned down.
+```js
+mailer.notifyCaseInvite(...).catch(() => {});
+await db.setStatus('awaiting_other', id);
+```
 
-Choosing "My business" at signup **does not grant anything**. They land on the individual
-view with their request logged, and you approve it in Admin > Users. Granting it at signup
-would be the old silent-promotion bug in nicer clothes.
+It fired the email, ignored the result, and flipped the case to "awaiting_other"
+regardless. So a case that had **never successfully emailed anyone** sat there saying
+*"Waiting for the other party to join"* — waiting forever, for a message that did not
+exist. This is the same silent-failure bug fixed in `business.js` a while back; it was
+never fixed on the individual side.
 
-## What people now see
+Now the send is awaited. On failure the case **stays in draft**, the reason is stored in
+`last_invite_error`, and the case page shows it. The status only advances when an
+invitation genuinely went out.
 
-| Who | Dashboard | Switch | `/business` |
-|-----|-----------|--------|-------------|
-| Individual, few cases | quiet mention + "Ask for a demo" | hidden | 403 with a demo button |
-| Individual, 25+ cases | **gold** — "You're handling 26 disputes…" | hidden | 403 with a demo button |
-| Asked, waiting | "Your request is with us" | hidden | 403, "we'll be in touch" |
-| Approved | nothing | **visible** | works |
+## What you get on the case page
 
-## Note on message.ejs
+| State | Shows |
+|---|---|
+| Never invited | "They have not been invited yet" + **Send invitation** |
+| No email on the case | The same, plus a field to type their address |
+| Sent today | "Sent today to r@x.com" + **Resend invitation** |
+| Sent 5+ days ago | Turns **gold** — "No reply yet, worth another nudge" |
+| Sent 3 times | "Sent 9 days ago, 3 times" |
+| Last send failed | Turns **red**, prints the actual mail error + **Send invitation** |
+| They joined | Panel disappears |
 
-`body` stays escaped. The new `html` field is opt-in and used only by the 403 page.
-I did not simply make `body` unescaped because the admin password-reset page interpolates
-a user's email address into it, and signup does not validate email format — so unescaping
-would turn a hostile signup address into an XSS on your own admin page.
+The panel stays for the whole time the other side has not joined — not only in
+`awaiting_other`. A failed send leaves the case in `draft`, which is exactly when you most
+need the button.
 
-## After uploading
+The copy-link fallback is still there, tucked under "Or send them the link yourself".
+It is a fallback now, not the mechanism.
 
-Boot adds the two columns (`IF NOT EXISTS`, nothing dropped). Existing accounts keep
-whatever `account_type` they have — including anyone the old code silently promoted, so
-Admin > Users > **Close portal** is still the way to clean those up.
+## It still needs the mail keys
+
+The button reports honestly — which means that until `RESEND_API_KEY` and `MAIL_FROM` are
+set on Render, pressing it will show you the real error in red rather than pretending.
+That is the point. Once the keys are set, the same button just works.

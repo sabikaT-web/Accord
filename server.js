@@ -577,23 +577,75 @@ app.get('/cases/new', requireLogin, (req, res) => {
   res.render('new-case', { error: null, currencies: CURRENCIES, selectedCurrency: guess, paymentsEnabled: PAYMENTS_ENABLED });
 });
 
-// Invite the other party + notify (used after creation, or after the start fee is paid).
+// Invite the other party. Used at creation, after the start fee, and by the Send /
+// Resend button on the case page.
+//
+// This used to fire the email with .catch(() => {}) and flip the case to
+// 'awaiting_other' regardless — so a case that had never successfully emailed anyone
+// still displayed "Waiting for the other party to join". It waited forever, for a
+// message that did not exist. The result is now recorded either way.
 async function activateCaseAndInvite(req, id) {
   const c = await db.caseById(id);
-  await db.setStatus('awaiting_other', id);
   const full = await db.caseDetail(id);
   const meEmail = c.claimant_id ? full.claimant_acc_email : full.respondent_acc_email;
   const otherEmail = c.other_email;
   const claimantEmail = c.claimant_id ? meEmail : otherEmail;
   const respondentEmail = c.respondent_id ? meEmail : otherEmail;
-  await db.addEvent(id, 'invited', 'Invited ' + otherEmail);
   const inviteUrl = baseUrl(req) + '/join/' + c.invite_token;
-  mailer.notifyNewCase({ id, title: c.title, amount: c.amount, currency: c.currency, other_email: otherEmail }, claimantEmail, respondentEmail).catch(() => {});
-  mailer.notifyCaseInvite(
-    { id, title: c.title, amount: c.amount, currency: c.currency, other_email: otherEmail },
-    { creatorEmail: meEmail, recipientPosition: c.claimant_id ? 'owe' : 'owed', inviteUrl }
-  ).catch(() => {});
+
+  if (!otherEmail) {
+    await db.markInvited(id, false, 'No email address on this case yet.');
+    return { ok: false, error: 'No email address on this case yet.' };
+  }
+
+  let res = { ok: false, error: 'Unknown mail error.' };
+  try {
+    res = (await mailer.notifyCaseInvite(
+      { id, title: c.title, amount: c.amount, currency: c.currency, other_email: otherEmail },
+      { creatorEmail: meEmail, recipientPosition: c.claimant_id ? 'owe' : 'owed', inviteUrl }
+    )) || { ok: true };
+  } catch (e) {
+    res = { ok: false, error: e.message };
+  }
+
+  if (!res.ok) {
+    await db.markInvited(id, false, res.error);
+    await db.addEvent(id, 'error', 'Invite to ' + otherEmail + ' FAILED — ' + res.error);
+    return res;
+  }
+
+  await db.setStatus('awaiting_other', id);
+  await db.markInvited(id, true);
+  await db.addEvent(id, 'invited', 'Invited ' + otherEmail);
+  mailer.notifyNewCase({ id, title: c.title, amount: c.amount, currency: c.currency, other_email: otherEmail },
+    claimantEmail, respondentEmail).catch(() => {});     // your own copy; not critical
+  return { ok: true };
 }
+
+// Send, or send again. The other side going quiet is the normal case, not the
+// exception, so this has to be a button that is always there.
+app.post('/cases/:id/invite', requireLogin, wrap(async (req, res) => {
+  const c = await db.caseById(Number(req.params.id));
+  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'No such case.' });
+  const role = roleOf(c, req.session.userId);
+  if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
+  if (c.respondent_id && c.claimant_id) return res.redirect('/cases/' + c.id);   // already joined
+  if (['settled', 'closed', 'declined'].includes(c.status)) return res.redirect('/cases/' + c.id);
+
+  const email = (req.body.email || '').trim();
+  if (email) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.redirect('/cases/' + c.id + '?msg=' + encodeURIComponent('That does not look like an email address.'));
+    }
+    await pool.query('UPDATE cases SET other_email=$1 WHERE id=$2', [email, c.id]);
+  }
+
+  const r = await activateCaseAndInvite(req, c.id);
+  const msg = r.ok
+    ? 'Invitation sent to ' + ((email || c.other_email))
+    : 'Could not send: ' + r.error;
+  res.redirect('/cases/' + c.id + '?msg=' + encodeURIComponent(msg));
+}));
 
 app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
   const title = (req.body.title || '').trim();
@@ -893,7 +945,8 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
   const docs = await db.documentsForCase(c.id);
   const myDetailsDone = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
   const bothDetailsDone = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
-  res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone });
+  res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone,
+    msg: req.query.msg || null });
 }));
 
 app.post('/cases/:id/bid', requireLogin, wrap(async (req, res) => {

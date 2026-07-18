@@ -70,6 +70,13 @@ async function init() {
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS bids_one_per_party_per_round ON bids (case_id, party, round)`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS round INTEGER NOT NULL DEFAULT 1;`);
 
+  // Invitations: when we last sent one, how many we have sent, and — if the last one
+  // failed — why. Without this the app cannot answer the only question that matters
+  // while a case sits idle: "did they actually get it, and how long ago?"
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS invited_at TIMESTAMPTZ;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS invite_count INTEGER NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS last_invite_error TEXT;`);
+
   // account_type is APPROVED access. business_requested is "they asked". Keeping them
   // apart is the whole point: with one flag you cannot tell a pending request from a
   // refusal, and every request looks identical to an account you have already said no to.
@@ -204,6 +211,16 @@ const db = {
     return r.rows[0].id;
   },
   async caseById(id) { return one(await pool.query('SELECT * FROM cases WHERE id=$1', [id])); },
+  // ok=true records a successful send; ok=false keeps the reason so the case page can
+  // show it instead of pretending the invitation is on its way.
+  async markInvited(id, ok, error) {
+    if (ok) {
+      await pool.query(`UPDATE cases SET invited_at=now(), invite_count=invite_count+1, last_invite_error=NULL WHERE id=$1`, [id]);
+    } else {
+      await pool.query(`UPDATE cases SET last_invite_error=$2 WHERE id=$1`, [id, String(error || 'Unknown mail error').slice(0, 300)]);
+    }
+  },
+
   async caseByToken(token) { return one(await pool.query('SELECT * FROM cases WHERE invite_token=$1', [token])); },
   async casesForUser(userId) {
     const r = await pool.query(

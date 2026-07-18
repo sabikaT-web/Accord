@@ -138,13 +138,90 @@
   .mb-modal-go:disabled{opacity:.6;cursor:default;box-shadow:none}
   .mb-modal-go[aria-disabled="true"]{opacity:.45;cursor:not-allowed;box-shadow:none;pointer-events:none}
   .mb-modal-alt{display:block;text-align:center;margin-top:.8rem;font-size:.85rem;color:#16306B}
+
+  /* Invitation panel. The old version was a link and a Copy button, shown only while
+     the case was already 'awaiting_other' — so if the send failed, the case sat in
+     'draft' and there was no way to try again short of pasting a URL by hand. */
+  .inv{border:1px solid var(--line);border-left:4px solid #2F6BFF;border-radius:14px;
+    background:#fff;padding:16px 18px;margin:0 0 18px}
+  .inv.inv-stale{border-left-color:#F5B312;background:rgba(245,179,18,.05)}
+  .inv.inv-bad{border-left-color:#C25A34;background:rgba(194,90,52,.05)}
+  .inv-head{display:flex;gap:.7em;align-items:flex-start}
+  .inv-head svg{width:19px;height:19px;flex:none;color:#2F6BFF;margin-top:.15em}
+  .inv.inv-stale .inv-head svg{color:#B5790F}
+  .inv.inv-bad .inv-head svg{color:#C25A34}
+  .inv-head b{display:block;font-size:.95rem;color:#1E2A45}
+  .inv-head span{display:block;font-size:.85rem;color:#586079;line-height:1.5;margin-top:.15em}
+  .inv-err{font-family:"Spline Sans Mono",monospace;font-size:.76rem;color:#8C3D1E;
+    background:rgba(194,90,52,.09);border:1px solid rgba(194,90,52,.3);border-radius:8px;
+    padding:.55em .7em;margin:.7em 0 0;word-break:break-word}
+  .inv-form{display:flex;gap:.5em;margin-top:.9em;flex-wrap:wrap}
+  .inv-form input{flex:1;min-width:180px;padding:.5em .7em;border:1px solid var(--line);
+    border-radius:9px;font:inherit;font-size:.88rem}
+  .inv-alt{margin-top:.8em}
+  .inv-alt summary{font-size:.82rem;color:#586079;cursor:pointer}
+  .inv-alt summary:hover{color:#16306B}
+  .inv-fine{font-size:.76rem;color:#8a8f99;margin:.5em 0 0;line-height:1.45}
+  .inv-msg{border:1px solid #15B877;background:rgba(21,184,119,.1);color:#1c5e3f;
+    border-radius:10px;padding:.6em .9em;margin:0 0 14px;font-size:.88rem;font-weight:600}
+  .inv-msg.bad{border-color:#C25A34;background:rgba(194,90,52,.08);color:#8C3D1E}
   .mb-modal-fine{font-size:.76rem;color:#8a8f99;text-align:center;margin:.75rem 0 0;line-height:1.45}
 </style>
 
-<% if (c.status === 'awaiting_other') { %>
-  <div class="banner">Waiting for the other party to join. Send them this private link:
-    <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
-    <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.7rem">Copy link</button>
+<%
+  // The invitation panel is shown for the whole time the other side has not joined —
+  // not only in 'awaiting_other'. A failed send leaves the case in 'draft', and that is
+  // exactly when you most need the button.
+  var otherJoined = !!(c.claimant_id && c.respondent_id);
+  var liveCase    = ['settled', 'closed', 'declined'].indexOf(c.status) === -1;
+  var sentAt      = c.invited_at ? new Date(c.invited_at) : null;
+  var days        = sentAt ? Math.floor((Date.now() - sentAt.getTime()) / 86400000) : null;
+  var ago         = days === null ? '' : (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago');
+  var stale       = days !== null && days >= 5;
+%>
+<% if (typeof msg !== 'undefined' && msg) { %>
+  <div class="inv-msg <%= /Could not|does not look/.test(msg) ? 'bad' : '' %>"><%= msg %></div>
+<% } %>
+<% if (!otherJoined && liveCase) { %>
+  <div class="inv <%= c.last_invite_error ? 'inv-bad' : (stale ? 'inv-stale' : '') %>">
+    <div class="inv-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
+      </svg>
+      <div>
+        <b><%= c.invite_count > 0 ? 'Invitation sent' : 'They have not been invited yet' %></b>
+        <span>
+          <% if (c.last_invite_error) { %>
+            The last attempt failed, so nothing reached them.
+          <% } else if (c.invite_count > 0) { %>
+            Sent <%= ago %><%= c.invite_count > 1 ? ' \u00b7 ' + c.invite_count + ' times' : '' %> to <%= c.other_email || 'them' %>.
+            <%= stale ? 'No reply yet — worth another nudge.' : 'Waiting for them to open it.' %>
+          <% } else { %>
+            Nothing has been sent. They cannot join a case they have not heard about.
+          <% } %>
+        </span>
+      </div>
+    </div>
+
+    <% if (c.last_invite_error) { %>
+      <p class="inv-err"><b>Why it failed:</b> <%= c.last_invite_error %></p>
+    <% } %>
+
+    <form class="inv-form" method="POST" action="/cases/<%= c.id %>/invite">
+      <% if (!c.other_email) { %>
+        <input type="email" name="email" placeholder="their@email.com" required />
+      <% } %>
+      <button class="btn btn-primary" type="submit">
+        <%= c.invite_count > 0 ? 'Resend invitation' : 'Send invitation' %>
+      </button>
+    </form>
+
+    <details class="inv-alt">
+      <summary>Or send them the link yourself</summary>
+      <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
+      <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.6rem">Copy link</button>
+      <p class="inv-fine">This link is unique to this case and does not expire. Anyone who has it can join as the other side.</p>
+    </details>
   </div>
 <% } %>
 
