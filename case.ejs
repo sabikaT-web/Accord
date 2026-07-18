@@ -66,6 +66,13 @@
   .mb-actions{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
   /* One-way reminder. Gold, not green: green is reserved for settlement across the
      whole product, and firing it here would make the same colour mean two things. */
+  .mb-nudge{border:1px solid #2F6BFF;border-left:4px solid #2F6BFF;border-radius:12px;
+    background:rgba(47,107,255,.06);padding:.85em 1em;margin:14px 0 4px}
+  .mb-nudge[hidden]{display:none}
+  .mb-nudge-top{display:flex;gap:.7em;align-items:flex-start}
+  .mb-nudge-top svg{width:19px;height:19px;flex:none;color:#2F6BFF;margin-top:.1em}
+  .mb-nudge-top b{display:block;font-size:.95rem;color:#16306B}
+  .mb-nudge-top span{display:block;font-size:.85rem;color:#586079;line-height:1.5;margin-top:.15em}
   .mb-oneway{display:flex;align-items:center;gap:.6em;margin:14px 0 2px;padding:.7em .9em;
     background:rgba(245,179,18,.12);border:1px solid #F5B312;border-radius:12px;
     font-size:.86rem;font-weight:600;color:#8A5A0B;line-height:1.45}
@@ -152,6 +159,7 @@
     transition:transform .15s,box-shadow .15s}
   .mb-cer-go:hover{transform:translateY(-1px);box-shadow:0 14px 30px -8px rgba(21,184,119,.8)}
   .mb-cer-fine{font-size:.76rem;color:#8a8f99;margin:1rem 0 0;line-height:1.5}
+  .mb-cer-done{animation:cerRise .45s cubic-bezier(.16,.84,.32,1)}
   @keyframes cerFade{from{opacity:0}to{opacity:1}}
   @keyframes cerRise{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes cerSeal{from{transform:scale(0) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
@@ -292,6 +300,22 @@
       <path d="M12 5v14M5 12l7 7 7-7" id="onewayArrow" />
     </svg>
     <span id="onewayText"></span>
+  </div>
+
+  <%# Shown when a round has closed with no deal and it is your turn to move again.
+      It deliberately says nothing about how close the two sides were — that would be
+      the leak. It points at your own figure, which is the only thing you should be
+      thinking about. %>
+  <div class="mb-nudge" id="roundNudge" hidden>
+    <div class="mb-nudge-top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" />
+      </svg>
+      <div>
+        <b id="nudgeTitle">Round closed — no agreement yet</b>
+        <span id="nudgeSub">You can revise your figure and bid again. The moment your ranges meet, it settles.</span>
+      </div>
+    </div>
   </div>
 
   <div class="coach tone-<%= status.coach ? status.coach.tone : 'idle' %>" id="coachBox" <%= status.coach ? '' : 'style="display:none"' %>>
@@ -441,9 +465,20 @@
     <div class="mb-cer-eyebrow">Settlement reached</div>
     <h2 class="mb-cer-h">Agreed</h2>
     <div class="mb-cer-fig"><span id="cerFig">£0</span></div>
-    <p class="mb-cer-sub">Both sides' ranges met. <span id="cerTitle"></span> is settled — the figure is the midpoint of what each of you would accept, and it is binding on both parties.</p>
-    <button class="mb-cer-go" type="button" id="cerGo">Continue to your agreement &rarr;</button>
+    <p class="mb-cer-sub">Both sides' ranges met, so <span id="cerTitle"></span> <b>settled automatically</b> — the figure is the midpoint of what each of you would accept, and it is binding on both parties.</p>
+    <button class="mb-cer-go" type="button" id="cerGo">Continue &rarr;</button>
     <p class="mb-cer-fine">Neither side ever saw the other's figures. The only number revealed is the one you both agreed to.</p>
+  </div>
+
+  <%# Step two: the confirmation, after they press Settle. This is the "we'll email you"
+      moment. It fires on a real settlement, so nothing here leaks. %>
+  <div class="mb-cer-card mb-cer-done" id="cerDone" hidden>
+    <div class="mb-cer-seal"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/><path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="mb-cer-eyebrow">You're done</div>
+    <h2 class="mb-cer-h">Congratulations</h2>
+    <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. We'll email both sides the <b>settlement agreement</b> and the <b>payment details</b> shortly.</p>
+    <button class="mb-cer-go" type="button" id="cerDoneGo">View your case &rarr;</button>
+    <p class="mb-cer-fine">Nothing more to do here — check your inbox for the agreement.</p>
   </div>
 </div>
 
@@ -627,6 +662,16 @@
 
   function applyStatus(s){
     if(!s) return;
+    var nudge = document.getElementById('roundNudge');
+    if(nudge){
+      // Only when a later round is open and you have not yet bid in it. Never carries
+      // any hint of the gap — just that the round turned over and it is your move.
+      var showNudge = (s.state === 'round_open') && !s.locked;
+      nudge.hidden = !showNudge;
+      if(showNudge && s.round){
+        document.getElementById('nudgeTitle').textContent = 'Round ' + (s.round - 1) + ' closed — no agreement yet';
+      }
+    }
     gClose = false;                       // there is no "close" signal any more — that WAS the leak
     LIMIT = (s.limit != null) ? s.limit : null;
     setOneway(s);
@@ -758,10 +803,17 @@
     }
     if(target > 0) requestAnimationFrame(tick); else figEl.textContent = CUR.symbol + '0';
 
+    // The case is already settled server-side — that is what triggered this screen.
+    // The button only advances to the confirmation; it does not settle anything.
     document.getElementById('cerGo').onclick = function(){
-      cer.hidden = true; document.body.style.overflow = '';
-      location.reload();   // the settled view renders the agreement + service-charge step
+      var card = cer.querySelector('.mb-cer-card:not(.mb-cer-done)');
+      var done = document.getElementById('cerDone');
+      if(card) card.hidden = true;
+      if(done){ done.hidden = false; done.style.animation='none'; void done.offsetWidth; done.style.animation=''; }
     };
+    // Step two: into the settled view (agreement + any service charge).
+    var d = document.getElementById('cerDoneGo');
+    if(d) d.onclick = function(){ cer.hidden = true; document.body.style.overflow=''; location.reload(); };
   }
   function finalizeNow(){
     locked=true; phase='agreed';
