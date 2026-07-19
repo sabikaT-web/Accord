@@ -1,0 +1,137 @@
+<%
+/* =============================================================
+   MidBid — Settled modal (payment-first, agreement optional)
+   -------------------------------------------------------------
+   HOW TO USE
+   1. Save this as:  views/partials/settledModal.ejs
+   2. Where the case page shows the "settled" state, include it:
+
+        <%- include('partials/settledModal', {
+              amountDisplay: caseAmountFormatted,   // e.g. "$11,485"
+              role: viewerRole,                     // "payee" or "payer"
+              caseId: caseRow.id
+            }) %>
+
+   3. Add the two routes shown in the message to server.js.
+
+   NOTE: if your server.js rebuilds the views directory at boot,
+   this file must be written from THERE, not uploaded separately —
+   send me server.js and I'll place it correctly.
+   ============================================================= */
+  var _role   = (locals.role === 'payer') ? 'payer' : 'payee';
+  var _amount = locals.amountDisplay || '';
+  var _caseId = locals.caseId || '';
+  var _note   = _role === 'payer'
+                  ? 'The link is active now — please proceed to pay and settle this.'
+                  : (_amount ? ("You're owed " + _amount + ". Accept below to proceed.")
+                             : 'Accept below to proceed.');
+  var _cta    = _role === 'payer'
+                  ? 'Proceed to payment'
+                  : (_amount ? ('Accept ' + _amount + ' and proceed') : 'Accept and proceed');
+  var _chip   = _role === 'payer' ? 'Confirmed' : 'Accepted';
+%>
+<style>
+  #mbSettled{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-start;justify-content:center;
+    padding:56px 16px;background:rgba(9,14,34,.55);backdrop-filter:blur(3px);}
+  #mbSettled .mb-modal{--navy:#101a3a;--royal:#2b4de0;--settle:#2f9e5b;--settle-2:#268a4f;
+    --settle-soft:#e8f6ee;--settle-border:#bfe6cd;--burg:#8a2b42;--burg-2:#701f34;--burg-soft:#fbeef1;
+    --burg-hov:#f3dde3;--burg-bd:#e2b3bf;--ink:#1c2333;--muted:#5b6478;
+    width:min(560px,100%);background:#fff;border-radius:22px;box-shadow:0 28px 74px rgba(4,10,30,.45);
+    padding:36px 34px 26px;position:relative;color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #mbSettled .mb-close{position:absolute;top:16px;right:16px;width:33px;height:33px;border-radius:50%;border:0;
+    background:#f3f4f8;color:#8a92a6;cursor:pointer;font-size:17px;line-height:1;}
+  #mbSettled .mb-badge{display:inline-flex;align-items:center;gap:7px;background:var(--settle);color:#fff;
+    font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;border-radius:999px;}
+  #mbSettled .mb-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#fff;opacity:.9;}
+  #mbSettled h2{font-family:Georgia,"Times New Roman",serif;color:var(--navy);font-size:28px;line-height:1.15;
+    font-weight:700;margin:18px 0 11px;}
+  #mbSettled .mb-body{font-size:15.5px;line-height:1.55;margin:0;}
+  #mbSettled .mb-amount{font-weight:700;color:var(--navy);white-space:nowrap;}
+  #mbSettled .mb-note{font-size:14.5px;line-height:1.5;color:var(--muted);margin:12px 0 0;}
+  #mbSettled .mb-primary{width:100%;border:0;cursor:pointer;background:var(--settle);color:#fff;font:inherit;
+    font-size:16.5px;font-weight:700;padding:16px 20px;border-radius:13px;margin-top:16px;}
+  #mbSettled .mb-primary:hover{background:var(--settle-2);}
+  #mbSettled .mb-fee{font-size:12.5px;line-height:1.5;color:var(--muted);margin:11px 2px 0;}
+  #mbSettled .mb-chip{display:flex;align-items:center;gap:10px;margin-top:16px;background:var(--settle-soft);
+    border:1px solid var(--settle-border);color:var(--settle-2);font-size:15px;font-weight:700;padding:13px 16px;border-radius:12px;}
+  #mbSettled .mb-chip .tk{width:22px;height:22px;border-radius:50%;background:var(--settle);color:#fff;
+    display:grid;place-items:center;font-size:13px;flex:0 0 auto;}
+  #mbSettled .mb-agree{margin-top:18px;border-radius:13px;padding:16px;display:flex;align-items:center;
+    justify-content:space-between;gap:14px;background:var(--burg-soft);border:1px solid var(--burg-bd);}
+  #mbSettled .mb-agree .h{font-size:14.5px;font-weight:700;color:var(--navy);margin:0;}
+  #mbSettled .mb-agree .sub{font-size:12.5px;color:var(--muted);margin:3px 0 0;line-height:1.45;}
+  #mbSettled .mb-agree .btn{flex:0 0 auto;background:transparent;border:2px solid var(--burg);color:var(--burg);
+    font:inherit;font-size:14px;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer;white-space:nowrap;}
+  #mbSettled .mb-agree .btn:hover{background:var(--burg-hov);}
+  #mbSettled .mb-agree .tk{flex:0 0 auto;width:23px;height:23px;border-radius:50%;background:var(--burg);color:#fff;
+    display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px;}
+  #mbSettled .mb-err{font-size:12.5px;color:#b5502e;margin:8px 2px 0;}
+  @media (max-width:460px){#mbSettled .mb-agree{flex-direction:column;align-items:stretch;}#mbSettled .mb-agree .btn{width:100%;}}
+</style>
+
+<div id="mbSettled" data-case="<%= _caseId %>" data-role="<%= _role %>">
+  <div class="mb-modal" role="dialog" aria-modal="true" aria-labelledby="mbTtl">
+    <button class="mb-close" aria-label="Close" onclick="document.getElementById('mbSettled').style.display='none'">&times;</button>
+    <span class="mb-badge">Settled</span>
+    <h2 id="mbTtl">Your case is settled</h2>
+    <p class="mb-body">Both sides have agreed on <span class="mb-amount"><%= _amount || 'the settled amount' %></span>. Because your figures crossed, this settlement is final — there's nothing further to negotiate.</p>
+
+    <div id="mbPre">
+      <p class="mb-note"><%= _note %></p>
+      <button class="mb-primary" id="mbCta" onclick="mbAccept()"><%= _cta %></button>
+      <p class="mb-fee">A MidBid service fee applies — we'll set out the total and how it can be split in your email.</p>
+      <p class="mb-err" id="mbAcceptErr" style="display:none;">Couldn't save that — please refresh and try again.</p>
+    </div>
+
+    <div id="mbPost" style="display:none;">
+      <div class="mb-chip"><span class="tk">&#10003;</span><span><%= _chip %></span></div>
+    </div>
+
+    <div class="mb-agree" id="mbAgree">
+      <div>
+        <p class="h">Need a signed settlement agreement?</p>
+        <p class="sub">Recommended for higher-value or complex disputes.</p>
+      </div>
+      <button class="btn" onclick="mbAddAgreement()">Add agreement</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var el = document.getElementById('mbSettled');
+    window.__mbCase = el.getAttribute('data-case');
+    window.__mbRole = el.getAttribute('data-role');
+  })();
+
+  function mbAccept(){
+    fetch('/cases/' + window.__mbCase + '/confirm', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ role: window.__mbRole })
+    }).then(function(r){
+      if(!r.ok) throw new Error('bad status');
+      document.getElementById('mbPre').style.display='none';
+      document.getElementById('mbPost').style.display='';
+    }).catch(function(){
+      document.getElementById('mbAcceptErr').style.display='';
+    });
+  }
+
+  function mbAddAgreement(){
+    fetch('/cases/' + window.__mbCase + '/request-agreement', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ role: window.__mbRole })
+    }).then(function(r){
+      if(!r.ok) throw new Error('bad status');
+      document.getElementById('mbAgree').innerHTML =
+        '<div style="display:flex;gap:11px;align-items:flex-start;">' +
+          '<span class="tk">&#10003;</span>' +
+          "<p style=\"margin:0;font-size:13px;line-height:1.5;color:#1c2333;\">We'll email you for the additional information needed to prepare your settlement agreement under the applicable law.</p>" +
+        '</div>';
+    }).catch(function(){
+      document.getElementById('mbAgree').insertAdjacentHTML('beforeend',
+        '<p class="mb-err" style="width:100%;">Couldn\'t register that — please refresh and try again.</p>');
+    });
+  }
+</script>
