@@ -249,7 +249,9 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
         </td>
         <td><span class="ipill <%= pillClass %>"><%= pillText %></span></td>
         <td style="text-align:right">
-          <% if (c.status === 'settled') { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Agreement</a>
+          <% if (c.status === 'settled') { %>
+            <% if (!mine) { %><a class="ibtn ibtn-go" href="/cases/<%= c.id %>">Pay</a>
+            <% } else { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">View</a><% } %>
           <% } else { %><a class="ibtn ibtn-ghost" href="/cases/<%= c.id %>">Open</a><% } %>
         </td>
       </tr>
