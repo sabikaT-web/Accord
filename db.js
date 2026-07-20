@@ -51,6 +51,37 @@ async function init() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ;`);
+
+  // ---- Sealed bids -----------------------------------------------------------
+  // One row per party per round, and the unique index below is what actually
+  // enforces "you get one bid per round". Doing it in the application would be a
+  // suggestion; doing it here makes a second bid impossible, even if a route is
+  // wrong or someone replays the request.
+  await pool.query(`CREATE TABLE IF NOT EXISTS bids (
+    id         SERIAL PRIMARY KEY,
+    case_id    INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    party      TEXT NOT NULL,
+    round      INTEGER NOT NULL,
+    ideal      INTEGER,
+    fair       INTEGER,
+    walk       INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS bids_one_per_party_per_round ON bids (case_id, party, round)`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS round INTEGER NOT NULL DEFAULT 1;`);
+
+  // Invitations: when we last sent one, how many we have sent, and — if the last one
+  // failed — why. Without this the app cannot answer the only question that matters
+  // while a case sits idle: "did they actually get it, and how long ago?"
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS invited_at TIMESTAMPTZ;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS invite_count INTEGER NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS last_invite_error TEXT;`);
+
+  // account_type is APPROVED access. business_requested is "they asked". Keeping them
+  // apart is the whole point: with one flag you cannot tell a pending request from a
+  // refusal, and every request looks identical to an account you have already said no to.
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_requested BOOLEAN NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_requested_at TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_approved BOOLEAN NOT NULL DEFAULT false;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_approved BOOLEAN NOT NULL DEFAULT false;`);
   // Three-anchor bidding. The existing claim_value / resp_value keep their meaning
@@ -130,7 +161,6 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS mandate_version TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_mandate_at TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_mandate_at  TIMESTAMPTZ;`);
-  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settle_reason TEXT;`);   // 'overlap' | 'band'
 }
 
 const one = (r) => r.rows[0] || null;
@@ -152,15 +182,22 @@ const db = {
     await pool.query('DELETE FROM cases WHERE claimant_id=$1 OR respondent_id=$1', [id]);
     await pool.query('DELETE FROM users WHERE id=$1', [id]);
   },
+  async requestBusiness(userId, company) {
+    await pool.query(`UPDATE users SET business_requested=true, business_requested_at=now(),
+                      company_name=coalesce(nullif($2,''), company_name) WHERE id=$1`, [userId, company || null]);
+  },
+
   async listUsers(search) {
     const s = '%' + (search || '') + '%';
     const r = await pool.query(`
-      SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.suspended,
+      SELECT u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type,
+             u.business_requested, u.company_name,
              count(c.id) AS case_count
       FROM users u
       LEFT JOIN cases c ON (c.claimant_id = u.id OR c.respondent_id = u.id)
       WHERE ($1='%%' OR u.email ILIKE $1 OR u.name ILIKE $1)
-      GROUP BY u.id, u.email, u.name, u.created_at, u.last_login, u.suspended
+      GROUP BY u.id, u.email, u.name, u.created_at, u.last_login, u.suspended, u.account_type,
+               u.business_requested, u.company_name
       ORDER BY u.created_at DESC`, [s]);
     return r.rows;
   },
@@ -174,6 +211,16 @@ const db = {
     return r.rows[0].id;
   },
   async caseById(id) { return one(await pool.query('SELECT * FROM cases WHERE id=$1', [id])); },
+  // ok=true records a successful send; ok=false keeps the reason so the case page can
+  // show it instead of pretending the invitation is on its way.
+  async markInvited(id, ok, error) {
+    if (ok) {
+      await pool.query(`UPDATE cases SET invited_at=now(), invite_count=invite_count+1, last_invite_error=NULL WHERE id=$1`, [id]);
+    } else {
+      await pool.query(`UPDATE cases SET last_invite_error=$2 WHERE id=$1`, [id, String(error || 'Unknown mail error').slice(0, 300)]);
+    }
+  },
+
   async caseByToken(token) { return one(await pool.query('SELECT * FROM cases WHERE invite_token=$1', [token])); },
   async casesForUser(userId) {
     const r = await pool.query(
@@ -192,6 +239,30 @@ const db = {
   async setRespAnchors(ideal, fair, ceil, id) {
     await pool.query('UPDATE cases SET resp_ideal=$1, resp_fair=$2, resp_value=$3 WHERE id=$4', [ideal, fair, ceil, id]);
   },
+  // ---- Sealed bids ----
+  async bidFor(caseId, party, round) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 AND party=$2 AND round=$3', [caseId, party, round]);
+    return rows[0] || null;
+  },
+  async bidsInRound(caseId, round) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 AND round=$2', [caseId, round]);
+    return rows;
+  },
+  // The party's most recent bid in any round — what the one-way rule is measured against.
+  async lastBid(caseId, party) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 AND party=$2 ORDER BY round DESC LIMIT 1', [caseId, party]);
+    return rows[0] || null;
+  },
+  async addBid(caseId, party, round, ideal, fair, walk) {
+    await pool.query('INSERT INTO bids (case_id, party, round, ideal, fair, walk) VALUES ($1,$2,$3,$4,$5,$6)',
+      [caseId, party, round, ideal, fair, walk]);
+  },
+  async bumpRound(caseId) { await pool.query('UPDATE cases SET round = round + 1 WHERE id=$1', [caseId]); },
+  async allBids(caseId) {
+    const { rows } = await pool.query('SELECT * FROM bids WHERE case_id=$1 ORDER BY round, party', [caseId]);
+    return rows;
+  },
+
   async settle(status, value, id) { await pool.query('UPDATE cases SET status=$1, settled_value=$2, settled_at=now() WHERE id=$3', [status, value, id]); },
   async setApproval(role, id) {
     const col = role === 'claim' ? 'claim_approved' : 'resp_approved';
