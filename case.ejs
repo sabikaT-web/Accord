@@ -214,6 +214,45 @@
     border-radius:10px;padding:.6em .9em;margin:0 0 14px;font-size:.88rem;font-weight:600}
   .inv-msg.bad{border-color:#C25A34;background:rgba(194,90,52,.08);color:#8C3D1E}
   .mb-modal-fine{font-size:.76rem;color:#8a8f99;text-align:center;margin:.75rem 0 0;line-height:1.45}
+  /* ---- settlement action popup ---- */
+  #mbSet{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;background:rgba(9,14,34,.55);backdrop-filter:blur(3px);overflow:auto}
+  #mbSet.show{display:flex}
+  #mbSet .m{width:min(540px,100%);background:#fff;border-radius:22px;box-shadow:0 28px 74px rgba(4,10,30,.5);padding:32px 32px 22px;position:relative;color:#1c2333}
+  #mbSet .x{position:absolute;top:15px;right:15px;width:31px;height:31px;border-radius:50%;border:0;background:#f3f4f8;color:#8a92a6;cursor:pointer;font-size:16px}
+  #mbSet .badge{display:inline-flex;align-items:center;gap:7px;background:#2f9e5b;color:#fff;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:6px 13px;border-radius:999px}
+  #mbSet .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;opacity:.9}
+  #mbSet h3{font-family:"Fraunces",Georgia,serif;color:#101a3a;font-size:26px;line-height:1.15;font-weight:600;margin:15px 0 10px}
+  #mbSet .status{border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5}
+  #mbSet .status .k{display:block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
+  #mbSet .status.ok{background:#e8f6ee;border:1px solid #bfe6cd;color:#1f5f3e}
+  #mbSet .status.ok .k{color:#268a4f}
+  #mbSet .status.wait{background:#fdf3e2;border:1px solid #e9d3a6;color:#7a5312}
+  #mbSet .status.wait .k{color:#b5791f}
+  #mbSet .bd{margin-top:16px;border:1px solid #e7e9f0;border-radius:13px;overflow:hidden}
+  #mbSet .r{display:flex;justify-content:space-between;align-items:baseline;padding:12px 16px;font-size:14.5px}
+  #mbSet .r+.r{border-top:1px solid #e7e9f0}
+  #mbSet .r .l{color:#5b6478} #mbSet .r .v{font-weight:600;font-variant-numeric:tabular-nums}
+  #mbSet .r.sub .l,#mbSet .r.sub .v{font-size:13px;color:#5b6478;font-weight:500}
+  #mbSet .r.tot{background:#f7f9fc} #mbSet .r.tot .l{color:#101a3a;font-weight:700;font-size:15px} #mbSet .r.tot .v{color:#101a3a;font-weight:800;font-size:17px}
+  #mbSet .tc{display:flex;align-items:flex-start;gap:10px;margin-top:15px;font-size:13.5px;line-height:1.45}
+  #mbSet .tc input{margin-top:2px;width:17px;height:17px;accent-color:#2f9e5b;flex:0 0 auto;cursor:pointer}
+  #mbSet .tc a{color:#2b4de0;font-weight:600;text-decoration:none}
+  #mbSet .cta{width:100%;border:0;cursor:pointer;background:#2f9e5b;color:#fff;font:inherit;font-size:16px;font-weight:700;padding:15px 20px;border-radius:13px;margin-top:15px}
+  #mbSet .cta:hover:not(:disabled){background:#268a4f} #mbSet .cta:disabled{opacity:.45;cursor:not-allowed}
+  #mbSet .field{margin-top:12px} #mbSet .field label{display:block;font-size:12.5px;font-weight:600;color:#101a3a;margin-bottom:5px}
+  #mbSet .field input{width:100%;border:1px solid #e7e9f0;border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px}
+  #mbSet .field input:focus{outline:none;border-color:#2b4de0;box-shadow:0 0 0 3px rgba(43,77,224,.12)}
+  #mbSet .two{display:flex;gap:12px} #mbSet .two .field{flex:1}
+  #mbSet .agree{margin-top:15px;border-radius:12px;padding:14px 15px;display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fbeef1;border:1px solid #e2b3bf}
+  #mbSet .agree .h{font-size:13.5px;font-weight:700;color:#101a3a;margin:0}
+  #mbSet .agree .s{font-size:12px;color:#8a2b42;font-weight:600;margin:3px 0 0}
+  #mbSet .agree .btn{flex:0 0 auto;background:transparent;border:2px solid #8a2b42;color:#8a2b42;font:inherit;font-size:13.5px;font-weight:700;padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
+  #mbSet .agree .btn:hover{background:#f3dde3}
+  #mbSet .agree-done{background:#fbeef1;border:1px solid #e2b3bf;border-radius:12px;padding:13px 15px;margin-top:15px;font-size:12.5px;line-height:1.5}
+  #mbSet .fine{text-align:center;font-size:11.5px;color:#5b6478;margin:14px 0 2px}
+  #mbSet .mut{font-size:12px;color:#5b6478;margin:8px 2px 0;line-height:1.45}
+  .mb-fab{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;cursor:pointer;background:#2f9e5b;color:#fff;font:inherit;font-weight:700;font-size:14px;padding:13px 20px;border-radius:999px;box-shadow:0 12px 30px -8px rgba(47,158,91,.6)}
+  .mb-fab:hover{background:#268a4f}
 </style>
 
 <%
@@ -1048,4 +1087,49 @@
                                 // or the page paints unlocked until the first poll corrects it.
   requestAnimationFrame(frame);
 </script>
+<% if (c.status === 'settled') { %>
+<% var _mbSettled = money(c.settled_value, c.currency);
+   var _mbFeeShare = (pay && pay.fee) ? pay.fee.halfLabel : '';
+   var _mbTotal = (pay && pay.fee) ? money((c.settled_value||0) + (pay.fee.half||0)/100, c.currency) : _mbSettled; %>
+<button class="mb-fab" type="button" onclick="mbOpen()"><%= role === 'claim' ? 'Add payout details' : 'Complete payment' %></button>
+<div id="mbSet" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="m" role="dialog" aria-modal="true">
+    <button class="x" aria-label="Close" onclick="document.getElementById('mbSet').classList.remove('show')">&times;</button>
+    <span class="badge">Settled</span>
+    <% if (role === 'claim') { %>
+      <h3>You've settled — let's get you paid</h3>
+      <div class="status ok"><span class="k">Status</span>Settled at <strong><%= _mbSettled %></strong>. The other party can't pay until you've added your payout details and accepted our terms — so let's get those done. We'll notify them the moment you do.</div>
+      <div class="field"><label>Account holder name</label><input type="text" placeholder="As it appears on the account"></div>
+      <div class="two"><div class="field"><label>IBAN / account number</label><input type="text"></div><div class="field"><label>Sort code / BIC</label><input type="text"></div></div>
+      <label class="tc"><input type="checkbox" onchange="document.getElementById('mbSave').disabled=!this.checked"><span>I accept MidBid's <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span></label>
+      <button class="cta" id="mbSave" disabled onclick="this.textContent='Saved — the other party has been notified';this.disabled=true">Save details &amp; notify the other party</button>
+    <% } else { %>
+      <h3>Complete your payment</h3>
+      <div id="mbStat"></div>
+      <div class="bd"><div class="r"><span class="l">Settlement sum</span><span class="v"><%= _mbSettled %></span></div><div class="r sub"><span class="l">MidBid service fee (your share)</span><span class="v"><%= _mbFeeShare %></span></div><div class="r tot"><span class="l">Total to pay</span><span class="v"><%= _mbTotal %></span></div></div>
+      <div id="mbAct"></div>
+    <% } %>
+    <div class="agree" id="mbAgree"><div><p class="h"><%= role === 'claim' ? 'Want a signed settlement agreement?' : 'Also want a signed settlement agreement?' %></p><p class="s">Optional — additional cost<%= role === 'claim' ? ', shared between the parties' : '' %>.</p></div><button class="btn" type="button" onclick="mbReqAgree()">Request</button></div>
+    <p class="fine">Click outside this box to close · nothing is lost</p>
+  </div>
+</div>
+<script>
+  function mbOpen(){ document.getElementById('mbSet').classList.add('show'); }
+  function mbReqAgree(){ document.getElementById('mbAgree').outerHTML='<div class="agree-done" id="mbAgree">Noted \u2014 we\'ll email you the cost and the details we need to prepare your settlement agreement under the applicable law.</div>'; }
+  <% if (role !== 'claim') { %>
+  (function(){
+    var ready = /[?&]ready=1/.test(location.search);
+    var s=document.getElementById('mbStat'), a=document.getElementById('mbAct');
+    if(ready){
+      s.innerHTML='<div class="status ok"><span class="k">Status</span>The other party has added their bank details and accepted our terms — you\'re clear to pay.</div>';
+      a.innerHTML='<label class="tc"><input type="checkbox" onchange="document.getElementById(\'mbPay\').disabled=!this.checked"><span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>, including that this payment discharges the settlement.</span></label><button class="cta" id="mbPay" disabled>Pay <%= _mbTotal %></button>';
+    } else {
+      s.innerHTML='<div class="status wait"><span class="k">Status</span>Waiting for the other party to add their bank details and accept our terms. We\'ll email you the moment you can pay.</div>';
+      a.innerHTML='<button class="cta" disabled>Waiting for the other party…</button><p class="mut">You don\'t need to do anything yet — we\'ll let you know when payment opens.</p>';
+    }
+  })();
+  <% } %>
+</script>
+<% } %>
+
 <%- include('partials/foot') %>
