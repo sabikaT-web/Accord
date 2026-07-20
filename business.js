@@ -36,6 +36,11 @@ const router = express.Router();
 // Imports can carry a few hundred rows of JSON; the default 100kb is too small.
 router.use(express.json({ limit: '4mb' }));
 
+// `wrap` must be defined before the first route below uses it. As a `const`
+// it is NOT hoisted, so it has to sit above the routes, not with the other
+// helpers lower down (that ordering crashed the boot with a TDZ error).
+const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
 // Asking for access must sit ABOVE the gate below, or the gate blocks the very
 // request it tells people to make. Express matches in order.
 router.post('/request', requireLogin, wrap(async (req, res) => {
@@ -232,7 +237,6 @@ function requireLogin(req, res, next) {
   if (!req.session.userId) return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
   next();
 }
-const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const baseUrl = (req) => req.protocol + '://' + req.get('host');
 const ids = (body) => {
   const raw = body.ids;
