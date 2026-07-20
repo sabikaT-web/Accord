@@ -170,7 +170,7 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
   </div>
 
   <a class="ikpi" href="/dashboard?filter=<%= filter === 'attn' ? 'all' : 'attn' %>">
-    <div class="ikpi-label">Needs you today</div>
+    <div class="ikpi-label">Action required</div>
     <div class="ikpi-num" style="color:<%= needs ? '#B5790F' : '#586079' %>"><%= needs %></div>
     <div class="ikpi-delta flat"><%= needs ? 'In the band or gone quiet' : 'Nothing waiting on you' %> <span class="sub"></span></div>
     <svg class="ikpi-spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline points="<%= sparkPts(sNeed) %>" fill="none" stroke="#16306B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
