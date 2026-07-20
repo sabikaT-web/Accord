@@ -1091,23 +1091,36 @@
 <% var _mbSettled = money(c.settled_value, c.currency);
    var _mbFeeShare = (pay && pay.fee) ? pay.fee.halfLabel : '';
    var _mbTotal = (pay && pay.fee) ? money((c.settled_value||0) + (pay.fee.half||0)/100, c.currency) : _mbSettled; %>
-<button class="mb-fab" type="button" onclick="mbOpen()"><%= role === 'claim' ? 'Add payout details' : 'Complete payment' %></button>
+<button class="mb-fab" type="button" onclick="mbOpen()"><%= role === 'claim' ? 'Set up payouts' : 'Complete payment' %></button>
 <div id="mbSet" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="m" role="dialog" aria-modal="true">
     <button class="x" aria-label="Close" onclick="document.getElementById('mbSet').classList.remove('show')">&times;</button>
     <span class="badge">Settled</span>
     <% if (role === 'claim') { %>
       <h3>You've settled — let's get you paid</h3>
-      <div class="status ok"><span class="k">Status</span>Settled at <strong><%= _mbSettled %></strong>. The other party can't pay until you've added your payout details and accepted our terms — so let's get those done. We'll notify them the moment you do.</div>
-      <div class="field"><label>Account holder name</label><input type="text" placeholder="As it appears on the account"></div>
-      <div class="two"><div class="field"><label>IBAN / account number</label><input type="text"></div><div class="field"><label>Sort code / BIC</label><input type="text"></div></div>
-      <label class="tc"><input type="checkbox" onchange="document.getElementById('mbSave').disabled=!this.checked"><span>I accept MidBid's <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span></label>
-      <button class="cta" id="mbSave" disabled onclick="this.textContent='Saved — the other party has been notified';this.disabled=true">Save details &amp; notify the other party</button>
+      <div class="status ok"><span class="k">Status</span>Settled at <strong><%= _mbSettled %></strong>. The other party can't pay until you've set up your payout account and accepted our terms. We'll notify them the moment you do.</div>
+      <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
+        <div class="status ok" style="margin-top:12px"><span class="k">Payouts</span>Your payout account is set up. We'll release your funds as soon as the other party pays.</div>
+      <% } else { %>
+        <p class="mut">We use Stripe to collect your bank details securely and pay you directly — MidBid never sees or stores your account number.</p>
+        <label class="tc"><input type="checkbox" onchange="document.getElementById('mbOnb').disabled=!this.checked"><span>I accept MidBid's <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span></label>
+        <form method="post" action="/cases/<%= c.id %>/payout/onboard" style="margin:0"><button class="cta" id="mbOnb" type="submit" disabled>Set up secure payouts &rarr;</button></form>
+      <% } %>
     <% } else { %>
       <h3>Complete your payment</h3>
-      <div id="mbStat"></div>
+      <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
+        <div class="status ok"><span class="k">Status</span>The other party has set up their payout account — you're clear to pay.</div>
+      <% } else { %>
+        <div class="status wait"><span class="k">Status</span>Waiting for the other party to set up their payout account. We'll email you the moment you can pay.</div>
+      <% } %>
       <div class="bd"><div class="r"><span class="l">Settlement sum</span><span class="v"><%= _mbSettled %></span></div><div class="r sub"><span class="l">MidBid service fee (your share)</span><span class="v"><%= _mbFeeShare %></span></div><div class="r tot"><span class="l">Total to pay</span><span class="v"><%= _mbTotal %></span></div></div>
-      <div id="mbAct"></div>
+      <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
+        <label class="tc"><input type="checkbox" onchange="document.getElementById('mbPay').disabled=!this.checked"><span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>, including that this payment discharges the settlement.</span></label>
+        <button class="cta" id="mbPay" disabled title="Payment goes live in Stage 2">Pay <%= _mbTotal %></button>
+      <% } else { %>
+        <button class="cta" disabled>Waiting for the other party…</button>
+        <p class="mut">You don't need to do anything yet — we'll let you know when payment opens.</p>
+      <% } %>
     <% } %>
     <div class="agree" id="mbAgree"><div><p class="h"><%= role === 'claim' ? 'Want a signed settlement agreement?' : 'Also want a signed settlement agreement?' %></p><p class="s">Optional — additional cost<%= role === 'claim' ? ', shared between the parties' : '' %>.</p></div><button class="btn" type="button" onclick="mbReqAgree()">Request</button></div>
     <p class="fine">Click outside this box to close · nothing is lost</p>
@@ -1116,19 +1129,6 @@
 <script>
   function mbOpen(){ document.getElementById('mbSet').classList.add('show'); }
   function mbReqAgree(){ document.getElementById('mbAgree').outerHTML='<div class="agree-done" id="mbAgree">Noted \u2014 we\'ll email you the cost and the details we need to prepare your settlement agreement under the applicable law.</div>'; }
-  <% if (role !== 'claim') { %>
-  (function(){
-    var ready = /[?&]ready=1/.test(location.search);
-    var s=document.getElementById('mbStat'), a=document.getElementById('mbAct');
-    if(ready){
-      s.innerHTML='<div class="status ok"><span class="k">Status</span>The other party has added their bank details and accepted our terms — you\'re clear to pay.</div>';
-      a.innerHTML='<label class="tc"><input type="checkbox" onchange="document.getElementById(\'mbPay\').disabled=!this.checked"><span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>, including that this payment discharges the settlement.</span></label><button class="cta" id="mbPay" disabled>Pay <%= _mbTotal %></button>';
-    } else {
-      s.innerHTML='<div class="status wait"><span class="k">Status</span>Waiting for the other party to add their bank details and accept our terms. We\'ll email you the moment you can pay.</div>';
-      a.innerHTML='<button class="cta" disabled>Waiting for the other party…</button><p class="mut">You don\'t need to do anything yet — we\'ll let you know when payment opens.</p>';
-    }
-  })();
-  <% } %>
 </script>
 <% } %>
 

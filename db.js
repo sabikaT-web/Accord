@@ -161,6 +161,9 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS mandate_version TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_mandate_at TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_mandate_at  TIMESTAMPTZ;`);
+  // Stripe Connect: the party who is OWED gets an Express account we pay out to.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_connect_id TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_payouts_ready BOOLEAN DEFAULT FALSE;`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -304,6 +307,12 @@ const db = {
     await pool.query(
       'UPDATE cases SET ' + p + '_customer_id=$1, ' + p + '_pm_id=$2 WHERE id=$3',
       [customerId, pmId, id]);
+  },
+  async setPayeeConnect(id, acct) {
+    await pool.query('UPDATE cases SET payee_connect_id=$1 WHERE id=$2', [acct, id]);
+  },
+  async setPayeePayoutsReady(id, ready) {
+    await pool.query('UPDATE cases SET payee_payouts_ready=$1 WHERE id=$2', [!!ready, id]);
   },
   async recordMandate(role, version, id) {
     const col = role === 'claim' ? 'claim_mandate_at' : 'resp_mandate_at';
