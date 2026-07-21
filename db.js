@@ -164,6 +164,7 @@ async function init() {
   // Stripe Connect: the party who is OWED gets an Express account we pay out to.
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_connect_id TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_payouts_ready BOOLEAN DEFAULT FALSE;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settlement_paid_at TIMESTAMPTZ;`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -313,6 +314,9 @@ const db = {
   },
   async setPayeePayoutsReady(id, ready) {
     await pool.query('UPDATE cases SET payee_payouts_ready=$1 WHERE id=$2', [!!ready, id]);
+  },
+  async markSettlementPaid(id) {
+    await pool.query('UPDATE cases SET settlement_paid_at=NOW() WHERE id=$1', [id]);
   },
   async recordMandate(role, version, id) {
     const col = role === 'claim' ? 'claim_mandate_at' : 'resp_mandate_at';

@@ -259,6 +259,9 @@
   #mbSet .mut{font-size:12px;color:#5b6478;margin:8px 2px 0;line-height:1.45}
   .mb-fab{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;cursor:pointer;background:#2f9e5b;color:#fff;font:inherit;font-weight:700;font-size:14px;padding:13px 20px;border-radius:999px;box-shadow:0 12px 30px -8px rgba(47,158,91,.6)}
   .mb-fab:hover{background:#268a4f}
+  .mb-agree-fab{position:fixed;right:20px;bottom:74px;z-index:9998;border:2px solid #8a2b42;background:#fff;color:#8a2b42;font:inherit;font-weight:700;font-size:12.5px;padding:9px 15px;border-radius:999px;cursor:pointer;box-shadow:0 8px 22px -8px rgba(4,10,30,.4)}
+  .mb-agree-fab:hover{background:#fbeef1}
+  .mb-agree-fab.done{background:#8a2b42;color:#fff;border-color:#8a2b42;cursor:default}
 </style>
 
 <%
@@ -500,7 +503,7 @@
 <% } %>
 
 <!-- Settlement details + e-signature hand-off -->
-<div class="mb-cer" id="settleCer" hidden aria-live="polite">
+<div class="mb-cer" id="settleCer" hidden aria-live="polite" onclick="this.hidden=true;document.body.style.overflow=''">
   <div class="mb-cer-sky"></div>
   <div class="mb-cer-card">
     <div class="mb-cer-seal">
@@ -509,13 +512,12 @@
         <path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <div class="mb-cer-eyebrow">Settlement reached</div>
+    <div class="mb-cer-eyebrow">Congratulations</div>
     <h2 class="mb-cer-h">Agreed</h2>
     <div class="mb-cer-fig"><span id="cerFig">£0</span></div>
-    <p class="mb-cer-sub"><span id="cerTitle"></span> <b>settled automatically</b> — the figure is the midpoint of both sides' walk-aways, and it is binding on both parties.</p>
+    <p class="mb-cer-sub"><span id="cerTitle"></span> landed at the midpoint of both sides' walk-aways — a fair figure, reached without either side seeing the other's numbers, and without lawyers, court, or months of back-and-forth.</p>
     <p class="mb-cer-why" id="cerWhy"></p>
-    <button class="mb-cer-go" type="button" id="cerGo">Continue &rarr;</button>
-    <p class="mb-cer-fine">Neither side ever saw the other's figures. The only number revealed is the one you both agreed to.</p>
+    <p class="mb-cer-fine">Fast, private, and fair — that's the whole idea.</p>
   </div>
 
   <%# Step two: the confirmation, after they press Settle. This is the "we'll email you"
@@ -880,14 +882,7 @@
     }
     if(target > 0) requestAnimationFrame(tick); else figEl.textContent = CUR.symbol + '0';
 
-    // The case is already settled server-side — that is what triggered this screen.
-    // The button only advances to the confirmation; it does not settle anything.
-    document.getElementById('cerGo').onclick = function(){
-      var card = cer.querySelector('.mb-cer-card:not(.mb-cer-done)');
-      var done = document.getElementById('cerDone');
-      if(card) card.hidden = true;
-      if(done){ done.hidden = false; done.style.animation='none'; void done.offsetWidth; done.style.animation=''; }
-    };
+    // One celebratory card now — dismissed by clicking anywhere (overlay onclick).
     // Step two: into the settled view (agreement + any service charge).
     var d = document.getElementById('cerDoneGo');
     if(d) d.onclick = function(){ cer.hidden = true; document.body.style.overflow=''; location.reload(); };
@@ -1118,8 +1113,21 @@
 <% if (c.status === 'settled') { %>
 <% var _mbSettled = money(c.settled_value, c.currency);
    var _mbFeeShare = (pay && pay.fee) ? pay.fee.halfLabel : '';
-   var _mbTotal = (pay && pay.fee) ? money((c.settled_value||0) + (pay.fee.half||0)/100, c.currency) : _mbSettled; %>
-<button class="mb-fab" type="button" onclick="mbOpen()"><%= role === 'claim' ? 'Set up payouts' : 'Complete payment' %></button>
+   var _mbTotal = (pay && pay.fee) ? money((c.settled_value||0) + (pay.fee.half||0)/100, c.currency) : _mbSettled;
+   var _mbPaid = (typeof settlementPaid !== 'undefined') && settlementPaid;
+   var _mbReady = (typeof payeeOnboarded !== 'undefined') && payeeOnboarded; %>
+<% if (role === 'resp') { %>
+  <% if (_mbPaid) { %><span class="mb-fab" style="background:#268a4f;cursor:default;box-shadow:none">Paid &#10003;</span>
+  <% } else if (_mbReady) { %><form method="post" action="/cases/<%= c.id %>/pay" style="margin:0"><button class="mb-fab" type="submit">Pay <%= _mbTotal %></button></form>
+  <% } else { %><span class="mb-fab" style="background:#8a8f99;cursor:default;box-shadow:none">Waiting for the other party…</span><% } %>
+<% } else { %>
+  <% if (_mbReady) { %><span class="mb-fab" style="background:#268a4f;cursor:default;box-shadow:none">Payouts ready &#10003;</span>
+  <% } else { %><form method="post" action="/cases/<%= c.id %>/payout/onboard" style="margin:0"><button class="mb-fab" type="submit">Set up payouts</button></form><% } %>
+<% } %>
+<button class="mb-agree-fab" type="button" id="mbAgreeFab" onclick="mbAgreeReq()">Request a settlement agreement</button>
+<script>
+function mbAgreeReq(){var b=document.getElementById('mbAgreeFab');if(b){b.className='mb-agree-fab done';b.textContent='\u2713 Agreement requested';b.title="We'll email you the cost and the details we need to prepare it.";b.onclick=null;}}
+</script>
 <div id="mbSet" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="m" role="dialog" aria-modal="true">
     <button class="x" aria-label="Close" onclick="document.getElementById('mbSet').classList.remove('show')">&times;</button>
