@@ -161,6 +161,12 @@
     transition:transform .15s,box-shadow .15s}
   .mb-cer-go:hover{transform:translateY(-1px);box-shadow:0 14px 30px -8px rgba(21,184,119,.8)}
   .mb-cer-fine{font-size:.76rem;color:#8a8f99;margin:1rem 0 0;line-height:1.5}
+  .mb-cer-agree{text-align:left;margin:0 0 1.1rem;border-radius:12px;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fbeef1;border:1px solid #e2b3bf}
+  .mb-cer-agree .h{font-size:.82rem;font-weight:700;color:#101a3a;margin:0}
+  .mb-cer-agree .s{font-size:.72rem;color:#8a2b42;font-weight:600;margin:2px 0 0;line-height:1.35}
+  .mb-cer-agree .btn{flex:0 0 auto;background:transparent;border:2px solid #8a2b42;color:#8a2b42;font:inherit;font-size:.8rem;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
+  .mb-cer-agree .btn:hover{background:#f3dde3}
+  .mb-cer-agree-done{text-align:left;margin:0 0 1.1rem;border-radius:12px;padding:12px 13px;background:#fbeef1;border:1px solid #e2b3bf;font-size:.8rem;line-height:1.5;color:#12241C}
   .mb-cer-done{animation:cerRise .45s cubic-bezier(.16,.84,.32,1)}
   @keyframes cerFade{from{opacity:0}to{opacity:1}}
   @keyframes cerRise{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
@@ -518,9 +524,26 @@
     <div class="mb-cer-seal"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/><path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="mb-cer-eyebrow">You're done</div>
     <h2 class="mb-cer-h">Congratulations</h2>
-    <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. We'll email both sides the <b>settlement agreement</b> and the <b>payment details</b> shortly.</p>
+    <% if (role === 'resp') { %>
+      <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. When you're ready, complete your payment from your case page.</p>
+    <% } else { %>
+      <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. Set up your payout details from your case page so we can get your money to you.</p>
+    <% } %>
+
+    <div class="mb-cer-agree" id="cerAgree">
+      <div>
+        <p class="h">Need a signed settlement agreement?</p>
+        <p class="s">Optional &middot; recommended for higher-value or complex disputes &middot; additional cost</p>
+      </div>
+      <button class="btn" type="button" id="cerAgreeBtn">Request</button>
+    </div>
+
     <button class="mb-cer-go" type="button" id="cerDoneGo">View your case &rarr;</button>
-    <p class="mb-cer-fine">Nothing more to do here — check your inbox for the agreement.</p>
+    <% if (role === 'resp') { %>
+      <p class="mb-cer-fine">Nothing else to do here — your payment step is on your case page.</p>
+    <% } else { %>
+      <p class="mb-cer-fine">Nothing else to do here — your payout setup is on your case page.</p>
+    <% } %>
   </div>
 </div>
 
@@ -868,6 +891,11 @@
     // Step two: into the settled view (agreement + any service charge).
     var d = document.getElementById('cerDoneGo');
     if(d) d.onclick = function(){ cer.hidden = true; document.body.style.overflow=''; location.reload(); };
+    var ab = document.getElementById('cerAgreeBtn');
+    if(ab) ab.onclick = function(){
+      var box = document.getElementById('cerAgree');
+      if(box){ box.className='mb-cer-agree-done'; box.textContent = "Noted \u2014 we'll email you the additional information and the cost to prepare your settlement agreement under the applicable law."; }
+    };
   }
   function finalizeNow(){
     locked=true; phase='agreed';
