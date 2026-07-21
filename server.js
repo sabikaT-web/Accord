@@ -673,6 +673,53 @@ app.get('/cases/:id/pay/cancel', requireLogin, wrap(async (req, res) => {
 // mediation happened (see terms cl. 4.3). A party who pays half and whose
 // opponent never pays can top up the balance and take the agreement, then
 // recover the difference under the joint and several liability clause.
+// ---- Stripe Connect (Stage 1): onboard the party who is OWED so we can pay them out ----
+app.post('/cases/:id/payout/onboard', requireLogin, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const c = await db.caseById(id);
+  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
+  const role = roleOf(c, req.session.userId);
+  if (role !== 'claim') return res.status(403).render('message', { title: 'No access', body: 'Only the party who is owed sets up payouts.' });
+  if (c.status !== 'settled') return res.redirect('/cases/' + id);
+  if (!PAYMENTS_ENABLED) return res.redirect('/cases/' + id);
+
+  const base = req.protocol + '://' + req.get('host');
+  let acct = c.payee_connect_id;
+  if (!acct) {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      capabilities: { transfers: { requested: true } },
+      business_type: 'individual',
+      metadata: { caseId: String(id) }
+    });
+    acct = account.id;
+    await db.setPayeeConnect(id, acct);
+  }
+  const link = await stripe.accountLinks.create({
+    account: acct,
+    refresh_url: base + '/cases/' + id + '/payout/onboard',
+    return_url:  base + '/cases/' + id + '/payout/return',
+    type: 'account_onboarding'
+  });
+  res.redirect(303, link.url);
+}));
+
+// Stripe returns the payee here after onboarding; refresh their payout status.
+app.get('/cases/:id/payout/return', requireLogin, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const c = await db.caseById(id);
+  if (!c) return res.redirect('/dashboard');
+  const role = roleOf(c, req.session.userId);
+  if (role === 'claim' && c.payee_connect_id && PAYMENTS_ENABLED) {
+    try {
+      const acct = await stripe.accounts.retrieve(c.payee_connect_id);
+      await db.setPayeePayoutsReady(id, !!acct.payouts_enabled);
+      if (acct.payouts_enabled) await db.addEvent(id, 'payout', 'Party who is owed completed payout setup');
+    } catch (e) { console.error('connect return:', e.message); }
+  }
+  res.redirect('/cases/' + id);
+}));
+
 app.post('/cases/:id/pay/success-fee', requireLogin, wrap(async (req, res) => {
   const id = Number(req.params.id);
   const c = await db.caseById(id);
@@ -877,7 +924,7 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
   const docs = await db.documentsForCase(c.id);
   const myDetailsDone = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
   const bothDetailsDone = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
-  res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone,
+  res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone, payeeOnboarded: !!c.payee_payouts_ready,
     msg: req.query.msg || null });
 }));
 
