@@ -657,6 +657,9 @@ app.get('/cases/:id/pay/return', requireLogin, wrap(async (req, res) => {
     if (sessionObj && role) await rememberCardFromSession(sessionObj, id, role);
     const paidMinor = sessionObj && sessionObj.amount_total ? sessionObj.amount_total : 0;
     if (paidMinor > 0 && role) await creditFeeAndMaybeRelease(req, id, role, paidMinor);
+  } else if (kind === 'settlement') {
+    await db.markSettlementPaid(id);
+    await db.addEvent(id, 'payment', 'Settlement paid — funds routed to the other party');
   }
   res.redirect('/cases/' + id);
 }));
@@ -718,6 +721,41 @@ app.get('/cases/:id/payout/return', requireLogin, wrap(async (req, res) => {
     } catch (e) { console.error('connect return:', e.message); }
   }
   res.redirect('/cases/' + id);
+}));
+
+// ---- Stripe Connect (Stage 2): the PAYER pays; Stripe routes the settlement to
+// the payee's connected account and MidBid's fee to us. Redirects to Stripe's
+// hosted payment portal (a destination charge). ----
+app.post('/cases/:id/pay', requireLogin, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const c = await db.caseById(id);
+  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
+  const role = roleOf(c, req.session.userId);
+  if (role !== 'resp') return res.status(403).render('message', { title: 'No access', body: 'Only the party who owes completes the payment.' });
+  if (c.status !== 'settled') return res.redirect('/cases/' + id);
+  if (!PAYMENTS_ENABLED) return res.redirect('/cases/' + id);
+  if (c.settlement_paid_at) return res.redirect('/cases/' + id);
+  if (!c.payee_connect_id || !c.payee_payouts_ready) {
+    return res.render('message', { title: 'Not ready yet', body: 'The other party has not finished setting up their payout account. We will email you the moment you can pay.' });
+  }
+  const cur = curOf(c.currency);
+  const led = feeLedger(c);
+  const feeShareMinor  = led.half;
+  const settlementMinor = Math.round((c.settled_value || 0) * 100);
+  const totalMinor = settlementMinor + feeShareMinor;
+  const base = req.protocol + '://' + req.get('host');
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    line_items: [{ quantity: 1, price_data: { currency: cur.stripe || 'gbp', unit_amount: totalMinor, product_data: { name: 'Settlement \u2014 ' + (c.title || ('case ' + id)) } } }],
+    payment_intent_data: {
+      application_fee_amount: feeShareMinor,
+      transfer_data: { destination: c.payee_connect_id }
+    },
+    metadata: { caseId: String(id), kind: 'settlement', role: 'resp' },
+    success_url: base + '/cases/' + id + '/pay/return?kind=settlement&session_id={CHECKOUT_SESSION_ID}',
+    cancel_url:  base + '/cases/' + id + '/pay/cancel'
+  });
+  res.redirect(303, session.url);
 }));
 
 app.post('/cases/:id/pay/success-fee', requireLogin, wrap(async (req, res) => {
@@ -924,7 +962,7 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
   const docs = await db.documentsForCase(c.id);
   const myDetailsDone = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
   const bothDetailsDone = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
-  res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone, payeeOnboarded: !!c.payee_payouts_ready,
+  res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone, payeeOnboarded: !!c.payee_payouts_ready, settlementPaid: !!c.settlement_paid_at,
     msg: req.query.msg || null });
 }));
 
