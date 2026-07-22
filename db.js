@@ -161,6 +161,7 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS mandate_version TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_mandate_at TIMESTAMPTZ;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_mandate_at  TIMESTAMPTZ;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_requested_at TIMESTAMPTZ;`);
   // Stripe Connect: the party who is OWED gets an Express account we pay out to.
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_connect_id TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_payouts_ready BOOLEAN DEFAULT FALSE;`);
@@ -330,6 +331,10 @@ const db = {
   },
 
   // Supporting documents.
+  async markAgreementRequested(id) {
+    await pool.query('UPDATE cases SET agreement_requested_at=now() WHERE id=$1', [id]);
+  },
+
   async addDocument(caseId, uploaderId, filename, mime, size, data) {
     const r = await pool.query(
       'INSERT INTO case_documents (case_id, uploader_id, filename, mime, size, data) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',

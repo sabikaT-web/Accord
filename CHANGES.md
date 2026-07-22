@@ -1,53 +1,53 @@
-# Send / Resend invitation
+# Payout clarity + agreement-upload popup
 
-**Three files. `db.js` first — it adds the columns the other two read.**
+**Four files. `db.js` first** (adds a column the others use). One commit.
 
-| # | File | Change |
-|---|------|--------|
-| 1 | `db.js` | `invited_at`, `invite_count`, `last_invite_error` on `cases`, plus `markInvited()`. |
-| 2 | `server.js` | Invite send is now honest. New `POST /cases/:id/invite`. Flash message passed to the case page. |
-| 3 | `case.ejs` | The panel: Send / Resend, when it was last sent, and why it failed. |
+Built on your CURRENT live files — including the Stripe Connect payout work already on
+`main`. Nothing there is overwritten.
 
-## The bug this fixes
+## 1. Payout clarity (your live payout flow already worked — this makes it obvious)
 
-`server.js` line 595 was:
+Your site already locks the payer's button until the payee adds bank details, and already
+shows a waiting state. I only sharpened the wording so the dependency is unmistakable:
 
-```js
-mailer.notifyCaseInvite(...).catch(() => {});
-await db.setStatus('awaiting_other', id);
-```
+- Payer, waiting: button reads **"Payment opens once they add bank details"** and the
+  status says the Pay button unlocks the instant the other party adds their bank details —
+  "we'll email you, you don't need to keep checking."
+- Payer, ready: **"The other party has added their bank details, so your payment can be
+  routed to them. You're clear to pay."**
+- Payee: their button reads **"Add your bank details to get paid"**, and the modal spells
+  out that the other party's Pay button stays locked until they finish.
 
-It fired the email, ignored the result, and flipped the case to "awaiting_other"
-regardless. So a case that had **never successfully emailed anyone** sat there saying
-*"Waiting for the other party to join"* — waiting forever, for a message that did not
-exist. This is the same silent-failure bug fixed in `business.js` a while back; it was
-never fixed on the individual side.
+No logic changed here — only copy. The mechanism was already correct.
 
-Now the send is awaited. On failure the case **stays in draft**, the reason is stored in
-`last_invite_error`, and the case page shows it. The status only advances when an
-invitation genuinely went out.
+## 2. Agreement-upload popup (new)
 
-## What you get on the case page
+The old "Request a settlement agreement" button was a dead stub. It now opens a popup:
 
-| State | Shows |
-|---|---|
-| Never invited | "They have not been invited yet" + **Send invitation** |
-| No email on the case | The same, plus a field to type their address |
-| Sent today | "Sent today to r@x.com" + **Resend invitation** |
-| Sent 5+ days ago | Turns **gold** — "No reply yet, worth another nudge" |
-| Sent 3 times | "Sent 9 days ago, 3 times" |
-| Last send failed | Turns **red**, prints the actual mail error + **Send invitation** |
-| They joined | Panel disappears |
+- Headed **"Recommended for high-value cases."**
+- Explains the settlement is already binding, and the written agreement is an added layer
+  for large sums or documents you may need later.
+- **Uploads case documents** (contract, invoices, correspondence) + an optional note.
+- On submit: files are stored against the case, you get an email (`notifyAgreementRequest`)
+  with the count, the note, and a link to Admin, and the button flips to "Agreement
+  requested."
 
-The panel stays for the whole time the other side has not joined — not only in
-`awaiting_other`. A failed send leaves the case in `draft`, which is exactly when you most
-need the button.
+This is the deliberate alternative to auto-generating a contract per jurisdiction: the
+party sends their papers, and you prepare the agreement by hand. Lower legal risk, and it
+makes the agreement the premium path.
 
-The copy-link fallback is still there, tucked under "Or send them the link yourself".
-It is a fallback now, not the mechanism.
+## The Stripe loop is NOT a code bug
 
-## It still needs the mail keys
+"Set up payouts" looping back to the same screen is a Stripe-side config issue, not the
+code — the onboard route is correct. Two likely causes:
 
-The button reports honestly — which means that until `RESEND_API_KEY` and `MAIL_FROM` are
-set on Render, pressing it will show you the real error in red rather than pretending.
-That is the point. Once the keys are set, the same button just works.
+1. **Connect isn't enabled** on your Stripe account. Dashboard, search "Connect", if it
+   says Activate, it's off. accounts.create({type:'express'}) needs it on.
+2. **Key/mode mismatch** — a test key (sk_test_...) on Render while Connect was activated
+   in live mode, or vice versa.
+
+To find which: open Render logs, click "Set up payouts", look for a line starting
+`connect return:` or any `StripeError`. Paste it and I'll give the exact fix.
+
+Until Connect works, the payee can't finish onboarding, so the payer's button never
+unlocks — every downstream "why won't it pay" traces back to this one setting.

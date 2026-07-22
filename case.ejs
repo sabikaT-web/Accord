@@ -223,6 +223,20 @@
   /* ---- settlement action popup ---- */
   #mbSet{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;background:rgba(9,14,34,.55);backdrop-filter:blur(3px);overflow:auto}
   #mbSet.show{display:flex}
+  #mbAgree{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;background:rgba(9,14,34,.55);backdrop-filter:blur(3px);overflow:auto}
+  #mbAgree.show{display:flex}
+  #mbAgree .m{width:min(540px,100%);background:#fff;border-radius:22px;box-shadow:0 28px 74px rgba(4,10,30,.5);padding:32px 32px 24px;position:relative;color:#1c2333}
+  #mbAgree .x{position:absolute;top:15px;right:15px;width:31px;height:31px;border-radius:50%;border:0;background:#f3f4f8;color:#8a92a6;cursor:pointer;font-size:16px}
+  #mbAgree .badge{display:inline-block;color:#fff;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:6px 13px;border-radius:999px}
+  #mbAgree h3{font-family:"Fraunces",Georgia,serif;color:#101a3a;font-size:25px;line-height:1.15;font-weight:600;margin:15px 0 10px}
+  #mbAgree .mut{color:#586079;font-size:13.5px;line-height:1.6}
+  #mbAgree .aglabel{display:block;font-size:12px;font-weight:700;color:#16306B;margin:14px 0 5px;letter-spacing:.02em}
+  #mbAgree .aglabel .opt{color:#8a92a6;font-weight:500;text-transform:none;letter-spacing:0}
+  #mbAgree .agfile{width:100%;font-size:13px;padding:9px;border:1px dashed #c3ccdb;border-radius:10px;background:#f7f9fd;box-sizing:border-box}
+  #mbAgree .agnote{width:100%;font:inherit;font-size:13.5px;padding:10px;border:1px solid #dce3ef;border-radius:10px;box-sizing:border-box;resize:vertical}
+  #mbAgree .agfine{color:#8a92a6;font-size:11.5px;line-height:1.5;margin:6px 0 0}
+  #mbAgree .cta{width:100%;border:0;border-radius:999px;background:#16306B;color:#fff;font:inherit;font-weight:700;font-size:14.5px;padding:13px;cursor:pointer}
+  #mbAgree .cta:hover{background:#1d3d82}
   #mbSet .m{width:min(540px,100%);background:#fff;border-radius:22px;box-shadow:0 28px 74px rgba(4,10,30,.5);padding:32px 32px 22px;position:relative;color:#1c2333}
   #mbSet .x{position:absolute;top:15px;right:15px;width:31px;height:31px;border-radius:50%;border:0;background:#f3f4f8;color:#8a92a6;cursor:pointer;font-size:16px}
   #mbSet .badge{display:inline-flex;align-items:center;gap:7px;background:#2f9e5b;color:#fff;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:6px 13px;border-radius:999px}
@@ -1119,24 +1133,53 @@
 <% if (role === 'resp') { %>
   <% if (_mbPaid) { %><span class="mb-fab" style="background:#268a4f;cursor:default;box-shadow:none">Paid &#10003;</span>
   <% } else if (_mbReady) { %><form method="post" action="/cases/<%= c.id %>/pay" style="margin:0"><button class="mb-fab" type="submit">Pay <%= _mbTotal %></button></form>
-  <% } else { %><span class="mb-fab" style="background:#8a8f99;cursor:default;box-shadow:none">Waiting for the other party…</span><% } %>
+  <% } else { %><span class="mb-fab" style="background:#8a8f99;cursor:default;box-shadow:none" title="This activates once the other party has added their bank details to receive the funds.">Payment opens once they add bank details</span><% } %>
 <% } else { %>
   <% if (_mbReady) { %><span class="mb-fab" style="background:#268a4f;cursor:default;box-shadow:none">Payouts ready &#10003;</span>
-  <% } else { %><form method="post" action="/cases/<%= c.id %>/payout/onboard" style="margin:0"><button class="mb-fab" type="submit">Set up payouts</button></form><% } %>
+  <% } else { %><form method="post" action="/cases/<%= c.id %>/payout/onboard" style="margin:0"><button class="mb-fab" type="submit">Add your bank details to get paid</button></form><% } %>
 <% } %>
-<button class="mb-agree-fab" type="button" id="mbAgreeFab" onclick="mbAgreeReq()">Request a settlement agreement</button>
-<script>
-function mbAgreeReq(){var b=document.getElementById('mbAgreeFab');if(b){b.className='mb-agree-fab done';b.textContent='\u2713 Agreement requested';b.title="We'll email you the cost and the details we need to prepare it.";b.onclick=null;}}
-</script>
+<% var _agreeAsked = (typeof agreementRequested !== 'undefined') && agreementRequested; %>
+<% if (_agreeAsked) { %>
+  <span class="mb-agree-fab done">&#10003; Agreement requested</span>
+<% } else { %>
+  <button class="mb-agree-fab" type="button" id="mbAgreeFab" onclick="document.getElementById('mbAgree').classList.add('show')">Request a settlement agreement</button>
+<% } %>
+
+<%# The settlement agreement is the premium, human-reviewed path. Rather than
+    auto-generating a contract per jurisdiction, high-value cases upload their papers
+    and MidBid prepares the agreement from them. This popup makes that offer. %>
+<div id="mbAgree" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="m" role="dialog" aria-modal="true" aria-labelledby="agreeH">
+    <button class="x" aria-label="Close" onclick="document.getElementById('mbAgree').classList.remove('show')">&times;</button>
+    <span class="badge" style="background:#16306B">Recommended for high-value cases</span>
+    <h3 id="agreeH">A formal settlement agreement</h3>
+    <p class="mut" style="margin:0 0 4px">Your settlement is already binding — both sides committed to the figure through MidBid, and that record stands on its own. A formal written agreement is an added layer, worth it when the sum is large or you may need to rely on the document later.</p>
+    <p class="mut" style="margin:10px 0 16px">Upload the papers that matter to this dispute — the contract, invoices, correspondence — and we'll prepare a settlement agreement from them and email it to both parties. We'll confirm any cost before we start.</p>
+
+    <form method="post" action="/cases/<%= c.id %>/agreement/request" enctype="multipart/form-data">
+      <label class="aglabel" for="agDocs">Upload case documents</label>
+      <input class="agfile" id="agDocs" type="file" name="documents" multiple
+             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+      <p class="agfine">PDF, Word or images, up to 5 MB each. You can add more later from your case page.</p>
+
+      <label class="aglabel" for="agNote">Anything we should know? <span class="opt">(optional)</span></label>
+      <textarea class="agnote" id="agNote" name="note" rows="3" maxlength="1000"
+                placeholder="e.g. the key dispute was over the final two invoices"></textarea>
+
+      <button class="cta" type="submit" style="margin-top:14px">Request the agreement &rarr;</button>
+      <p class="agfine" style="margin-top:10px">Requesting this does not delay your payment — you can still pay now and receive the agreement afterwards.</p>
+    </form>
+  </div>
+</div>
 <div id="mbSet" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="m" role="dialog" aria-modal="true">
     <button class="x" aria-label="Close" onclick="document.getElementById('mbSet').classList.remove('show')">&times;</button>
     <span class="badge">Settled</span>
     <% if (role === 'claim') { %>
       <h3>You've settled — let's get you paid</h3>
-      <div class="status ok"><span class="k">Status</span>Settled at <strong><%= _mbSettled %></strong>. The other party can't pay until you've set up your payout account and accepted our terms. We'll notify them the moment you do.</div>
+      <div class="status ok"><span class="k">Status</span>Settled at <strong><%= _mbSettled %></strong>. <b>The other party's payment button stays locked until you add your bank details here</b> — that's how we know where to send the money. The moment you finish, their button activates and we email them to pay.</div>
       <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
-        <div class="status ok" style="margin-top:12px"><span class="k">Payouts</span>Your payout account is set up. We'll release your funds as soon as the other party pays.</div>
+        <div class="status ok" style="margin-top:12px"><span class="k">Bank details added</span>You're set up to receive the funds. The other party's payment button is now active — we've emailed them to pay, and your money is released as soon as they do.</div>
       <% } else { %>
         <p class="mut">We use Stripe to collect your bank details securely and pay you directly — MidBid never sees or stores your account number.</p>
         <label class="tc"><input type="checkbox" onchange="document.getElementById('mbOnb').disabled=!this.checked"><span>I accept MidBid's <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span></label>
@@ -1145,9 +1188,9 @@ function mbAgreeReq(){var b=document.getElementById('mbAgreeFab');if(b){b.classN
     <% } else { %>
       <h3>Complete your payment</h3>
       <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
-        <div class="status ok"><span class="k">Status</span>The other party has set up their payout account — you're clear to pay.</div>
+        <div class="status ok"><span class="k">Ready to pay</span>The other party has added their bank details, so your payment can be routed to them. You're clear to pay.</div>
       <% } else { %>
-        <div class="status wait"><span class="k">Status</span>Waiting for the other party to set up their payout account. We'll email you the moment you can pay.</div>
+        <div class="status wait"><span class="k">Payment locked</span>Your <b>Pay</b> button unlocks as soon as the other party adds their bank details to receive the funds. Until then there's nowhere to send the money, so payment is held. We'll email you the instant it opens — you don't need to keep checking.</div>
       <% } %>
       <div class="bd"><div class="r"><span class="l">Settlement sum</span><span class="v"><%= _mbSettled %></span></div><div class="r sub"><span class="l">MidBid service fee (your share)</span><span class="v"><%= _mbFeeShare %></span></div><div class="r tot"><span class="l">Total to pay</span><span class="v"><%= _mbTotal %></span></div></div>
       <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>

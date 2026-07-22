@@ -963,6 +963,7 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
   const myDetailsDone = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
   const bothDetailsDone = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
   res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone, payeeOnboarded: !!c.payee_payouts_ready, settlementPaid: !!c.settlement_paid_at,
+    agreementRequested: !!c.agreement_requested_at,
     msg: req.query.msg || null });
 }));
 
@@ -1120,6 +1121,34 @@ async function guardCase(req, res) {
   if (!role && !res.locals.isAdmin) { res.status(403).json({ error: 'forbidden' }); return null; }
   return c;
 }
+
+// A party asks MidBid to prepare a formal settlement agreement, uploading the case
+// papers with the request. The uploaded files are stored against the case (same table
+// as any other case document); MidBid is notified to prepare the agreement by hand.
+// This is the deliberate alternative to auto-generating a contract per jurisdiction.
+app.post('/cases/:id/agreement/request', requireLogin, uploadDocs, wrap(async (req, res) => {
+  const c = await db.caseById(Number(req.params.id));
+  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
+  const role = roleOf(c, req.session.userId);
+  if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
+
+  const me = req.session.userId;
+  let saved = 0;
+  if (Array.isArray(req.files)) {
+    for (const f of req.files) {
+      await db.addDocument(c.id, me, f.originalname.slice(0, 200), f.mimetype, f.size, f.buffer);
+      saved++;
+    }
+  }
+  const note = (req.body.note || '').trim().slice(0, 1000);
+  await db.markAgreementRequested(c.id);
+  await db.addEvent(c.id, 'agreement', 'Settlement agreement requested' + (saved ? ' with ' + saved + ' document(s)' : '') + (note ? ' — note: ' + note : ''));
+  if (mailer.notifyAgreementRequest) {
+    const full = await db.caseDetail(c.id);
+    mailer.notifyAgreementRequest(full, saved, note).catch(() => {});
+  }
+  res.redirect('/cases/' + c.id + '?msg=' + encodeURIComponent('Your settlement agreement request is in — we\'ll be in touch with next steps.'));
+}));
 
 app.get('/cases/:id/documents', requireLogin, wrap(async (req, res) => {
   const c = await guardCase(req, res); if (!c) return;

@@ -225,8 +225,28 @@ async function notifyCaseDeclined(c, toEmail) {
 module.exports = {
   notifyNewSignup, sendWelcome, notifyNewCase, notifySettled,
   notifyCaseInvite, notifyCaseAccepted, notifyCaseDeclined,
-  notifyMediatorRequest, notifyRoundClosed, notifyBusinessRequest
+  notifyMediatorRequest, notifyRoundClosed, notifyBusinessRequest, notifyAgreementRequest
 };
+
+// A party asked MidBid to prepare a formal settlement agreement. Goes to you.
+async function notifyAgreementRequest(c, docCount, note) {
+  const to = process.env.NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com';
+  return send(to, 'Settlement agreement requested — ' + (c.title || ('case ' + c.id)),
+    '<div style="background:#F3EFE4;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">' +
+    '<table role="presentation" align="center" width="100%" style="max-width:520px;margin:0 auto;' +
+      'background:#fff;border:1px solid #E8DFC9;border-radius:16px;border-collapse:separate"><tr><td style="padding:26px">' +
+      brandHeader() +
+      '<h1 style="font-family:Georgia,serif;font-weight:500;color:#1E2A45;font-size:22px;text-align:center;margin:18px 0 14px">' +
+        'A settlement agreement was requested</h1>' +
+      '<p style="color:#586079;font-size:15px;line-height:1.6;margin:0 0 14px">' +
+        '<b>' + esc(c.title || ('Case ' + c.id)) + '</b> (MB-' + c.id + '). ' +
+        esc(String(docCount || 0)) + ' document(s) were uploaded with the request.</p>' +
+      (note ? '<p style="color:#586079;font-size:14px;line-height:1.6;background:#F7F9FD;border-radius:10px;padding:12px 14px;margin:0 0 16px"><b>Note from the party:</b><br>' + esc(note) + '</p>' : '') +
+      '<p style="text-align:center;margin:8px 0 0"><a href="' + (process.env.APP_URL || '') + '/admin/cases" ' +
+        'style="background:#16306B;color:#F4F2EB;text-decoration:none;padding:12px 22px;border-radius:999px;' +
+        'font-weight:700;font-size:15px;display:inline-block">Open in Admin</a></p>' +
+    '</td></tr></table></div>');
+}
 
 // Someone asked for the business portal. This goes to you, not to them.
 async function notifyBusinessRequest(user, company, caseCount) {
