@@ -1,53 +1,54 @@
-# Payout clarity + agreement-upload popup
+# Owed / Owe colour — per case, never guessed
 
-**Four files. `db.js` first** (adds a column the others use). One commit.
+**Four files. `db.js` FIRST** (adds the column the others read), then server.js,
+admin-cases.ejs, dashboard.ejs. One commit.
 
-Built on your CURRENT live files — including the Stripe Connect payout work already on
-`main`. Nothing there is overwritten.
+## The safe design (because your cases are real)
 
-## 1. Payout clarity (your live payout flow already worked — this makes it obvious)
+Money direction is coloured **per case**, from a real stored field — never from a guess.
 
-Your site already locks the payer's button until the payee adds bank details, and already
-shows a waiting state. I only sharpened the wording so the dependency is unmistakable:
+- New column `creator_owes` on cases. Default **NULL = unconfirmed**.
+- A case with NULL direction shows **no colour** — neutral, exactly like today. Nothing
+  is ever mislabelled, because nothing is asserted about a case you haven't confirmed.
+- Blue = you're owed in that case. Amber (#C98A0E) = you owe. Green stays settled-only.
 
-- Payer, waiting: button reads **"Payment opens once they add bank details"** and the
-  status says the Pay button unlocks the instant the other party adds their bank details —
-  "we'll email you, you don't need to keep checking."
-- Payer, ready: **"The other party has added their bank details, so your payment can be
-  routed to them. You're clear to pay."**
-- Payee: their button reads **"Add your bank details to get paid"**, and the modal spells
-  out that the other party's Pay button stays locked until they finish.
+## The three pieces
 
-No logic changed here — only copy. The mechanism was already correct.
+1. **New cases set it automatically.** Your create form already asks "I'm owed / I owe"
+   (the `role` field). That answer is now stored into `creator_owes`, so every new case
+   is coloured truthfully from birth. No new question added — it was already there, just
+   not saved.
 
-## 2. Agreement-upload popup (new)
+2. **Existing cases: you set them in Admin.** Admin -> Cases now has an **Owed / Owe / –**
+   setter on each row. Click the right one for each of your handful of real cases. The
+   buttons describe the **claimant** (first-named party): "Owed" = the claimant is owed,
+   "Owe" = the claimant owes. Until you set a case, it stays neutral.
 
-The old "Request a settlement agreement" button was a dead stub. It now opens a popup:
+3. **Dashboard colours each case** by the viewer's side: blue stripe + "Owed" badge when
+   you're owed, amber stripe + "Owe" badge when you owe, nothing when unconfirmed. The
+   "you are owed / you owe" sub-line now reads from the real field too.
 
-- Headed **"Recommended for high-value cases."**
-- Explains the settlement is already binding, and the written agreement is an added layer
-  for large sums or documents you may need later.
-- **Uploads case documents** (contract, invoices, correspondence) + an optional note.
-- On submit: files are stored against the case, you get an email (`notifyAgreementRequest`)
-  with the count, the note, and a link to Admin, and the button flips to "Agreement
-  requested."
+## Why per-case, not a whole-dashboard theme
 
-This is the deliberate alternative to auto-generating a contract per jurisdiction: the
-party sends their papers, and you prepare the agreement by hand. Lower legal risk, and it
-makes the agreement the premium path.
+A person is claimant on one case and respondent on another, so a single dashboard colour
+would contradict itself. Per-case colour is always true and matches the claimant/
+respondent logic your blind-bid mechanic already runs on.
 
-## The Stripe loop is NOT a code bug
+## Verified
 
-"Set up payouts" looping back to the same screen is a Stripe-side config issue, not the
-code — the onboard route is correct. Two likely causes:
+- Owed case -> blue stripe + Owed badge. Owe case -> amber + Owe badge.
+- **Unconfirmed case -> no stripe, no badge, neutral** (checked explicitly — this is the
+  safety property that stops any real case being mislabelled).
+- Admin setter shows the current state and lets you change or clear it per case.
 
-1. **Connect isn't enabled** on your Stripe account. Dashboard, search "Connect", if it
-   says Activate, it's off. accounts.create({type:'express'}) needs it on.
-2. **Key/mode mismatch** — a test key (sk_test_...) on Render while Connect was activated
-   in live mode, or vice versa.
+## NOT included
 
-To find which: open Render logs, click "Set up payouts", look for a line starting
-`connect return:` or any `StripeError`. Paste it and I'll give the exact fix.
+The clickable "You're owed / You owe" homepage labels are a separate small change that
+belongs in `home.ejs` (the hero work). Say the word and I'll add them there — they just
+link to /signup, no theming, no risk.
 
-Until Connect works, the payee can't finish onboarding, so the payer's button never
-unlocks — every downstream "why won't it pay" traces back to this one setting.
+## Backfill note
+
+No bulk backfill is run. Every existing case starts NULL (neutral) on purpose, because
+you confirmed your real cases go both ways. Set your handful by hand in Admin; they colour
+the moment you do.

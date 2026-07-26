@@ -593,6 +593,7 @@ app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
   const claimantId = role === 'owed' ? me : null;
   const respondentId = role === 'owe' ? me : null;
   const id = await db.createCase(title, amount, token, claimantId, respondentId, otherEmail, currency);
+  await db.setCreatorOwes(id, role === 'owe');   // record the money direction as stated at creation
 
   // Details for the agreement, captured up front from whoever opens the case.
   // The other side supplies theirs at settlement. Collected here because the
@@ -1287,6 +1288,23 @@ app.post('/admin/users/:id/delete', requireLogin, requireAdmin, wrap(async (req,
   res.redirect('/admin/users');
 }));
 
+
+// Direction of money for a given viewer: 'owed', 'owe', or null (unconfirmed).
+// creator_owes records the money direction that was set for the case (true = the
+// side that OWES; false = the side that is OWED), anchored to the claimant slot:
+// we store it so that claimant-is-owed maps to creator_owes=false. Since the
+// create flow always puts the OWED party in the claimant slot, the viewer's side
+// follows directly from their role.
+//   creator_owes=false -> claimant is owed, respondent owes
+//   creator_owes=true  -> claimant owes,  respondent is owed
+function moneySide(c, userId) {
+  if (c.creator_owes === null || c.creator_owes === undefined) return null;
+  const isClaimant = c.claimant_id === userId;
+  const claimantOwes = c.creator_owes === true;
+  const iOwe = isClaimant ? claimantOwes : !claimantOwes;
+  return iOwe ? 'owe' : 'owed';
+}
+
 app.get('/admin/cases', requireLogin, requireAdmin, wrap(async (req, res) => {
   const q = (req.query.q || '').trim();
   const cases = await db.allCases(q);
@@ -1299,6 +1317,18 @@ app.get('/admin/cases/:id', requireLogin, requireAdmin, wrap(async (req, res) =>
   const docs = await db.documentsForCase(c.id);
   res.render('admin-case', { c, events, docs });
 }));
+app.post('/admin/cases/:id/direction', requireLogin, requireAdmin, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const v = req.body.direction;   // describes the CLAIMANT's side: 'owed' | 'owe' | 'unset'
+  // Convention (matches moneySide): creator_owes=true means the CLAIMANT owes.
+  //   'owed' -> claimant is owed  -> creator_owes=false
+  //   'owe'  -> claimant owes     -> creator_owes=true
+  const val = v === 'owe' ? true : v === 'owed' ? false : null;
+  await db.setCreatorOwes(id, val);
+  await db.addEvent(id, 'direction', 'Direction set by admin: ' + (val === null ? 'unset' : (val ? 'claimant owes' : 'claimant owed')));
+  res.redirect('/admin/cases' + (req.body.back ? '' : '/' + id));
+}));
+
 app.post('/admin/cases/:id/close', requireLogin, requireAdmin, wrap(async (req, res) => { await db.setStatus('closed', Number(req.params.id)); await db.addEvent(Number(req.params.id), 'closed', 'Closed by admin'); res.redirect('/admin/cases/' + req.params.id); }));
 app.post('/admin/cases/:id/reopen', requireLogin, requireAdmin, wrap(async (req, res) => { await db.setStatus('active', Number(req.params.id)); await db.addEvent(Number(req.params.id), 'reopened', 'Reopened by admin'); res.redirect('/admin/cases/' + req.params.id); }));
 

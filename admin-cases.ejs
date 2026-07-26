@@ -15,6 +15,12 @@ table.ac tbody tr{box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
 .pill.declined{background:#FDF3EF;border-color:#C25A34;color:#C25A34}
 .rnd{font-family:"Spline Sans Mono",monospace;font-size:.78rem;color:#586079}
 .empty{color:#586079;padding:22px;text-align:center}
+  .dirbtn{font:inherit;font-size:.68rem;font-weight:700;padding:.25em .5em;border-radius:6px;border:1px solid #DCE3EF;background:#fff;color:#586079;cursor:pointer;line-height:1}
+  .dirbtn:hover{border-color:#16306B;color:#16306B}
+  .dirbtn.on{color:#fff;border-color:transparent}
+  .dirbtn.on.owed{background:#2F6BFF}
+  .dirbtn.on.owe{background:#C98A0E}
+  .dirbtn.on:not(.owed):not(.owe){background:#B4B2A9}
 </style>
 
 <nav class="admin-nav">
@@ -39,7 +45,7 @@ table.ac tbody tr{box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
 <table class="ac">
   <thead><tr>
     <th>Ref</th><th>Title</th><th>Parties</th><th style="text-align:right">Amount</th>
-    <th>Round</th><th>Status</th><th>Raised</th><th></th>
+    <th>Round</th><th>Status</th><th>Direction</th><th>Raised</th><th></th>
   </tr></thead>
   <tbody>
   <% cases.forEach(function (c) {
@@ -60,6 +66,15 @@ table.ac tbody tr{box-shadow:inset 4px 0 0 var(--st,#DCE3EF)}
       <td class="amt"><%= money(c.amount, c.currency) %></td>
       <td class="rnd"><%= c.round || 1 %></td>
       <td><span class="pill <%= cls %>"><%= label %></span></td>
+      <td>
+        <% var dir = (c.creator_owes === null || c.creator_owes === undefined) ? 'unset' : (c.creator_owes ? 'owe' : 'owed'); %>
+        <form method="post" action="/admin/cases/<%= c.id %>/direction" style="display:flex;gap:3px" title="Which side is the claimant (first-named party) on?">
+          <input type="hidden" name="back" value="1">
+          <button name="direction" value="owed" class="dirbtn <%= dir==='owed'?'on owed':'' %>" title="The claimant is OWED money">Owed</button>
+          <button name="direction" value="owe"  class="dirbtn <%= dir==='owe'?'on owe':'' %>"  title="The claimant OWES money">Owe</button>
+          <button name="direction" value="unset" class="dirbtn <%= dir==='unset'?'on':'' %>" title="Clear (no colour)">–</button>
+        </form>
+      </td>
       <td class="parties"><%= new Date(c.created_at).toISOString().slice(0,10) %></td>
       <td style="text-align:right"><a class="btn btn-ghost" href="/admin/cases/<%= c.id %>">Open</a></td>
     </tr>

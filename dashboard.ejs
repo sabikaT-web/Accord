@@ -1,5 +1,13 @@
 <%
   // The same instruments as the business portal, asking an individual's questions.
+  // Money side for THIS viewer on a case: 'owed', 'owe', or null (unconfirmed).
+  // Reads the stored creator_owes (claimant-owes convention); null => no colour.
+  const sideOf = (c) => {
+    if (c.creator_owes === null || c.creator_owes === undefined) return null;
+    const isClaimant = c.claimant_id === me.id;
+    const claimantOwes = c.creator_owes === true;
+    return (isClaimant ? claimantOwes : !claimantOwes) ? 'owe' : 'owed';
+  };
   const openC   = cases.filter(c => !['settled','declined','closed'].includes(c.status));
   const mineC   = cases.filter(c => c.claimant_id === me.id);         // ones I raised
   const owedC   = openC.filter(c => c.claimant_id === me.id);
@@ -150,6 +158,11 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
 .bizhint.earned a{color:#B5790F}
 .bizhint.pending{border-color:var(--line);background:#F7F9FD;color:#586079}
 .bizhint.pending svg{color:#586079}
+  tr.rt-b td:first-child{box-shadow:inset 4px 0 0 #2F6BFF}
+  tr.rt-a td:first-child{box-shadow:inset 4px 0 0 #C98A0E}
+  .side-badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:.15em .5em;border-radius:5px;color:#fff;vertical-align:.08em}
+  .side-badge.b{background:#2F6BFF}
+  .side-badge.a{background:#C98A0E}
 </style>
 
 <% if (cases.length === 0) { %>
@@ -226,6 +239,7 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
     <tbody>
     <% visible.forEach(function (c) {
          const mine = c.claimant_id === me.id;
+         const side = sideOf(c);   // 'owed' | 'owe' | null
          const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
          let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
          if (c.stage === 'draft') pillText = 'Draft — not invited';
@@ -234,11 +248,11 @@ table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
          if (c.status === 'declined') pillText = 'Declined';
          if (c.status === 'closed') pillText = 'Closed';
     %>
-      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= c.stalled ? 'attn' : '' %>">
+      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= c.stalled ? 'attn' : '' %> <%= side === 'owed' ? 'rt-b' : (side === 'owe' ? 'rt-a' : '') %>">
         <td>
           <div class="icp">
             <div class="nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
-            <div class="sub">you <%= mine ? 'are owed' : 'owe' %><%= c.stalled ? ' · quiet for ' + c.age + ' days' : '' %></div>
+            <div class="sub"><% if (side) { %><span class="side-badge <%= side === 'owed' ? 'b' : 'a' %>"><%= side === 'owed' ? 'Owed' : 'Owe' %></span> <% } %>you <%= side ? (side === 'owed' ? 'are owed' : 'owe') : (mine ? 'are owed' : 'owe') %><%= c.stalled ? ' · quiet for ' + c.age + ' days' : '' %></div>
           </div>
         </td>
         <td class="iamt"><%= money(c.amount, c.currency) %></td>

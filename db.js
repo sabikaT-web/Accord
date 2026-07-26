@@ -166,6 +166,14 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_connect_id TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS payee_payouts_ready BOOLEAN DEFAULT FALSE;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS settlement_paid_at TIMESTAMPTZ;`);
+
+  // Who owes in this dispute, from the CREATOR's point of view.
+  //   NULL  = not yet confirmed  -> shown with no colour (never guessed)
+  //   true  = the person who created the case OWES money (they're the debtor)
+  //   false = the creator is OWED money (they're chasing it)
+  // Left NULL for all existing cases on purpose: real cases go both ways, so we
+  // never bulk-assume. Set per case in Admin, or captured at creation for new ones.
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS creator_owes BOOLEAN;`);
 }
 
 const one = (r) => r.rows[0] || null;
@@ -233,6 +241,10 @@ const db = {
     return r.rows;
   },
   async setClaimant(userId, status, id) { await pool.query('UPDATE cases SET claimant_id=$1, status=$2 WHERE id=$3', [userId, status, id]); },
+  async setCreatorOwes(id, val) {
+    // val: true (creator owes), false (creator owed), or null (unset)
+    await pool.query('UPDATE cases SET creator_owes=$1 WHERE id=$2', [val, id]);
+  },
   async setRespondent(userId, status, id) { await pool.query('UPDATE cases SET respondent_id=$1, status=$2 WHERE id=$3', [userId, status, id]); },
   async setClaimValue(value, id) { await pool.query('UPDATE cases SET claim_value=$1 WHERE id=$2', [value, id]); },
   async setRespValue(value, id) { await pool.query('UPDATE cases SET resp_value=$1 WHERE id=$2', [value, id]); },
