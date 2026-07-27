@@ -1,54 +1,42 @@
-# Owed / Owe colour — per case, never guessed
+# Individual dashboard — legal-fintech redesign + owed/owe colour
 
-**Four files. `db.js` FIRST** (adds the column the others read), then server.js,
-admin-cases.ejs, dashboard.ejs. One commit.
+**Upload order: `db.js` first, then `server.js`, then `admin-cases.ejs` and
+`dashboard.ejs`. One commit.** (db.js adds the column the others read.)
 
-## The safe design (because your cases are real)
+This one batch carries everything from the last few turns — they build on each other,
+so upload them together:
 
-Money direction is coloured **per case**, from a real stored field — never from a guess.
+## Legal-fintech dashboard (new look)
+- Dark navy header band, KPI cards overlapping it, tabular-figure numbers, restrained
+  colour as data hierarchy. Navy = law, royal blue = fintech, gold = value, green = settled.
+- Filter chips (All / each stage) + Export + New case.
+- The individual portal only. `business.ejs` already has its own analytics look — untouched.
 
-- New column `creator_owes` on cases. Default **NULL = unconfirmed**.
-- A case with NULL direction shows **no colour** — neutral, exactly like today. Nothing
-  is ever mislabelled, because nothing is asserted about a case you haven't confirmed.
-- Blue = you're owed in that case. Amber (#C98A0E) = you owe. Green stays settled-only.
+## Two column changes you asked for
+- "Amount" -> **"Original amount"** (the sum in dispute — unchanged data, clearer label).
+- "Your figure" -> **"Last bid"**, now wired to real data: it shows the walk-away from the
+  viewer's most recent bid (`db.lastBid`), per case, their own side only. Shows "no bid yet"
+  until they've bid. This is live-connected, not a static field.
 
-## The three pieces
+## Owed / owe colour (from earlier, included here)
+- `creator_owes` column (NULL = unconfirmed -> no colour, never guessed).
+- New cases set it from the "I'm owed / I owe" answer already in the create form.
+- Admin -> Cases has a per-case Owed/Owe/- setter for your existing real cases.
+- Dashboard rows carry a blue (owed) or amber (owe) left stripe. **No owe/owed words
+  anywhere** in the dashboard — the colour is the only signal.
 
-1. **New cases set it automatically.** Your create form already asks "I'm owed / I owe"
-   (the `role` field). That answer is now stored into `creator_owes`, so every new case
-   is coloured truthfully from birth. No new question added — it was already there, just
-   not saved.
-
-2. **Existing cases: you set them in Admin.** Admin -> Cases now has an **Owed / Owe / –**
-   setter on each row. Click the right one for each of your handful of real cases. The
-   buttons describe the **claimant** (first-named party): "Owed" = the claimant is owed,
-   "Owe" = the claimant owes. Until you set a case, it stays neutral.
-
-3. **Dashboard colours each case** by the viewer's side: blue stripe + "Owed" badge when
-   you're owed, amber stripe + "Owe" badge when you owe, nothing when unconfirmed. The
-   "you are owed / you owe" sub-line now reads from the real field too.
-
-## Why per-case, not a whole-dashboard theme
-
-A person is claimant on one case and respondent on another, so a single dashboard colour
-would contradict itself. Per-case colour is always true and matches the claimant/
-respondent logic your blind-bid mechanic already runs on.
+## Files
+| File | Why |
+|------|-----|
+| db.js | `creator_owes` column + `setCreatorOwes`. **Upload first.** |
+| server.js | `moneySide` helper, admin direction route, role saved at creation, **`myLastBid` per case**. |
+| admin-cases.ejs | per-case Owed/Owe setter. |
+| dashboard.ejs | legal-fintech skin + Original amount + Last bid + colour stripes. |
 
 ## Verified
+Renders with real last bids (£6,500 shown), "no bid yet" when unbid, dark header, KPIs,
+colour stripes, no owe/owed words. Unconfirmed cases show no stripe.
 
-- Owed case -> blue stripe + Owed badge. Owe case -> amber + Owe badge.
-- **Unconfirmed case -> no stripe, no badge, neutral** (checked explicitly — this is the
-  safety property that stops any real case being mislabelled).
-- Admin setter shows the current state and lets you change or clear it per case.
-
-## NOT included
-
-The clickable "You're owed / You owe" homepage labels are a separate small change that
-belongs in `home.ejs` (the hero work). Say the word and I'll add them there — they just
-link to /signup, no theming, no risk.
-
-## Backfill note
-
-No bulk backfill is run. Every existing case starts NULL (neutral) on purpose, because
-you confirmed your real cases go both ways. Set your handful by hand in Admin; they colour
-the moment you do.
+## Reminder
+The GitHub web uploader has silently skipped a file before. After committing, check each
+file's timestamp on GitHub to confirm all four landed.

@@ -1,57 +1,75 @@
-<%
-  // The same instruments as the business portal, asking an individual's questions.
-  // Money side for THIS viewer on a case: 'owed', 'owe', or null (unconfirmed).
-  // Reads the stored creator_owes (claimant-owes convention); null => no colour.
-  const sideOf = (c) => {
-    if (c.creator_owes === null || c.creator_owes === undefined) return null;
-    const isClaimant = c.claimant_id === me.id;
-    const claimantOwes = c.creator_owes === true;
-    return (isClaimant ? claimantOwes : !claimantOwes) ? 'owe' : 'owed';
-  };
-  const openC   = cases.filter(c => !['settled','declined','closed'].includes(c.status));
-  const mineC   = cases.filter(c => c.claimant_id === me.id);         // ones I raised
-  const owedC   = openC.filter(c => c.claimant_id === me.id);
-  const settled = cases.filter(c => c.status === 'settled');
-  const sum = (arr, k) => arr.reduce((a, c) => a + (c[k] || 0), 0);
 
-  const owed = sum(owedC, 'amount');
-  const needs = cases.filter(c => c.stalled).length;
-  const recovered = sum(settled.filter(c => c.claimant_id === me.id), 'settled_value');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MidBid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<style>
+/* Portal switch. Scoped here so styles.css needs no changes. */
+.portal-seg{display:flex;background:#EAEFF7;border:1px solid #DCE3EF;border-radius:999px;padding:3px;font-size:.84rem;font-weight:600;margin:0 auto}
+.portal-seg form{margin:0;display:flex}
+.portal-seg button,.portal-seg a{border:none;background:none;font:inherit;font-weight:600;color:#586079;padding:.4em 1em;border-radius:999px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
+.portal-seg button.on,.portal-seg a.on{background:#fff;color:#16306B;box-shadow:0 1px 3px rgba(22,48,107,.12)}
+@media (max-width:760px){.portal-seg{font-size:.78rem;margin:0}.portal-seg button{padding:.35em .7em}}
+</style>
+</head>
+<body>
+<div class="seam-top"></div>
+<header class="bar">
+  <div class="bar-in">
+    <a class="brand" href="/">
+      <svg style="width:32px;height:32px;flex:none" viewBox="14 14 72 72" xmlns="http://www.w3.org/2000/svg"><defs>
+   <filter id="gH" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.2"/></filter>
+   <clipPath id="mkH"><circle cx="44.0" cy="50" r="18"/></clipPath><circle cx="44.0" cy="50" r="18" fill="#2F6BFF"/><circle cx="56.0" cy="50" r="18" fill="#F5B312"/><g clip-path="url(#mkH)"><circle cx="56.0" cy="50" r="18" fill="#15B877"/></g></defs>
+ <circle cx="50" cy="50" r="4" fill="#15B877" filter="url(#gH)" opacity="0">
+   <animate attributeName="r" values="2;20;2;20;2" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/>
+   <animate attributeName="opacity" values="0;0.8;0;0.8;0" keyTimes="0;0.25;0.5;0.75;1" dur="3.4s" repeatCount="indefinite"/></circle>
+ <g><circle cx="44" cy="50" r="18" fill="#2F6BFF"/><circle cx="56" cy="50" r="18" fill="#F5B312"/>
+   <g clip-path="url(#mkH)"><circle cx="56" cy="50" r="18" fill="#15B877"/></g></g>
+ <g><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3.4s" repeatCount="indefinite"/>
+   <circle cx="50" cy="24" r="4" fill="#2F6BFF" filter="url(#gH)"/></g>
+ <g><animateTransform attributeName="transform" type="rotate" from="180 50 50" to="540 50 50" dur="3.4s" repeatCount="indefinite"/>
+   <circle cx="50" cy="24" r="4" fill="#F5B312" filter="url(#gH)"/></g></svg>
+      MidBid
+    </a>
 
-  const spans = settled
-    .filter(c => c.settled_at && c.created_at)
-    .map(c => Math.max(0, Math.round((new Date(c.settled_at) - new Date(c.created_at)) / 86400000)));
-  const typical = spans.length ? Math.round(spans.reduce((a, b) => a + b, 0) / spans.length) : null;
+    
+    
+      
+      
+    
 
-  const cur = cases[0] ? cases[0].currency : 'GBP';
-  const STAGE_META = {
-    draft:      { label: 'Draft',       color: '#B4B2A9' },
-    awaiting:   { label: 'Awaiting',    color: '#F5B312' },
-    progress:   { label: 'In progress', color: '#2F6BFF' },
-    bidding:    { label: 'Bidding — rounds in play',  color: '#2F6BFF' },
-    settled:    { label: 'Settled',     color: '#15B877' }
-  };
-  const STAGES = ['draft','awaiting','bidding','settled'];
-  const countAt = (s) => cases.filter(c => c.stage === s).length;
+    <div class="bar-right">
+      
+        
+          <a href="/dashboard">My cases</a>
+        
+        
+        <span class="muted">M</span>
+        <form method="POST" action="/logout"><button class="linkbtn" type="submit">Log out</button></form>
+      
+    </div>
+  </div>
+</header>
+<main>
 
-  // Eight-week trends from the timestamps already on each case — real, not mocked.
-  const WEEKS = 8, WEEK = 7 * 86400000, now = Date.now();
-  const edges = [];
-  for (let k = WEEKS - 1; k >= 0; k--) edges.push(now - k * WEEK);
-  const madeBy = (c, t) => new Date(c.created_at).getTime() <= t;
-  const doneBy = (c, t) => c.settled_at && new Date(c.settled_at).getTime() <= t;
-  const sOwed = edges.map(t => cases.filter(c => c.claimant_id === me.id && madeBy(c, t) && !doneBy(c, t) && !['closed','declined'].includes(c.status)).reduce((a, c) => a + c.amount, 0));
-  const sRec  = edges.map(t => cases.filter(c => c.claimant_id === me.id && doneBy(c, t)).reduce((a, c) => a + (c.settled_value || 0), 0));
-  const sNeed = edges.map(t => cases.filter(c => madeBy(c, t) && c.stalled).length);
-  const delta = (arr) => arr[arr.length - 1] - arr[Math.max(0, arr.length - 5)];
 
-  const filter = typeof f === 'undefined' ? (locals.filter || 'all') : f;
-%>
-<%- include('partials/head', { pageHead: {
-  eyebrow: 'Your cases',
-  title: cases.length ? (openC.length + ' open, ' + settled.length + ' settled') : 'No cases yet',
-  sub: "Open a new dispute, or continue one you're already part of."
-} }) %>
+
+  <div class="page-head">
+    <div class="wrap">
+      <div class="eyebrow">Your cases</div>
+      <h1 class="page">2 open, 1 settled</h1>
+      <p class="sub">Open a new dispute, or continue one you're already part of.</p>
+    </div>
+  </div>
+
+<div class="wrap">
+
 
 <style>
 /* Scoped to the individual dashboard so styles.css needs no changes. */
@@ -234,97 +252,109 @@ tr.lf-a{background:linear-gradient(90deg,rgba(231,169,59,.08),transparent 42%)}
 <div class="lf-top">
   <div class="lf-welcome">
     <h1>Your cases</h1>
-    <p><%= cases.length ? (openC.length + ' open · ' + settled.length + ' settled') : 'No cases yet' %></p>
+    <p>2 open · 1 settled</p>
   </div>
 </div>
 
-<% if (cases.length === 0) { %>
-  <div class="lf-shell" style="padding-top:22px">
-    <div class="lf-empty">
-      <p>No cases yet. Start one to invite the other party.</p>
-      <a class="lf-btn primary" href="/cases/new" style="margin-top:14px">+ Start a new case</a>
-    </div>
-  </div>
-<% } else { %>
+
 
 <div class="lf-shell">
   <!-- KPI cards overlapping the dark band -->
   <div class="lf-kpis">
-    <div class="lf-kpi k1"><div class="k">In your favour</div><div class="n"><%= money(owed, cur) %></div><div class="d">across <%= owedC.length %> open</div></div>
-    <a class="lf-kpi k2" href="/dashboard?filter=<%= filter === 'attn' ? 'all' : 'attn' %>"><div class="k">Need attention</div><div class="n"><%= needs %></div><div class="d"><%= needs ? 'quiet or in-band' : 'nothing waiting' %></div></a>
-    <div class="lf-kpi k3"><div class="k">Recovered</div><div class="n"><%= money(recovered, cur) %></div><div class="d">settled to date</div></div>
-    <% if (typical !== null) { %><div class="lf-kpi k4"><div class="k">Typical settle</div><div class="n"><%= typical %><span style="font-size:1rem;color:#78849E"> days</span></div><div class="d">open to agreed</div></div><% } %>
+    <div class="lf-kpi k1"><div class="k">In your favour</div><div class="n">£20,000</div><div class="d">across 2 open</div></div>
+    <a class="lf-kpi k2" href="/dashboard?filter=attn"><div class="k">Need attention</div><div class="n">0</div><div class="d">nothing waiting</div></a>
+    <div class="lf-kpi k3"><div class="k">Recovered</div><div class="n">£6,300</div><div class="d">settled to date</div></div>
+    
   </div>
 
   <!-- filter chips + new-case -->
   <div class="lf-tools">
-    <% var stageChips = [['all','All']].concat(STAGES.map(function(st){return [st, STAGE_META[st].label];})); %>
-    <% stageChips.forEach(function(sc){ %>
-      <a class="lf-chip <%= filter === sc[0] ? 'on' : '' %>" href="/dashboard?filter=<%= sc[0] %>"><%= sc[1] %></a>
-    <% }); %>
+    
+    
+      <a class="lf-chip on" href="/dashboard?filter=all">All</a>
+    
+      <a class="lf-chip " href="/dashboard?filter=draft">Draft</a>
+    
+      <a class="lf-chip " href="/dashboard?filter=awaiting">Awaiting</a>
+    
+      <a class="lf-chip " href="/dashboard?filter=bidding">Bidding — rounds in play</a>
+    
+      <a class="lf-chip " href="/dashboard?filter=settled">Settled</a>
+    
     <div class="sp"></div>
     <button type="button" class="lf-chip" onclick="downloadMine()">&#8595; Export</button>
     <a class="lf-btn primary" href="/cases/new">+ New case</a>
   </div>
 
-  <%
-    const visible = cases.filter(function (c) {
-      if (filter === 'all') return true;
-      if (filter === 'attn') return c.stalled;
-      return c.stage === filter;
-    });
-  %>
+  
   <div class="lf-tbl"><div class="lf-tbl-scroll">
     <table class="lfcases">
       <thead><tr><th>Case</th><th>Original amount</th><th>Last bid</th><th>Status</th><th style="text-align:right">Next step</th></tr></thead>
       <tbody>
-      <% visible.forEach(function (c) {
-           const mine = c.claimant_id === me.id;
-           const side = sideOf(c);   // 'owed' | 'owe' | null
-           const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
-           let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
-           if (c.stage === 'draft') pillText = 'Draft — not invited';
-           if (c.stage === 'awaiting') pillText = 'Awaiting other party';
-           if (c.status === 'settled') pillText = 'Settled at ' + money(c.settled_value, c.currency);
-           if (c.status === 'declined') pillText = 'Declined';
-           if (c.status === 'closed') pillText = 'Closed';
-      %>
-        <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= side === 'owed' ? 'lf-b' : (side === 'owe' ? 'lf-a' : '') %>">
+      
+        <tr class=" lf-b">
           <td>
-            <div class="lf-nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
-            <div class="lf-ref">MB-<%= c.id %></div>
-            <% if (c.stalled) { %><div class="lf-sub">Quiet for <%= c.age %> days</div><% } %>
+            <div class="lf-nm"><a href="/cases/41">Oakhill Ltd</a></div>
+            <div class="lf-ref">MB-41</div>
+            
           </td>
-          <td class="lf-amt"><%= money(c.amount, c.currency) %></td>
+          <td class="lf-amt">£10,000</td>
           <td class="lf-bid">
-            <% if (c.myLastBid != null) { %><span class="val"><%= money(c.myLastBid, c.currency) %></span>
-            <% } else { %><span class="none">no bid yet</span><% } %>
+            <span class="val">£6,500</span>
+            
           </td>
-          <td><span class="lf-pill <%= pillClass %>"><%= pillText %></span></td>
+          <td><span class="lf-pill bidding">Bidding — rounds in play</span></td>
           <td style="text-align:right">
-            <% if (c.status === 'settled') { %>
-              <% if (!mine) { %><a class="lf-btn go" href="/cases/<%= c.id %>">Pay</a>
-              <% } else { %><a class="lf-btn ghost" href="/cases/<%= c.id %>">View</a><% } %>
-            <% } else { %><a class="lf-btn ghost" href="/cases/<%= c.id %>">Open</a><% } %>
+            <a class="lf-btn ghost" href="/cases/41">Open</a>
           </td>
         </tr>
-      <% }) %>
+      
+        <tr class=" lf-a">
+          <td>
+            <div class="lf-nm"><a href="/cases/52">Bricklane Co</a></div>
+            <div class="lf-ref">MB-52</div>
+            
+          </td>
+          <td class="lf-amt">£10,000</td>
+          <td class="lf-bid">
+            <span class="none">no bid yet</span>
+          </td>
+          <td><span class="lf-pill awaiting">Awaiting other party</span></td>
+          <td style="text-align:right">
+            <a class="lf-btn ghost" href="/cases/52">Open</a>
+          </td>
+        </tr>
+      
+        <tr class="done ">
+          <td>
+            <div class="lf-nm"><a href="/cases/33">Harwood Ltd</a></div>
+            <div class="lf-ref">MB-33</div>
+            
+          </td>
+          <td class="lf-amt">£10,000</td>
+          <td class="lf-bid">
+            <span class="val">£6,500</span>
+            
+          </td>
+          <td><span class="lf-pill settled">Settled at £6,300</span></td>
+          <td style="text-align:right">
+            
+              <a class="lf-btn ghost" href="/cases/33">View</a>
+            
+          </td>
+        </tr>
+      
       </tbody>
     </table>
   </div></div>
-  <% if (!visible.length) { %><p class="lf-empty">No cases match this view.</p><% } %>
+  
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Only cases you raised yourself can move workspace — ones you were invited into
 // belong to you as a person, wherever they came from.
-var MINE = <%- JSON.stringify(mineC.map(function (c) { return {
-  'MidBid case ID': c.id, 'Debtor Company': c.title, 'Debtor Email': c.other_email || '',
-  'Amount in dispute': c.amount, 'Currency': c.currency, 'MidBid status': c.stage,
-  'Highest bid': c.highest == null ? '' : c.highest, 'Lowest bid': c.lowest == null ? '' : c.lowest,
-  'Settled amount': c.settled_value == null ? '' : c.settled_value
-}; })) %>;
+var MINE = [{"MidBid case ID":41,"Debtor Company":"Oakhill Ltd","Debtor Email":"x@y.com","Amount in dispute":10000,"Currency":"GBP","MidBid status":"bidding","Highest bid":9000,"Lowest bid":"","Settled amount":""},{"MidBid case ID":52,"Debtor Company":"Bricklane Co","Debtor Email":"x@y.com","Amount in dispute":10000,"Currency":"GBP","MidBid status":"awaiting","Highest bid":9000,"Lowest bid":"","Settled amount":""},{"MidBid case ID":33,"Debtor Company":"Harwood Ltd","Debtor Email":"x@y.com","Amount in dispute":10000,"Currency":"GBP","MidBid status":"settled","Highest bid":9000,"Lowest bid":"","Settled amount":6300}];
 function downloadMine(){
   if(!MINE.length){alert('You have no cases of your own to download.');return;}
   var ws=XLSX.utils.json_to_sheet(MINE);
@@ -334,31 +364,25 @@ function downloadMine(){
 }
 </script>
 
-<% } %>
-<% if (me.account_type !== 'business') { %>
-  <% if (me.business_requested) { %>
-    <div class="bizhint pending">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <span class="sp">Your <b>business portal</b> request is with us — we'll be in touch about a demo.</span>
-    </div>
-  <% } else { %>
-    <div class="bizhint <%= cases.length >= 25 ? 'earned' : '' %>">
+
+
+  
+    <div class="bizhint ">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
       <span class="sp">
-        <% if (cases.length >= 25) { %>
-          You're handling <b><%= cases.length %> disputes</b>. The <b>business portal</b> is built for exactly this — import them from a spreadsheet, set one bid bar across the lot, invite in bulk.
-        <% } else { %>
+        
           Handling <b>25 disputes or more</b>? There's a <b>business portal</b> for that — spreadsheet import, one bid bar across the lot, bulk invites.
-        <% } %>
+        
       </span>
-      <%# A real request, not a mailto: draft. mailto only opens the visitor's mail app
-          and relies on them hitting send — on a machine with no mail client set up it
-          does nothing at all, and the request never reaches you. %>
+      
       <form method="POST" action="/business/request" style="margin:0">
         <button type="submit" class="bizask">Ask for a demo &rarr;</button>
       </form>
     </div>
-  <% } %>
-<% } %>
+  
 
-<%- include('partials/foot') %>
+
+</div></main>
+</body>
+</html>
+

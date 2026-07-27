@@ -497,9 +497,17 @@ app.get('/dashboard', requireLogin, wrap(async (req, res) => {
   // another, so the masking has to be per case, per viewer. You see YOUR committed
   // figure and nothing else — the other side's number only ever appears as the
   // agreed amount, once it has settled.
-  const cases = (await casesForIndividual(me)).map(decorate).map((c) => Object.assign(c, {
-    highest: c.claimant_id === me ? c.claim_value : c.resp_value,   // your own figure
+  let cases = (await casesForIndividual(me)).map(decorate).map((c) => Object.assign(c, {
+    highest: c.claimant_id === me ? c.claim_value : c.resp_value,   // your own original figure
     lowest:  c.status === 'settled' ? c.settled_value : null,       // the deal, if there is one
+  }));
+  // Attach each case's OWN last bid for this viewer (the walk-away from the latest
+  // round they bid). Only ever the viewer's own side — never the other party's.
+  cases = await Promise.all(cases.map(async (c) => {
+    const party = c.claimant_id === me ? 'claim' : (c.respondent_id === me ? 'resp' : null);
+    const last = party ? await db.lastBid(c.id, party) : null;
+    c.myLastBid = last ? last.walk : null;   // null when they haven't bid yet
+    return c;
   }));
   res.render('dashboard', { cases, filter: req.query.filter || 'all' });
 }));
