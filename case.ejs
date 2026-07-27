@@ -73,13 +73,11 @@
   .mb-nudge-top svg{width:19px;height:19px;flex:none;color:#2F6BFF;margin-top:.1em}
   .mb-nudge-top b{display:block;font-size:.95rem;color:#16306B}
   .mb-nudge-top span{display:block;font-size:.85rem;color:#586079;line-height:1.5;margin-top:.15em}
-  .mb-oneway{display:flex;align-items:center;gap:.6em;margin:14px 0 2px;padding:.7em .9em;
-    background:rgba(245,179,18,.12);border:1px solid #F5B312;border-radius:12px;
-    font-size:.86rem;font-weight:600;color:#8A5A0B;line-height:1.45}
-  .mb-oneway svg{width:16px;height:16px;flex:none;color:#B5790F}
-  .mb-oneway.locked{background:rgba(22,48,107,.07);border-color:#DCE3EF;color:#586079}
-  .mb-oneway.locked svg{color:#586079}
-  .mb-oneway b{color:#6E4708}
+  .mb-oneway{display:flex;align-items:center;gap:.6em;margin:14px 0 2px;padding:.75em 1em;background:rgba(47,107,255,.07);border:1px solid rgba(47,107,255,.30);border-left:4px solid #2F6BFF;border-radius:12px;font-size:.86rem;font-weight:600;color:#1E4FD0;line-height:1.45}
+  .mb-oneway svg{width:16px;height:16px;flex:none;color:#2F6BFF}
+  .mb-oneway.locked{background:rgba(15,35,80,.05);border-color:#E4E9F2;border-left-color:#8A93A8;color:#59637E}
+  .mb-oneway.locked svg{color:#8A93A8}
+  .mb-oneway b{color:#0F2350}
 
   /* Submit dialog. The browser's confirm() box is grey, system-fonted, and says
      nothing about what is at stake. This is the same question, in your own voice. */
@@ -276,6 +274,23 @@
   .mb-agree-fab{position:fixed;right:20px;bottom:74px;z-index:9998;border:2px solid #8a2b42;background:#fff;color:#8a2b42;font:inherit;font-weight:700;font-size:12.5px;padding:9px 15px;border-radius:999px;cursor:pointer;box-shadow:0 8px 22px -8px rgba(4,10,30,.4)}
   .mb-agree-fab:hover{background:#fbeef1}
   .mb-agree-fab.done{background:#8a2b42;color:#fff;border-color:#8a2b42;cursor:default}
+
+/* ===== TWO-COLUMN LAYOUT (legal-fintech theme) ===== */
+.cx-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start;margin-top:4px}
+@media(max-width:860px){.cx-grid{grid-template-columns:1fr}}
+.cx-left{min-width:0}
+.cx-right{min-width:0;display:flex;flex-direction:column;gap:14px}
+.cx-col-label{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:#8A93A8;font-weight:600;margin-bottom:2px}
+.cx-info-card{background:#fff;border:1px solid #E4E9F2;border-radius:14px;padding:16px 18px}
+.cx-info-head{display:flex;gap:.65em;align-items:flex-start}
+.cx-info-head svg{width:20px;height:20px;flex:none;color:#2F6BFF;margin-top:1px}
+.cx-info-head b{display:block;color:#0F2350;font-size:.92rem;font-weight:700}
+.cx-info-head span{display:block;color:#59637E;font-size:.82rem;margin-top:2px;line-height:1.45}
+/* right-column invite panel re-themed to match */
+.cx-right .inv{background:#fff;border:1px solid #E4E9F2;border-left:4px solid #2F6BFF;border-radius:14px;padding:16px 18px}
+.cx-right .inv-bad{border-left-color:#C0392B}
+.cx-right .inv-stale{border-left-color:#E7A93B}
+
 </style>
 
 <%
@@ -292,49 +307,9 @@
 <% if (typeof msg !== 'undefined' && msg) { %>
   <div class="inv-msg <%= /Could not|does not look/.test(msg) ? 'bad' : '' %>"><%= msg %></div>
 <% } %>
-<% if (!otherJoined && liveCase) { %>
-  <div class="inv <%= c.last_invite_error ? 'inv-bad' : (stale ? 'inv-stale' : '') %>">
-    <div class="inv-head">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
-      </svg>
-      <div>
-        <b><%= c.invite_count > 0 ? 'Invitation sent' : 'They have not been invited yet' %></b>
-        <span>
-          <% if (c.last_invite_error) { %>
-            The last attempt failed, so nothing reached them.
-          <% } else if (c.invite_count > 0) { %>
-            Sent <%= ago %><%= c.invite_count > 1 ? ' \u00b7 ' + c.invite_count + ' times' : '' %> to <%= c.other_email || 'them' %>.
-            <%= stale ? 'No reply yet — worth another nudge.' : 'Waiting for them to open it.' %>
-          <% } else { %>
-            Nothing has been sent. They cannot join a case they have not heard about.
-          <% } %>
-        </span>
-      </div>
-    </div>
-
-    <% if (c.last_invite_error) { %>
-      <p class="inv-err"><b>Why it failed:</b> <%= c.last_invite_error %></p>
-    <% } %>
-
-    <form class="inv-form" method="POST" action="/cases/<%= c.id %>/invite">
-      <% if (!c.other_email) { %>
-        <input type="email" name="email" placeholder="their@email.com" required />
-      <% } %>
-      <button class="btn btn-primary" type="submit">
-        <%= c.invite_count > 0 ? 'Resend invitation' : 'Send invitation' %>
-      </button>
-    </form>
-
-    <details class="inv-alt">
-      <summary>Or send them the link yourself</summary>
-      <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
-      <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.6rem">Copy link</button>
-      <p class="inv-fine">This link is unique to this case and does not expire. Anyone who has it can join as the other side.</p>
-    </details>
-  </div>
-<% } %>
-
+<div class="cx-grid">
+  <!-- LEFT: the bid — scale, figures, one-way rule, submit. SCALE KEPT VERBATIM. -->
+  <div class="cx-left">
 <div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
   <div class="mb-figwrap">
     <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
@@ -428,7 +403,69 @@
     <button id="settleBtn" type="button" hidden aria-hidden="true"></button>
   </div>
 </div>
+  </div>
 
+  <!-- RIGHT: the case — invitation, link, and case info. -->
+  <div class="cx-right">
+    <div class="cx-col-label">The case</div>
+<% if (!otherJoined && liveCase) { %>
+  <div class="inv <%= c.last_invite_error ? 'inv-bad' : (stale ? 'inv-stale' : '') %>">
+    <div class="inv-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
+      </svg>
+      <div>
+        <b><%= c.invite_count > 0 ? 'Invitation sent' : 'They have not been invited yet' %></b>
+        <span>
+          <% if (c.last_invite_error) { %>
+            The last attempt failed, so nothing reached them.
+          <% } else if (c.invite_count > 0) { %>
+            Sent <%= ago %><%= c.invite_count > 1 ? ' \u00b7 ' + c.invite_count + ' times' : '' %> to <%= c.other_email || 'them' %>.
+            <%= stale ? 'No reply yet — worth another nudge.' : 'Waiting for them to open it.' %>
+          <% } else { %>
+            Nothing has been sent. They cannot join a case they have not heard about.
+          <% } %>
+        </span>
+      </div>
+    </div>
+
+    <% if (c.last_invite_error) { %>
+      <p class="inv-err"><b>Why it failed:</b> <%= c.last_invite_error %></p>
+    <% } %>
+
+    <form class="inv-form" method="POST" action="/cases/<%= c.id %>/invite">
+      <% if (!c.other_email) { %>
+        <input type="email" name="email" placeholder="their@email.com" required />
+      <% } %>
+      <button class="btn btn-primary" type="submit">
+        <%= c.invite_count > 0 ? 'Resend invitation' : 'Send invitation' %>
+      </button>
+    </form>
+
+    <details class="inv-alt">
+      <summary>Or send them the link yourself</summary>
+      <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
+      <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.6rem">Copy link</button>
+      <p class="inv-fine">This link is unique to this case and does not expire. Anyone who has it can join as the other side.</p>
+    </details>
+  </div>
+<% } %>
+    <% if (otherJoined) { %>
+      <div class="cx-info-card">
+        <div class="cx-info-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><b>Both parties joined</b><span>This case is active. Bidding runs on the left.</span></div>
+        </div>
+      </div>
+    <% } %>
+    <div class="cx-info-card">
+      <div class="cx-info-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        <div><b>Case reference</b><span>MB-<%= c.id %> · opened <%= new Date(c.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) %></span></div>
+      </div>
+    </div>
+  </div>
+</div>
 <% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
 <div class="card">
   <div class="eyebrow">Service charge</div>
@@ -756,9 +793,15 @@
     }
     gClose = false;                       // there is no "close" signal any more — that WAS the leak
     LIMIT = (s.limit != null) ? s.limit : null;
+    // Settled first: hide both status bars, then run the seal. Stops the "Locked…"
+    // bar lingering / flashing yellow once the case is done.
+    if(s.state==='settled'){
+      var _ob=document.getElementById('onewayNote'); if(_ob) _ob.style.display='none';
+      setCoach('idle','');
+      runSeal(); return;
+    }
     setOneway(s);
     if(locked) return;
-    if(s.state==='settled'){ runSeal(); return; }
 
     // Your bid for this round is in. It cannot be changed, and nothing about the
     // other side is shown — so there is nothing here to probe with.
@@ -767,7 +810,11 @@
     phase='negotiate';
     setApprove('idle');
     roundLine(s);
-    if(s.coach) setCoach(s.coach.tone, s.coach.text);
+    if(s.coach){
+      // Don't repeat the status bar's message as a coach line.
+      var _dupe = s.locked || /waiting for the other side to bid/i.test(s.coach.text || '');
+      setCoach(s.coach.tone, _dupe ? '' : s.coach.text);
+    }
   }
 
   var LIMIT = null;                       // your previous walk-away: the one-way rule
@@ -779,7 +826,7 @@
     saveBtn.textContent = 'Locked in for round ' + s.round;
     setApprove('idle');
     if(btn) btn.style.display='none';
-    setCoach('idle', s.coach ? s.coach.text : 'Submitted. Waiting for the other side.');
+    setCoach('idle', '');   // one-way bar already carries "Locked… until the other side has bid"
     roundLine(s);
   }
   function roundLine(s){
