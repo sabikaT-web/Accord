@@ -110,6 +110,7 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_address  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_phone TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_phone  TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS case_details TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_sent BOOLEAN NOT NULL DEFAULT false;`);
 
   // Supporting documents attached to a case. Stored in the database because
@@ -309,6 +310,10 @@ const db = {
       'UPDATE cases SET ' + p + '_full_name=$1, ' + p + '_company=$2, ' + p + '_address=$3, ' + p + '_phone=$4 WHERE id=$5',
       [d.fullName || null, d.company || null, d.address || null, d.phone || null, id]
     );
+  },
+  // Free-text account of the dispute, captured on the create form ("About the case").
+  async setCaseDetails(id, text) {
+    await pool.query('UPDATE cases SET case_details=$1 WHERE id=$2', [text || null, id]);
   },
   async markAgreementSent(id) { await pool.query('UPDATE cases SET agreement_sent=true WHERE id=$1', [id]); },
 

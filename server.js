@@ -624,6 +624,9 @@ app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
     address: clean(req.body.other_address, 500) || null, phone: otherPhone
   }, id);
 
+  const caseDetails = clean(req.body.case_details, 4000);
+  if (caseDetails) await db.setCaseDetails(id, caseDetails);
+
   const meEmail = res.locals.me ? res.locals.me.email : '';
   await db.addEvent(id, 'created', 'Case created by ' + meEmail + ' (' + (role === 'owed' ? 'claimant' : 'respondent') + ', ' + currency + ')');
 
