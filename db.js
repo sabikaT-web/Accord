@@ -108,6 +108,8 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_full_name TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_company  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_address  TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_phone TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_phone  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_sent BOOLEAN NOT NULL DEFAULT false;`);
 
   // Supporting documents attached to a case. Stored in the database because
@@ -297,6 +299,15 @@ const db = {
     await pool.query(
       'UPDATE cases SET ' + p + '_full_name=$1, ' + p + '_company=$2, ' + p + '_address=$3 WHERE id=$4',
       [d.fullName, d.company, d.address, id]
+    );
+  },
+  // Full party record incl. phone, used when a case is created. The creator supplies
+  // their own details and what they know of the other side. side is 'claim' | 'resp'.
+  async setPartyProfile(side, d, id) {
+    const p = side === 'claim' ? 'claim' : 'resp';
+    await pool.query(
+      'UPDATE cases SET ' + p + '_full_name=$1, ' + p + '_company=$2, ' + p + '_address=$3, ' + p + '_phone=$4 WHERE id=$5',
+      [d.fullName || null, d.company || null, d.address || null, d.phone || null, id]
     );
   },
   async markAgreementSent(id) { await pool.query('UPDATE cases SET agreement_sent=true WHERE id=$1', [id]); },

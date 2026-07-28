@@ -1,53 +1,110 @@
 <%- include('partials/head') %>
-<h1 class="page serif">Start a new case</h1>
-<p class="sub">Describe the dispute and invite the other side. They'll get a private link to join.</p>
+<h1 class="page serif">Start a case</h1>
+<p class="sub">Tell us what the dispute is about and who's involved. Your figures stay private — the other party never sees them.</p>
 <div class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
-  <form method="POST" action="/cases/new" enctype="multipart/form-data">
-    <label for="title">What's the dispute about?</label>
-    <input id="title" name="title" type="text" placeholder="e.g. Unpaid invoice #1042" required />
+  <form method="POST" action="/cases/new" enctype="multipart/form-data" class="nc">
 
-    <label for="currency">Currency</label>
-    <select id="currency" name="currency">
-      <% Object.keys(currencies).forEach(function(code){ %>
-        <option value="<%= code %>"<%= code === selectedCurrency ? ' selected' : '' %>><%= currencies[code].label %></option>
-      <% }) %>
-    </select>
-    <div class="help">The dispute, the scale, the settlement and the agreement are all shown in this currency. Both parties see the same currency.</div>
+    <!-- ============ 01 · THE DISPUTE ============ -->
+    <section class="nc-sec">
+      <div class="nc-sec-h"><span class="nc-num">01</span><h2 class="serif">The dispute</h2></div>
 
-    <label for="amount">Amount in dispute (<span id="curSym"><%= currencies[selectedCurrency].symbol %></span>)</label>
-    <input id="amount" name="amount" type="number" min="1" step="1" placeholder="80000" required />
-    <div class="help">The full sum the disagreement is about. The 10% signal is measured against this.</div>
+      <label for="title">What's the dispute about?</label>
+      <input id="title" name="title" type="text" placeholder="e.g. Unpaid invoice #1042" required />
 
-    <label>Your position</label>
-    <div class="radio-row">
-      <label><input type="radio" name="role" value="owed" required /> I'm owed money</label>
-      <label><input type="radio" name="role" value="owe" /> I owe money</label>
-    </div>
+      <div class="nc-row2">
+        <div class="nc-field">
+          <label for="currency">Currency</label>
+          <select id="currency" name="currency">
+            <% Object.keys(currencies).forEach(function(code){ %>
+              <option value="<%= code %>"<%= code === selectedCurrency ? ' selected' : '' %>><%= currencies[code].label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="nc-field">
+          <label for="amount">Amount in dispute (<span id="curSym"><%= currencies[selectedCurrency].symbol %></span>)</label>
+          <input id="amount" name="amount" type="number" min="1" step="1" placeholder="80000" required />
+        </div>
+      </div>
+      <div class="help nc-curnote">The dispute, the scale, the settlement and the agreement are all shown in this currency. Both parties see the same currency.</div>
 
-    <label for="other_email">The other party's email</label>
-    <input id="other_email" name="other_email" type="email" placeholder="them@email.com" required />
+      <label class="nc-poslabel">Your position</label>
+      <div class="radio-row">
+        <label><input type="radio" name="role" value="owed" required /> I'm owed money</label>
+        <label><input type="radio" name="role" value="owe" /> I owe money</label>
+      </div>
+    </section>
 
-    <label for="full_name">Your full name</label>
-    <input id="full_name" name="full_name" type="text" maxlength="200" placeholder="As it should appear on the agreement" required />
-    <div class="help">Used to name you correctly on the settlement agreement. The other party adds theirs when you settle.</div>
+    <!-- ============ 02 · THE PARTIES ============ -->
+    <section class="nc-sec">
+      <div class="nc-sec-h"><span class="nc-num">02</span><h2 class="serif">The parties</h2></div>
+      <p class="nc-sec-sub">Your details, and enough to invite the other side. Each party confirms what they hold.</p>
 
-    <label for="company">Company name <span class="muted">(optional)</span></label>
-    <input id="company" name="company" type="text" maxlength="200" placeholder="e.g. Northgate Interiors Ltd" />
+      <div class="nc-parties">
+        <!-- CLAIMANT -->
+        <div class="nc-party nc-claim">
+          <div class="nc-party-h"><h3 class="serif">Your details</h3><span class="nc-tag">Claimant</span></div>
+          <p class="nc-party-sub">You're starting this case, so these are the details we'll use to reach you and to name you on the agreement.</p>
 
-    <label for="address">Your address</label>
-    <input id="address" name="address" type="text" maxlength="500" placeholder="Street, city, postcode" required />
-    <div class="help">We'll generate an invite link for them on the next screen.</div>
+          <label for="full_name">Full name <span class="nc-req">*</span></label>
+          <input id="full_name" name="full_name" type="text" maxlength="200" placeholder="As it should appear on the agreement" required />
 
-    <label for="documents">Supporting documents or evidence <span class="opt">(optional)</span></label>
-    <input id="documents" name="documents" type="file" multiple
-           accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" />
-    <div class="help">Invoices, contracts, correspondence — up to 5 files, 5&nbsp;MB each.</div>
-    <div class="doc-note">
-      <strong>How your documents are used.</strong> Documents are only used as identifiers for the case. They are assessed solely for the purpose of mediation, and only where a human mediator is involved.
-    </div>
-    <div id="docList" class="doc-list" hidden></div>
+          <label for="claimant_email">Email</label>
+          <input id="claimant_email" name="claimant_email" type="email" class="nc-readonly"
+                 value="<%= (typeof me !== 'undefined' && me) ? me.email : '' %>" readonly />
+          <div class="help nc-help-tight">The email on your MidBid account — this is where we'll reach you.</div>
 
+          <label for="phone">Phone <span class="nc-req">*</span></label>
+          <input id="phone" name="phone" type="tel" placeholder="+44 …" required />
+
+          <label for="company">Company name <span class="opt">(optional)</span></label>
+          <input id="company" name="company" type="text" maxlength="200" placeholder="e.g. Northgate Interiors Ltd" />
+
+          <label for="address">Address <span class="opt">(optional)</span></label>
+          <input id="address" name="address" type="text" maxlength="500" placeholder="Street, city, postcode" />
+        </div>
+
+        <!-- RESPONDENT -->
+        <div class="nc-party nc-resp">
+          <div class="nc-party-h"><h3 class="serif">The other party</h3><span class="nc-tag">Respondent</span></div>
+          <p class="nc-party-sub">Enough for us to invite them. They confirm the rest when they join.</p>
+
+          <label for="other_full_name">Full name <span class="nc-req">*</span></label>
+          <input id="other_full_name" name="other_full_name" type="text" maxlength="200" placeholder="Their full name" required />
+
+          <label for="other_email">Email <span class="nc-req">*</span></label>
+          <input id="other_email" name="other_email" type="email" placeholder="them@email.com" required />
+
+          <label for="other_phone">Phone <span class="nc-req">*</span></label>
+          <input id="other_phone" name="other_phone" type="tel" placeholder="Their contact number" required />
+
+          <label for="other_company">Company name <span class="opt">(optional)</span></label>
+          <input id="other_company" name="other_company" type="text" maxlength="200" placeholder="Their business, if any" />
+
+          <label for="other_address">Address <span class="opt">(optional)</span></label>
+          <input id="other_address" name="other_address" type="text" maxlength="500" placeholder="Their address, if you have it" />
+
+          <div class="nc-optnote">
+            <strong>Company and address are optional here.</strong> The respondent holds the most up-to-date version, so they can confirm or correct these when they accept the invitation.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 · DOCUMENTS ============ -->
+    <section class="nc-sec">
+      <div class="nc-sec-h"><span class="nc-num">03</span><h2 class="serif">Supporting documents or evidence <span class="opt">(optional)</span></h2></div>
+
+      <input id="documents" name="documents" type="file" multiple
+             accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" />
+      <div class="help">Invoices, contracts, correspondence — up to 5 files, 5&nbsp;MB each.</div>
+      <div class="doc-note">
+        <strong>How your documents are used.</strong> Documents are only used as identifiers for the case. They are assessed solely for the purpose of mediation, and only where a human mediator is involved.
+      </div>
+      <div id="docList" class="doc-list" hidden></div>
+    </section>
+
+    <!-- ============ payments / mandate (unchanged) ============ -->
     <% if (paymentsEnabled) { %>
       <div class="help" id="feeNote" style="margin-top:.9rem;padding:.7rem .85rem;background:rgba(47,107,255,.06);border:1px solid rgba(47,107,255,.2);border-radius:10px;color:#1e2a4a">
         A one-time <strong id="feeAmt"></strong> activation fee opens the case. You'll be taken to secure checkout next; the other party is only invited once payment is complete.
@@ -84,6 +141,35 @@
 </div>
 
 <style>
+  /* ---- Chambers layout for the new-case form ---- */
+  .nc-sec + .nc-sec{margin-top:1.7rem;padding-top:1.7rem;border-top:1px solid #e6e9f1}
+  .nc-sec-h{display:flex;align-items:baseline;gap:.6rem;margin-bottom:1rem}
+  .nc-sec-h h2{margin:0;font-size:1.28rem;font-weight:500;color:#16306B}
+  .nc-sec-h .opt{font-size:.9rem}
+  .nc-num{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:#b98a1e}
+  .nc-sec-sub{margin:-.4rem 0 1.1rem;font-size:.86rem;color:#5a5f6b;line-height:1.5}
+
+  .nc-row2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start}
+  .nc-curnote{border-left:2px solid #f5b400;background:rgba(245,179,18,.08);border-radius:0 8px 8px 0}
+  .nc-poslabel{margin-top:1.1rem}
+
+  .nc-parties{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem}
+  .nc-party{position:relative;border:1px solid #e3e6ec;border-radius:14px;padding:1.25rem 1.25rem 1.35rem}
+  .nc-party::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .nc-claim{background:#f3f6ff}
+  .nc-claim::before{background:#2b54e6}
+  .nc-resp{background:#fbf5e6}
+  .nc-resp::before{background:#c79320}
+  .nc-party-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:.15rem}
+  .nc-party-h h3{margin:0;font-size:1.12rem;font-weight:500;color:#16306B}
+  .nc-tag{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.35em .65em;border-radius:999px}
+  .nc-claim .nc-tag{color:#2b54e6;background:rgba(43,84,230,.12)}
+  .nc-resp .nc-tag{color:#9a6b00;background:rgba(199,147,32,.18)}
+  .nc-party-sub{margin:.15rem 0 1rem;font-size:.8rem;color:#5a5f6b;line-height:1.5}
+  .nc-req{color:#b3801f;font-weight:700}
+  .nc-optnote{margin-top:1rem;padding-top:.9rem;border-top:1px dashed #ddd3ba;font-size:.78rem;color:#6a6f7b;line-height:1.5}
+  .nc-optnote strong{color:#3b4252;font-weight:600}
+
   .opt{font-weight:400;color:#8a8f99}
   input[type=file]{display:block;width:100%;font:inherit;font-size:.92rem;padding:.6rem .7rem;border:1px dashed #c7cdda;border-radius:10px;background:#fbfcfe;cursor:pointer}
   input[type=file]::file-selector-button{font:inherit;font-weight:600;margin-right:.8rem;padding:.4rem .8rem;border:none;border-radius:999px;background:#16306B;color:#fff;cursor:pointer}
@@ -92,6 +178,11 @@
   .doc-item{display:flex;justify-content:space-between;gap:.8rem;font-size:.84rem;color:#3b4252;background:#f4f6fa;border:1px solid #e3e6ec;border-radius:8px;padding:.4rem .65rem}
   .doc-item.bad{background:#fff6ec;border-color:#f2dcc1;color:#7a4a18}
   .doc-size{color:#8a8f99;white-space:nowrap}
+
+  .nc-readonly{background:#f4f6fa!important;color:#5a5f6b;cursor:default}
+  .nc-help-tight{margin-top:.35rem}
+
+  @media (max-width:720px){.nc-parties,.nc-row2{grid-template-columns:1fr}}
 </style>
 
 <script>

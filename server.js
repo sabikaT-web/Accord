@@ -595,7 +595,14 @@ app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
   const otherEmail = (req.body.other_email || '').trim().toLowerCase();
   const reshow = (msg) => res.render('new-case', { error: msg, currencies: CURRENCIES, selectedCurrency: curOf(req.body.currency).code, paymentsEnabled: PAYMENTS_ENABLED });
   if (req.uploadError) return reshow(req.uploadError);
+  const clean = (v, n) => (v || '').trim().slice(0, n);
+  const myName = clean(req.body.full_name, 200);
+  const myPhone = clean(req.body.phone, 60);
+  const otherName = clean(req.body.other_full_name, 200);
+  const otherPhone = clean(req.body.other_phone, 60);
   if (!title || !(amount > 0) || !otherEmail || !['owed', 'owe'].includes(role)) return reshow('Please fill in every field with valid values.');
+  if (myName.length < 2 || myPhone.length < 3) return reshow('Please add your full name and phone number.');
+  if (otherName.length < 2 || otherPhone.length < 3) return reshow("Please add the other party's full name and phone number.");
   const token = crypto.randomBytes(16).toString('hex');
   const me = req.session.userId;
   const claimantId = role === 'owed' ? me : null;
@@ -603,16 +610,19 @@ app.post('/cases/new', requireLogin, uploadDocs, wrap(async (req, res) => {
   const id = await db.createCase(title, amount, token, claimantId, respondentId, otherEmail, currency);
   await db.setCreatorOwes(id, role === 'owe');   // record the money direction as stated at creation
 
-  // Details for the agreement, captured up front from whoever opens the case.
-  // The other side supplies theirs at settlement. Collected here because the
-  // creator is already in a form and already paying — it is free friction.
-  const clean = (v, n) => (v || '').trim().slice(0, n);
-  const myName = clean(req.body.full_name, 200);
-  const myAddress = clean(req.body.address, 500);
-  if (myName.length >= 2 && myAddress.length >= 6) {
-    await db.setPartyDetails(role === 'owed' ? 'claim' : 'resp',
-      { fullName: myName, company: clean(req.body.company, 200) || null, address: myAddress }, id);
-  }
+  // Party details for the agreement, captured up front. The creator fills in their
+  // own side and what they know of the other party; company and address are optional
+  // and the other side can correct their own when they join.
+  const creatorSide = role === 'owed' ? 'claim' : 'resp';
+  const otherSide   = role === 'owed' ? 'resp' : 'claim';
+  await db.setPartyProfile(creatorSide, {
+    fullName: myName, company: clean(req.body.company, 200) || null,
+    address: clean(req.body.address, 500) || null, phone: myPhone
+  }, id);
+  await db.setPartyProfile(otherSide, {
+    fullName: otherName, company: clean(req.body.other_company, 200) || null,
+    address: clean(req.body.other_address, 500) || null, phone: otherPhone
+  }, id);
 
   const meEmail = res.locals.me ? res.locals.me.email : '';
   await db.addEvent(id, 'created', 'Case created by ' + meEmail + ' (' + (role === 'owed' ? 'claimant' : 'respondent') + ', ' + currency + ')');
