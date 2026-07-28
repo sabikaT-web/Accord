@@ -1,7 +1,7 @@
 <%- include('partials/head', { pageHead: {
-  eyebrow: 'Case MB-' + c.id + ' \u00b7 ' + (role === 'claim' ? 'Claimant' : 'Respondent'),
+  eyebrow: 'Case MB-' + c.id,
   title: c.title,
-  sub: money(c.amount, c.currency) + ' in dispute \u00b7 you are the party who <strong>' + (role === 'claim' ? 'is owed money' : 'owes money') + '</strong>.'
+  sub: ''
 } }) %>
 
 <style>
@@ -291,6 +291,24 @@
 @media(max-width:860px){.cx-grid{grid-template-columns:1fr}}
 .cx-left{min-width:0}
 .cx-right{min-width:0;display:flex;flex-direction:column;gap:14px}
+/* case-facts strip: reference, parties, amount — all in one place */
+.cx-facts{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:0;padding:15px 20px}
+.cx-facts .cx-fact{padding:2px 20px;border-left:1px solid #e4e9f4}
+.cx-facts .cx-fact:first-child{border-left:0;padding-left:0}
+.cx-fact .k{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#95a0b8;margin-bottom:5px}
+.cx-fact .v{font-size:.95rem;font-weight:500;color:#16213f}
+.cx-fact .v small{display:block;font-size:.7rem;font-weight:400;color:#5a6377;margin-top:1px}
+.cx-fact .v.mono,.cx-fact .v.num{font-family:"Spline Sans Mono","JetBrains Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600}
+/* full-width human-mediator bar under both columns */
+.cx-mediator{margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;background:linear-gradient(120deg,#16213f,#22376f);color:#fff;border-radius:16px;padding:18px 24px}
+.cx-med-text{display:flex;gap:14px;align-items:center;min-width:0}
+.cx-med-ic{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex:none;color:#e0b34a}
+.cx-med-ic svg{width:20px;height:20px}
+.cx-med-b{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.02rem}
+.cx-med-s{font-size:.8rem;color:rgba(255,255,255,.72);margin-top:3px;line-height:1.5}
+.cx-med-btn{font-weight:600;font-size:.9rem;color:#16213f;background:#e0b34a;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;white-space:nowrap}
+.cx-med-btn:disabled{opacity:.6;cursor:default}
+@media(max-width:900px){.cx-facts{grid-template-columns:1fr 1fr}.cx-facts .cx-fact{border-left:0;padding:8px 0}.cx-mediator{flex-direction:column;align-items:flex-start}}
 .cx-col-label{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:#8A93A8;font-weight:600;margin-bottom:2px}
 .cx-info-card{background:#fff;border:1px solid #E4E9F2;border-radius:14px;padding:16px 18px}
 .cx-info-head{display:flex;gap:.65em;align-items:flex-start}
@@ -321,6 +339,12 @@
 <div class="cx-grid">
   <!-- LEFT: the bid — scale, figures, one-way rule, submit. SCALE KEPT VERBATIM. -->
   <div class="cx-left">
+    <div class="card cx-facts">
+      <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
+      <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %></div></div>
+      <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %></div></div>
+      <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
+    </div>
 <div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
   <div class="mb-figwrap">
     <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
@@ -400,13 +424,8 @@
 
   <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
 
-  <div class="mb-escalate" id="escalate">
-    <div class="mb-esc-row">
-      <button class="mb-esc-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
-      <span class="mb-esc-cap">Stuck? Bring in an accredited mediator to help close the gap.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></span>
-    </div>
-  </div>
 
+  <!-- RIGHT: the case — invitation, link, and case info. -->
   <div class="mb-med-wrap" id="medWrap">
     <% if (c.status === 'settled') { %>
       <span class="mb-med-cap"><% if (pay && pay.enabled && pay.fee && !pay.released) { %>Add your details, then settle the service charge to release your agreement.<% } else { %>Add your details to complete your settlement agreement.<% } %></span>
@@ -416,7 +435,6 @@
 </div>
   </div>
 
-  <!-- RIGHT: the case — invitation, link, and case info. -->
   <div class="cx-right">
     <div class="cx-col-label">The case</div>
 <% if (!otherJoined && liveCase) { %>
@@ -469,14 +487,20 @@
         </div>
       </div>
     <% } %>
-    <div class="cx-info-card">
-      <div class="cx-info-head">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-        <div><b>Case reference</b><span>MB-<%= c.id %> · opened <%= new Date(c.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) %></span></div>
-      </div>
-    </div>
   </div>
 </div>
+
+<div class="cx-mediator" id="escalate">
+  <div class="cx-med-text">
+    <div class="cx-med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><circle cx="12" cy="15" r="6"/></svg></div>
+    <div>
+      <div class="cx-med-b">Stuck? Bring in an accredited mediator.</div>
+      <div class="cx-med-s">An independent human mediator can help close the gap when the two sides can't quite meet. Both parties must agree to proceed.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></div>
+    </div>
+  </div>
+  <button class="cx-med-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
+</div>
+
 <% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
 <div class="card">
   <div class="eyebrow">Service charge</div>
