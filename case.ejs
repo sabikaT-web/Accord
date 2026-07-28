@@ -309,6 +309,24 @@
 .cx-med-btn{font-weight:600;font-size:.9rem;color:#16213f;background:#e0b34a;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;white-space:nowrap}
 .cx-med-btn:disabled{opacity:.6;cursor:default}
 @media(max-width:900px){.cx-facts{grid-template-columns:1fr 1fr}.cx-facts .cx-fact{border-left:0;padding:8px 0}.cx-mediator{flex-direction:column;align-items:flex-start}}
+/* --- scale card polished to match the design --- */
+.mb-figwrap{display:none}
+.mb-schead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 16px}
+.mb-eyebrow{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:#2b54e6}
+.mb-rolechip{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#2b54e6;background:rgba(43,84,230,.1);padding:.5em .75em;border-radius:999px}
+.mb-chips{display:flex;gap:10px;flex-wrap:wrap;margin:.2rem 0 1rem}
+.mb-chip{flex:1 1 0;min-width:120px;display:block;border:1px solid #e4e9f4;border-radius:12px;padding:11px 14px;background:rgba(0,0,0,.012)}
+.mb-chip .k{display:flex;align-items:center;gap:.42em;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.mb-chip .k::before{content:"";width:8px;height:8px;border-radius:50%;flex:none}
+.mb-chip[data-slot="ideal"] .k::before{background:transparent;border:2px solid #7a5af0;width:9px;height:9px}
+.mb-chip[data-slot="fair"] .k::before{background:#2b54e6}
+.mb-chip[data-slot="res"] .k::before{background:#e0972a}
+.mb-chip .v{display:block;margin-top:8px;font-size:1.2rem;font-weight:600;font-family:"Spline Sans Mono","JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+/* status pill above the grid */
+.cx-statusrow{display:flex;justify-content:flex-end;margin:-4px 0 12px}
+.cx-pill{display:inline-flex;align-items:center;gap:.5em;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#2b54e6;background:rgba(43,84,230,.1);border:1px solid rgba(43,84,230,.25);padding:.55em .8em;border-radius:999px}
+.cx-pill.green{color:#12a150;background:rgba(18,161,80,.1);border-color:rgba(18,161,80,.3)}
+.cx-pill.amber{color:#b3801f;background:rgba(224,151,42,.12);border-color:rgba(224,151,42,.32)}
 .cx-col-label{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:#8A93A8;font-weight:600;margin-bottom:2px}
 .cx-info-card{background:#fff;border:1px solid #E4E9F2;border-radius:14px;padding:16px 18px}
 .cx-info-head{display:flex;gap:.65em;align-items:flex-start}
@@ -336,16 +354,25 @@
 <% if (typeof msg !== 'undefined' && msg) { %>
   <div class="inv-msg <%= /Could not|does not look/.test(msg) ? 'bad' : '' %>"><%= msg %></div>
 <% } %>
+<div class="cx-statusrow">
+  <% if (c.status === 'settled') { %><span class="cx-pill green">Settled</span>
+  <% } else if (otherJoined) { %><span class="cx-pill">Active &mdash; bidding open</span>
+  <% } else { %><span class="cx-pill amber">Awaiting the other party</span><% } %>
+</div>
 <div class="cx-grid">
   <!-- LEFT: the bid — scale, figures, one-way rule, submit. SCALE KEPT VERBATIM. -->
   <div class="cx-left">
     <div class="card cx-facts">
       <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
-      <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %></div></div>
-      <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %></div></div>
+      <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %><small>is owed</small></div></div>
+      <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %><small>owes</small></div></div>
       <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
     </div>
 <div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
+  <div class="mb-schead">
+    <span class="mb-eyebrow">Your private figures</span>
+    <span class="mb-rolechip">You &mdash; <%= role === 'claim' ? 'Claimant' : 'Respondent' %></span>
+  </div>
   <div class="mb-figwrap">
     <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
     <div class="mb-figrole" id="figRole">Drag the three handles to set your figures</div>
