@@ -1,1394 +1,346 @@
-<%- include('partials/head', { pageHead: {
-  eyebrow: 'Case MB-' + c.id,
-  title: c.title,
-  sub: ''
-} }) %>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Spline+Sans+Mono:wght@500;600&display=swap" rel="stylesheet">
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MidBid · Case <%= typeof caseRef !== 'undefined' ? caseRef : 'MB-2' %></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
-  .mb-card{margin-top:1rem}
-  .mb-figwrap{margin:1.4rem 0 .4rem}
-  .mb-fig{font-size:1.7rem;font-weight:600;transition:color .3s ease}
-  .mb-figrole{font-size:.85rem;color:#5a5f6b;margin-bottom:1.1rem;min-height:1.1em}
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --acc:#1E4FBF;
+    --acc-soft:rgba(30,79,191,.09);
+    --gold:#C9A227;
+    --ink:#0F1C2E;
+    --soft:#4A5568;
+    --faint:#7A879C;
+    --line:#DCE3EF;
+    --panel2:#F4F6FA;
+    --success:#0D9F6E;
+    --navy:#0B1F3A;
+  }
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#EEF1F6;min-height:100vh}
 
-  /* three-anchor legend chips */
-  .mb-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin:.2rem 0 1rem}
-  .mb-chip{display:inline-flex;flex-direction:column;gap:.1rem;padding:.4rem .7rem;border-radius:12px;border:1px solid #dfe3ea;background:#f7f9ff;cursor:pointer;transition:border-color .25s,box-shadow .25s,background .25s}
-  .mb-chip .k{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#8a8f99}
-  .mb-chip .v{font-size:.98rem;font-weight:600;color:#1e2a4a}
-  .mb-chip[data-slot="ideal"] .k{color:#7a5af0}
-  .mb-chip[data-slot="ideal"] .v{color:#7a5af0}
-  .mb-chip[data-slot="fair"] .k{color:#2b54e6}
-  .mb-chip[data-slot="fair"] .v{color:#2b54e6}
-  .mb-chip[data-slot="res"] .k{color:#c07d12}
-  .mb-chip[data-slot="res"] .v{color:#c07d12}
-  /* a moving handle lights up its category chip in that category's colour */
-  .mb-chip.sel{border-color:#2b54e6;box-shadow:0 0 0 3px rgba(43,84,230,.14);background:#eef3ff}
-  .mb-chip[data-slot="ideal"].sel{border-color:#7a5af0;background:color-mix(in srgb,#7a5af0 9%,#fff);box-shadow:0 0 0 3px rgba(122,90,240,.20),0 0 24px -2px rgba(122,90,240,.55)}
-  .mb-chip[data-slot="fair"].sel{border-color:#2b54e6;background:color-mix(in srgb,#2b54e6 9%,#fff);box-shadow:0 0 0 3px rgba(43,84,230,.20),0 0 24px -2px rgba(43,84,230,.55)}
-  .mb-chip[data-slot="res"].sel{border-color:#e0972a;background:color-mix(in srgb,#e0972a 11%,#fff);box-shadow:0 0 0 3px rgba(224,151,42,.24),0 0 24px -2px rgba(224,151,42,.60)}
+  /* ---- Nav (minimal, matches product) ---- */
+  .topnav{
+    background:var(--navy);color:#C5D0E0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 24px;height:56px;
+  }
+  .topnav .brand{display:flex;align-items:center;gap:.55em;font-family:'Newsreader',serif;font-weight:500;font-size:1.15rem;color:#fff;text-decoration:none}
+  .topnav .brand svg{width:22px;height:24px}
+  .topnav .nav-right{display:flex;align-items:center;gap:1.2rem;font-size:.9rem}
+  .topnav a{color:#A8B8D0;text-decoration:none;font-weight:500}
+  .topnav a:hover{color:#fff}
 
-  .mb-track{position:relative;height:8px;border-radius:6px;background:#eef0f4;border:0.5px solid #dfe3ea;margin:1.5rem 0 1.1rem}
-  /* your own range: translucent band from lowest to highest figure */
-  .mb-band{position:absolute;top:50%;height:8px;transform:translateY(-50%);border-radius:6px;background:linear-gradient(90deg,rgba(224,151,42,.34),rgba(43,84,230,.40),rgba(122,90,240,.34));pointer-events:none;z-index:0;transition:background .4s}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 48px}
 
-  /* reservation handle = the spinning orbit hub (the binding "walk-away" figure) */
-  .mb-you{position:absolute;top:50%;left:50%;width:52px;height:52px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;outline:none;z-index:4}
-  .mb-you:active{cursor:grabbing}
-  .hub{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;background:#e0972a;border:2px solid #fff;transform:translate(-50%,-50%);z-index:2;box-shadow:0 0 0 5px rgba(224,151,42,.14),0 0 10px 1px rgba(224,151,42,.5);transition:filter .15s,transform .15s}
-  .ring{display:none}
-  @keyframes mb-spin{to{transform:rotate(360deg)}}
-  .od-blue{display:none}
-  .mb-you:focus-visible .hub{box-shadow:0 0 0 5px rgba(224,151,42,.35)}
-  .mb-you:active .hub{filter:brightness(.72) saturate(1.15);transform:translate(-50%,-50%) scale(1.28)}
+  .titlebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+  .titlebar .t{display:flex;align-items:baseline;gap:10px}
+  .ref{font:600 11.5px/1 'Spline Sans Mono',monospace;color:var(--acc);background:var(--acc-soft);padding:.4em .65em;border-radius:6px}
+  .titlebar h1{font:500 22px/1.15 'Newsreader',serif}
+  .pill{
+    font:600 10px/1 'Inter';letter-spacing:.08em;text-transform:uppercase;
+    color:var(--success);background:rgba(13,159,110,.1);border:1px solid rgba(13,159,110,.28);
+    padding:.5em .75em;border-radius:999px;
+  }
 
-  /* the two softer handles: ideal (hollow ring) + fair (solid dot) */
-  .mb-h{position:absolute;top:50%;left:50%;width:34px;height:34px;transform:translate(-50%,-50%);cursor:grab;touch-action:none;outline:none;z-index:3;display:flex;align-items:center;justify-content:center}
-  .mb-h:active{cursor:grabbing}
-  .mb-h .dot{width:15px;height:15px;border-radius:50%;transition:transform .15s}
-  .mb-h[data-slot="fair"] .dot{background:#2b54e6;box-shadow:0 0 8px 2px rgba(43,84,230,.4);transition:filter .15s,transform .15s,box-shadow .15s}
-  .mb-h[data-slot="ideal"] .dot{background:#fff;border:2px solid #7a5af0;box-shadow:0 0 7px 1px rgba(122,90,240,.45);transition:filter .15s,transform .15s,box-shadow .15s}
-  .mb-h:focus-visible .dot,.mb-h.live .dot{transform:scale(1.22)}
-  .mb-h.live[data-slot="fair"] .dot,.mb-h[data-slot="fair"]:active .dot{filter:brightness(.72) saturate(1.15);transform:scale(1.3)}
-  .mb-h.live[data-slot="ideal"] .dot,.mb-h[data-slot="ideal"]:active .dot{border-color:#5a3fd0;box-shadow:0 0 0 6px rgba(122,90,240,.16),0 0 16px 2px rgba(122,90,240,.55);transform:scale(1.3)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 36px -32px rgba(15,28,46,.45)}
 
-  .mb-snake{display:none!important}
-  .seg{position:absolute;border-radius:50%;transform:translate(-50%,-50%)}
-  .mb-pops{display:none!important}
-  .pp{position:absolute;width:9px;height:9px;border-radius:50%;will-change:transform,opacity}
-  .mb-scale{display:flex;justify-content:space-between;font-size:.72rem;color:#8a8f99;margin-top:.5rem}
+  /* ribbon */
+  .ribbon{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    padding:11px 12px;margin-bottom:14px;
+    background:linear-gradient(180deg,#FFFEF8,#F8F1DF);
+    border:1px solid #E8D9B0;border-radius:12px;
+  }
+  .rc{padding:5px 16px}.rc+.rc{border-left:1px solid #E4D4A8}
+  .rc .k{display:flex;align-items:center;gap:.35em;font:600 .58rem/1 'Inter';letter-spacing:.12em;text-transform:uppercase;color:#9A7B2E;margin-bottom:6px}
+  .rc .k::before{content:"";width:5px;height:5px;border-radius:50%;background:#C9A227}
+  .rc .v{font:500 1rem/1.15 'Newsreader',serif;color:#2A2416}
+  .rc .v.ref{font-family:'Spline Sans Mono',monospace;color:#9A6B18;font-weight:600;font-size:.9rem}
+  .rc .v.amt{font:600 1.25rem/1 'Fraunces',serif;color:#8A5A0F}
 
-  /* proximity highlight meter — the "you're nearly there" signal */
-  .mb-prox{margin:1.1rem 0 .2rem}
-  .mb-prox-bar{position:relative;height:7px;border-radius:6px;background:#eef0f4;border:0.5px solid #dfe3ea;overflow:hidden}
-  .mb-prox-fill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:6px;background:#c7cdda;transition:width .6s cubic-bezier(.2,.7,.3,1),background .5s}
-  .mb-prox-fill.lvl-apart{background:#2b54e6}
-  .mb-prox-fill.lvl-near{background:#f5b400;box-shadow:0 0 12px 2px rgba(245,180,0,.55)}
-  .mb-prox-fill.lvl-close{background:#23a259}
-  .mb-prox-fill.lvl-overlap{background:#23a259;box-shadow:0 0 14px 3px rgba(35,162,89,.5)}
-  .mb-prox-text{font-size:.78rem;color:#8a8f99;margin-top:.45rem;min-height:1em;transition:color .3s}
-  .mb-prox-text.hot{color:#9a6b00;font-weight:600}
+  h3.ct{font:500 14.5px/1.2 'Newsreader',serif;margin-bottom:3px}
+  .eyebrow{font:700 .56rem/1 'Inter';letter-spacing:.14em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:7px}
+  .muted{font-size:12px;color:var(--soft);line-height:1.5}
 
-  .coach{display:flex;gap:.55rem;align-items:flex-start;margin:1rem 0 0;padding:.7rem .9rem;border-radius:14px;background:#f3f6ff;border:1px solid #e0e7fb;color:#1e2a4a;font-size:.95rem;line-height:1.45}
-  .coach .coach-badge{flex:0 0 auto;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#fff;background:linear-gradient(135deg,#2647d6,#13205c);padding:.3rem .46rem;border-radius:7px;margin-top:.05rem}
-  .coach.tone-warning{background:#fff6ec;border-color:#f2dcc1;color:#5a3a17}
-  .coach.tone-close,.coach.tone-success{background:#eef9f1;border-color:#cce9d4;color:#1d4a2c}
-  .coach.pop{animation:mb-bpop .34s ease}
-  @keyframes mb-bpop{0%{transform:translateY(7px) scale(.98);opacity:.45}100%{transform:translateY(0) scale(1);opacity:1}}
-  .mb-actions{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
-  /* One-way reminder. Gold, not green: green is reserved for settlement across the
-     whole product, and firing it here would make the same colour mean two things. */
-  .mb-nudge{border:1px solid #2F6BFF;border-left:4px solid #2F6BFF;border-radius:12px;
-    background:rgba(47,107,255,.06);padding:.85em 1em;margin:14px 0 4px}
-  .mb-nudge[hidden]{display:none}
-  .mb-nudge-top{display:flex;gap:.7em;align-items:flex-start}
-  .mb-nudge-top svg{width:19px;height:19px;flex:none;color:#2F6BFF;margin-top:.1em}
-  .mb-nudge-top b{display:block;font-size:.95rem;color:#16306B}
-  .mb-nudge-top span{display:block;font-size:.85rem;color:#586079;line-height:1.5;margin-top:.15em}
-  .mb-oneway{display:flex;align-items:center;gap:.6em;margin:14px 0 2px;padding:.75em 1em;background:rgba(47,107,255,.07);border:1px solid rgba(47,107,255,.30);border-left:4px solid #2F6BFF;border-radius:12px;font-size:.86rem;font-weight:600;color:#1E4FD0;line-height:1.45}
-  .mb-oneway svg{width:16px;height:16px;flex:none;color:#2F6BFF}
-  .mb-oneway.locked{background:rgba(15,35,80,.05);border-color:#E4E9F2;border-left-color:#8A93A8;color:#59637E}
-  .mb-oneway.locked svg{color:#8A93A8}
-  .mb-oneway b{color:#0F2350}
+  /* scale */
+  .scale{padding:18px 20px}
+  .scale .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .rolechip{font:700 .58rem/1 'Inter';letter-spacing:.06em;text-transform:uppercase;color:var(--acc);background:var(--acc-soft);padding:.45em .65em;border-radius:999px}
+  .chips{display:flex;gap:8px;margin-bottom:4px}
+  .chip{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#FAFBFD}
+  .chip .k{font:700 .55rem/1 'Inter';letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:.35em;color:var(--soft)}
+  .chip .k::before{content:"";width:7px;height:7px;border-radius:50%}
+  .chip.i .k::before{background:transparent;border:2px solid #6B5AF0;width:8px;height:8px}
+  .chip.i .k,.chip.i .v{color:#5B4AD8}
+  .chip.t .k::before{background:var(--acc)}
+  .chip.t .k,.chip.t .v{color:var(--acc)}
+  .chip.w .k::before{background:var(--gold)}
+  .chip.w .k,.chip.w .v{color:#9A6B18}
+  .chip .v{font:600 .95rem/1 'Spline Sans Mono',monospace;margin-top:6px}
+  .trk{position:relative;height:4px;border-radius:4px;background:#E1E7F4;margin:26px 4px 0}
+  .trk .b{position:absolute;top:0;height:4px;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--acc),#6B5AF0);left:55%;width:32%}
+  .trk .n{position:absolute;top:2px;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%}
+  .trk .n.w{left:55%;background:var(--gold);border:2px solid #fff;box-shadow:0 0 0 3px rgba(201,162,39,.18);width:16px;height:16px}
+  .trk .n.t{left:72%;background:var(--acc)}
+  .trk .n.i{left:87%;background:#fff;border:2px solid #6B5AF0}
+  .axis{display:flex;justify-content:space-between;margin-top:12px;font:500 10.5px/1 'Spline Sans Mono',monospace;color:var(--faint)}
+  .oneway{margin-top:14px;padding:9px 12px;border-radius:9px;background:var(--acc-soft);border:1px solid rgba(30,79,191,.18);font-size:11.5px;color:var(--soft);line-height:1.45}
+  .acts{display:flex;gap:8px;margin-top:12px}
+  .btn{font:600 13px/1 'Inter';color:#fff;background:var(--acc);border:none;border-radius:8px;padding:10px 16px;cursor:pointer}
+  .btn:hover{background:#163A8F}
+  .btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.g:hover{border-color:var(--ink);background:var(--panel2)}
+  .btn.full{width:100%;text-align:center;margin-top:2px}
 
-  /* Submit dialog. The browser's confirm() box is grey, system-fonted, and says
-     nothing about what is at stake. This is the same question, in your own voice. */
-  .mb-ask{position:fixed;inset:0;background:rgba(10,20,45,.58);display:none;
-    align-items:center;justify-content:center;z-index:90;padding:20px}
-  .mb-ask.on{display:flex}
-  .mb-ask-box{background:#fff;border:1px solid #DCE3EF;border-top:5px solid #F5B312;
-    border-radius:16px;max-width:470px;width:100%;padding:24px 24px 20px;
-    box-shadow:0 34px 80px -24px rgba(22,48,107,.55)}
-  .mb-ask-ic{width:36px;height:36px;border-radius:50%;background:rgba(245,179,18,.2);
-    color:#B5790F;display:flex;align-items:center;justify-content:center;margin-bottom:.7rem}
-  .mb-ask-ic svg{width:19px;height:19px}
-  .mb-ask h3{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.35rem;
-    color:#1E2A45;margin:0 0 .3rem;letter-spacing:-.01em}
-  .mb-ask p{color:#586079;font-size:.92rem;line-height:1.55;margin:0 0 .9rem}
-  .mb-ask-figs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 .9rem}
-  .mb-ask-fig{border:1px solid #DCE3EF;border-radius:10px;padding:.5em .6em;background:#F7F9FD}
-  .mb-ask-fig .k{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.09em;
-    text-transform:uppercase;color:#586079;font-weight:700}
-  .mb-ask-fig .v{font-family:"Fraunces",Georgia,serif;font-size:1.02rem;color:#1E2A45;margin-top:.1rem}
-  .mb-ask-fig.walk{border-color:#F5B312;background:rgba(245,179,18,.1)}
-  .mb-ask-warn{background:rgba(245,179,18,.13);border:1px solid #F5B312;border-radius:10px;
-    padding:.6em .8em;font-size:.85rem;color:#8A5A0B;font-weight:600;margin:0 0 1rem}
-  .mb-ask-foot{display:flex;gap:.5em;justify-content:flex-end}
-  .btn-gold{background:#F5B312;color:#2E2000;border:1px solid #F5B312;font-weight:700}
-  .btn-gold:hover{background:#E0A30C;border-color:#E0A30C}
+  .pad{padding:16px 18px}
+  .status{display:flex;gap:8px;padding:9px 11px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--gold);margin:9px 0}
+  .status b{font-size:12px}.status span{font-size:11px;color:var(--soft)}
+  .link{margin-top:9px;font:500 10.5px/1.4 'Spline Sans Mono',monospace;color:var(--soft);background:var(--panel2);border:1px dashed #C8D2E4;border-radius:8px;padding:7px 9px;word-break:break-all}
 
-  .mb-approve{position:relative;border:none;border-radius:999px;padding:.55rem .7rem;cursor:pointer;opacity:.72;background:linear-gradient(90deg,#2b54e6 0 50%,#f5b400 50% 100%);transition:opacity .4s ease,background .5s ease,box-shadow .5s ease}
-  .mb-approve .lbl{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:.9rem;font-weight:600;color:#fff;background:rgba(0,0,0,.32);padding:.3rem .85rem;border-radius:999px;transition:background .5s ease}
-  .mb-approve.ready{opacity:1;animation:mb-pulse 1.7s ease-in-out infinite}
-  @keyframes mb-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,180,0,0)}50%{box-shadow:0 0 16px 4px rgba(245,180,0,.45)}}
-  .mb-approve.is-green{opacity:1;animation:none;background:#23a259;box-shadow:0 0 22px 6px rgba(35,162,89,.5)}
-  .mb-approve.is-green .lbl{background:transparent}
-  .mb-med-wrap{margin-top:1.4rem;padding-top:1.1rem;border-top:0.5px solid #e3e6ec;opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;pointer-events:none}
-  .mb-med-wrap.show{opacity:1;transform:none;pointer-events:auto}
-  .mb-med{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:#13205c;background:transparent;border:0.5px solid #c7cdda;border-radius:999px;padding:.55rem 1.05rem;cursor:pointer;text-decoration:none}
-  .mb-med:hover{background:#f3f6ff}
-  .mb-med-cap{display:block;font-size:.78rem;color:#8a8f99;margin-top:.5rem}
-  .mb-escalate{margin-top:1.2rem;padding-top:1rem;border-top:0.5px dashed #e3e6ec}
-  .mb-esc-row{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
-  .mb-esc-btn{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:.88rem;font-weight:600;color:#13205c;background:#fff;border:1px solid #c7cdda;border-radius:999px;padding:.5rem 1rem;cursor:pointer;transition:background .2s,border-color .2s}
-  .mb-esc-btn:hover:not(:disabled){background:#f3f6ff;border-color:#2b54e6}
-  .mb-esc-btn:disabled{cursor:default;color:#23a259;border-color:#cce9d4;background:#eef9f1}
-  .mb-esc-cap{font-size:.8rem;color:#8a8f99;line-height:1.4;flex:1 1 220px}
-  .mb-pay{display:inline-flex;align-items:center;gap:6px;font-size:.92rem;font-weight:700;color:#fff;background:#23a259;border:none;border-radius:999px;padding:.6rem 1.15rem;cursor:pointer;box-shadow:0 0 16px 3px rgba(35,162,89,.35);transition:filter .2s}
-  .mb-pay:hover{filter:brightness(1.05)}
+  .mediator{background:linear-gradient(145deg,#0B1F3A,#163A6B);color:#fff;border-radius:12px;padding:16px}
+  .mediator .mb{font:500 .95rem/1.2 'Fraunces',serif}
+  .mediator .ms{font-size:.76rem;color:rgba(255,255,255,.7);margin:4px 0 11px;line-height:1.45}
+  .mediator .mbtn{width:100%;font-weight:600;font-size:.84rem;color:#0B1F3A;background:var(--gold);border:none;border-radius:8px;padding:10px;cursor:pointer}
 
-  /* Settlement announcement. This is the one moment green is correct — the deal is
-     done. It fires only on the settled state, never on proximity: there is no "you're
-     close" here, because being told you are close is exactly the leak the sealed
-     mechanic removes. What it reveals — the agreed figure — is safe, because the case
-     is over the instant it shows. */
-  .mb-cer{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:1.2rem}
-  .mb-cer[hidden]{display:none}
-  .mb-cer-sky{position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(21,184,119,.28),rgba(16,24,48,.72) 62%);
-    backdrop-filter:blur(3px);animation:cerFade .5s ease}
-  .mb-cer-card{position:relative;background:#fff;border-radius:22px;max-width:440px;width:100%;
-    padding:2.4rem 2rem 1.7rem;text-align:center;
-    box-shadow:0 30px 90px -20px rgba(21,184,119,.5),0 8px 30px rgba(16,24,48,.3);
-    animation:cerRise .6s cubic-bezier(.16,.84,.32,1)}
-  .mb-cer-seal{width:66px;height:66px;margin:0 auto 1.1rem;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;color:#fff;
-    background:linear-gradient(135deg,#15B877,#0E8F5B);
-    box-shadow:0 0 0 8px rgba(21,184,119,.14),0 10px 26px -6px rgba(21,184,119,.6);
-    animation:cerSeal .55s cubic-bezier(.2,.9,.3,1.3) .2s both}
-  .mb-cer-seal svg{width:34px;height:34px}
-  .mb-cer-eyebrow{font-family:"Spline Sans Mono",monospace;font-size:.66rem;letter-spacing:.22em;
-    text-transform:uppercase;font-weight:700;color:#0E8F5B;margin-bottom:.5rem}
-  .mb-cer-h{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:2.1rem;letter-spacing:-.02em;
-    color:#12241C;margin:0 0 .3rem;line-height:1}
-  .mb-cer-fig{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:2.9rem;letter-spacing:-.03em;
-    color:#0E8F5B;margin:.2rem 0 .9rem;line-height:1;font-variant-numeric:tabular-nums}
-  .mb-cer-sub{color:#586079;font-size:.95rem;line-height:1.6;margin:0 auto 1.4rem;max-width:340px}
-  .mb-cer-sub span{color:#12241C;font-weight:600}
-  .mb-cer-why{font-size:.82rem;color:#0E8F5B;background:rgba(21,184,119,.1);border-radius:9px;
-    padding:.55em .8em;margin:0 auto 1.2rem;max-width:340px;line-height:1.5}
-  .mb-cer-go{border:none;border-radius:999px;background:#15B877;color:#fff;font:inherit;font-weight:700;
-    font-size:.98rem;padding:.85em 1.6em;cursor:pointer;box-shadow:0 10px 24px -8px rgba(21,184,119,.7);
-    transition:transform .15s,box-shadow .15s}
-  .mb-cer-go:hover{transform:translateY(-1px);box-shadow:0 14px 30px -8px rgba(21,184,119,.8)}
-  .mb-cer-fine{font-size:.76rem;color:#8a8f99;margin:1rem 0 0;line-height:1.5}
-  .mb-cer-agree{text-align:left;margin:0 0 1.1rem;border-radius:12px;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fbeef1;border:1px solid #e2b3bf}
-  .mb-cer-agree .h{font-size:.82rem;font-weight:700;color:#101a3a;margin:0}
-  .mb-cer-agree .s{font-size:.72rem;color:#8a2b42;font-weight:600;margin:2px 0 0;line-height:1.35}
-  .mb-cer-agree .btn{flex:0 0 auto;background:transparent;border:2px solid #8a2b42;color:#8a2b42;font:inherit;font-size:.8rem;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
-  .mb-cer-agree .btn:hover{background:#f3dde3}
-  .mb-cer-agree-done{text-align:left;margin:0 0 1.1rem;border-radius:12px;padding:12px 13px;background:#fbeef1;border:1px solid #e2b3bf;font-size:.8rem;line-height:1.5;color:#12241C}
-  .mb-cer-done{animation:cerRise .45s cubic-bezier(.16,.84,.32,1)}
-  @keyframes cerFade{from{opacity:0}to{opacity:1}}
-  @keyframes cerRise{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
-  @keyframes cerSeal{from{transform:scale(0) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
-  @media(prefers-reduced-motion:reduce){.mb-cer-sky,.mb-cer-card,.mb-cer-seal{animation:none}}
+  .docs .dhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:72px;border:1.5px dashed #C2CBD9;border-radius:10px;background:#FBFCFF;text-align:center;padding:12px;cursor:pointer;color:var(--soft)}
+  .drop strong{font-size:12.5px;color:var(--ink)}.drop span{font-size:10.5px}
+  .file{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2)}
+  .file .fi{width:26px;height:26px;border-radius:6px;background:var(--acc-soft);color:var(--acc);display:grid;place-items:center;font:700 7.5px/1 'Inter';flex:none}
+  .file .fn{font-size:11.5px;font-weight:500}.file .fs{font-size:10px;color:var(--faint);margin-top:1px}
 
-  .mb-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem}
-  .mb-modal[hidden]{display:none}
-  .mb-modal-back{position:absolute;inset:0;background:rgba(16,24,48,.55);backdrop-filter:blur(2px)}
-  .mb-modal-card{position:relative;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(16,24,48,.28);max-width:460px;width:100%;padding:1.6rem 1.5rem 1.4rem;max-height:88vh;overflow:auto;animation:mbIn .28s cubic-bezier(.2,.9,.3,1)}
-  @keyframes mbIn{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
-  .mb-modal-x{position:absolute;top:.7rem;right:.85rem;border:none;background:transparent;font-size:1.5rem;line-height:1;color:#8a8f99;cursor:pointer}
-  .mb-modal-badge{display:inline-block;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#fff;background:#23a259;padding:.32rem .6rem;border-radius:7px;margin-bottom:.85rem;box-shadow:0 0 16px 3px rgba(35,162,89,.35)}
-  .mb-modal-badge.ok{background:#16306B;box-shadow:none}
-  .mb-modal-card h2{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.35rem;margin:0 0 .55rem;color:#16306B}
-  .mb-modal-sub{font-size:.92rem;line-height:1.5;color:#3b4252;margin:0 0 .9rem}
-  .mb-modal-card label{display:block;font-size:.82rem;font-weight:600;color:#3b4252;margin:.85rem 0 .3rem}
-  .mb-modal-card .opt{font-weight:400;color:#8a8f99}
-  .mb-modal-card input,.mb-modal-card textarea{width:100%;font:inherit;font-size:.92rem;padding:.6rem .7rem;border:1px solid #d6dbe4;border-radius:10px;background:#fbfcfe;resize:vertical}
-  .mb-modal-card input:focus,.mb-modal-card textarea:focus{outline:none;border-color:#2b54e6;box-shadow:0 0 0 3px rgba(43,84,230,.15)}
-  .mb-modal-err{margin-top:.7rem;font-size:.85rem;color:#7a4a18;background:#fff6ec;border:1px solid #f2dcc1;border-radius:9px;padding:.5rem .7rem}
-  .mb-modal-go{display:block;width:100%;margin-top:1.1rem;text-align:center;font:inherit;font-size:.92rem;font-weight:600;color:#fff;background:#23a259;border:none;border-radius:999px;padding:.7rem 1rem;cursor:pointer;text-decoration:none;box-shadow:0 0 18px 3px rgba(35,162,89,.32)}
-  .mb-modal-go:disabled{opacity:.6;cursor:default;box-shadow:none}
-  .mb-modal-go[aria-disabled="true"]{opacity:.45;cursor:not-allowed;box-shadow:none;pointer-events:none}
-  .mb-modal-alt{display:block;text-align:center;margin-top:.8rem;font-size:.85rem;color:#16306B}
+  .stack{display:flex;flex-direction:column;gap:12px}
 
-  /* Invitation panel. The old version was a link and a Copy button, shown only while
-     the case was already 'awaiting_other' — so if the send failed, the case sat in
-     'draft' and there was no way to try again short of pasting a URL by hand. */
-  .inv{border:1px solid var(--line);border-left:4px solid #2F6BFF;border-radius:14px;
-    background:#fff;padding:16px 18px;margin:0 0 18px}
-  .inv.inv-stale{border-left-color:#F5B312;background:rgba(245,179,18,.05)}
-  .inv.inv-bad{border-left-color:#C25A34;background:rgba(194,90,52,.05)}
-  .inv-head{display:flex;gap:.7em;align-items:flex-start}
-  .inv-head svg{width:19px;height:19px;flex:none;color:#2F6BFF;margin-top:.15em}
-  .inv.inv-stale .inv-head svg{color:#B5790F}
-  .inv.inv-bad .inv-head svg{color:#C25A34}
-  .inv-head b{display:block;font-size:.95rem;color:#1E2A45}
-  .inv-head span{display:block;font-size:.85rem;color:#586079;line-height:1.5;margin-top:.15em}
-  .inv-err{font-family:"Spline Sans Mono",monospace;font-size:.76rem;color:#8C3D1E;
-    background:rgba(194,90,52,.09);border:1px solid rgba(194,90,52,.3);border-radius:8px;
-    padding:.55em .7em;margin:.7em 0 0;word-break:break-word}
-  .inv-form{display:flex;gap:.5em;margin-top:.9em;flex-wrap:wrap}
-  .inv-form input{flex:1;min-width:180px;padding:.5em .7em;border:1px solid var(--line);
-    border-radius:9px;font:inherit;font-size:.88rem}
-  .inv-alt{margin-top:.8em}
-  .inv-alt summary{font-size:.82rem;color:#586079;cursor:pointer}
-  .inv-alt summary:hover{color:#16306B}
-  .inv-fine{font-size:.76rem;color:#8a8f99;margin:.5em 0 0;line-height:1.45}
-  .inv-msg{border:1px solid #15B877;background:rgba(21,184,119,.1);color:#1c5e3f;
-    border-radius:10px;padding:.6em .9em;margin:0 0 14px;font-size:.88rem;font-weight:600}
-  .inv-msg.bad{border-color:#C25A34;background:rgba(194,90,52,.08);color:#8C3D1E}
-  .mb-modal-fine{font-size:.76rem;color:#8a8f99;text-align:center;margin:.75rem 0 0;line-height:1.45}
-  /* ---- settlement action popup ---- */
-  #mbSet{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;background:rgba(9,14,34,.55);backdrop-filter:blur(3px);overflow:auto}
-  #mbSet.show{display:flex}
-  #mbAgree{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding:48px 16px;background:rgba(9,14,34,.55);backdrop-filter:blur(3px);overflow:auto}
-  #mbAgree.show{display:flex}
-  #mbAgree .m{width:min(540px,100%);background:#fff;border-radius:22px;box-shadow:0 28px 74px rgba(4,10,30,.5);padding:32px 32px 24px;position:relative;color:#1c2333}
-  #mbAgree .x{position:absolute;top:15px;right:15px;width:31px;height:31px;border-radius:50%;border:0;background:#f3f4f8;color:#8a92a6;cursor:pointer;font-size:16px}
-  #mbAgree .badge{display:inline-block;color:#fff;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:6px 13px;border-radius:999px}
-  #mbAgree h3{font-family:"Fraunces",Georgia,serif;color:#101a3a;font-size:25px;line-height:1.15;font-weight:600;margin:15px 0 10px}
-  #mbAgree .mut{color:#586079;font-size:13.5px;line-height:1.6}
-  #mbAgree .aglabel{display:block;font-size:12px;font-weight:700;color:#16306B;margin:14px 0 5px;letter-spacing:.02em}
-  #mbAgree .aglabel .opt{color:#8a92a6;font-weight:500;text-transform:none;letter-spacing:0}
-  #mbAgree .agfile{width:100%;font-size:13px;padding:9px;border:1px dashed #c3ccdb;border-radius:10px;background:#f7f9fd;box-sizing:border-box}
-  #mbAgree .agnote{width:100%;font:inherit;font-size:13.5px;padding:10px;border:1px solid #dce3ef;border-radius:10px;box-sizing:border-box;resize:vertical}
-  #mbAgree .agfine{color:#8a92a6;font-size:11.5px;line-height:1.5;margin:6px 0 0}
-  #mbAgree .cta{width:100%;border:0;border-radius:999px;background:#16306B;color:#fff;font:inherit;font-weight:700;font-size:14.5px;padding:13px;cursor:pointer}
-  #mbAgree .cta:hover{background:#1d3d82}
-  #mbSet .m{width:min(540px,100%);background:#fff;border-radius:22px;box-shadow:0 28px 74px rgba(4,10,30,.5);padding:32px 32px 22px;position:relative;color:#1c2333}
-  #mbSet .x{position:absolute;top:15px;right:15px;width:31px;height:31px;border-radius:50%;border:0;background:#f3f4f8;color:#8a92a6;cursor:pointer;font-size:16px}
-  #mbSet .badge{display:inline-flex;align-items:center;gap:7px;background:#2f9e5b;color:#fff;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:6px 13px;border-radius:999px}
-  #mbSet .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;opacity:.9}
-  #mbSet h3{font-family:"Fraunces",Georgia,serif;color:#101a3a;font-size:26px;line-height:1.15;font-weight:600;margin:15px 0 10px}
-  #mbSet .status{border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5}
-  #mbSet .status .k{display:block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
-  #mbSet .status.ok{background:#e8f6ee;border:1px solid #bfe6cd;color:#1f5f3e}
-  #mbSet .status.ok .k{color:#268a4f}
-  #mbSet .status.wait{background:#fdf3e2;border:1px solid #e9d3a6;color:#7a5312}
-  #mbSet .status.wait .k{color:#b5791f}
-  #mbSet .bd{margin-top:16px;border:1px solid #e7e9f0;border-radius:13px;overflow:hidden}
-  #mbSet .r{display:flex;justify-content:space-between;align-items:baseline;padding:12px 16px;font-size:14.5px}
-  #mbSet .r+.r{border-top:1px solid #e7e9f0}
-  #mbSet .r .l{color:#5b6478} #mbSet .r .v{font-weight:600;font-variant-numeric:tabular-nums}
-  #mbSet .r.sub .l,#mbSet .r.sub .v{font-size:13px;color:#5b6478;font-weight:500}
-  #mbSet .r.tot{background:#f7f9fc} #mbSet .r.tot .l{color:#101a3a;font-weight:700;font-size:15px} #mbSet .r.tot .v{color:#101a3a;font-weight:800;font-size:17px}
-  #mbSet .tc{display:flex;align-items:flex-start;gap:10px;margin-top:15px;font-size:13.5px;line-height:1.45}
-  #mbSet .tc input{margin-top:2px;width:17px;height:17px;accent-color:#2f9e5b;flex:0 0 auto;cursor:pointer}
-  #mbSet .tc a{color:#2b4de0;font-weight:600;text-decoration:none}
-  #mbSet .cta{width:100%;border:0;cursor:pointer;background:#2f9e5b;color:#fff;font:inherit;font-size:16px;font-weight:700;padding:15px 20px;border-radius:13px;margin-top:15px}
-  #mbSet .cta:hover:not(:disabled){background:#268a4f} #mbSet .cta:disabled{opacity:.45;cursor:not-allowed}
-  #mbSet .field{margin-top:12px} #mbSet .field label{display:block;font-size:12.5px;font-weight:600;color:#101a3a;margin-bottom:5px}
-  #mbSet .field input{width:100%;border:1px solid #e7e9f0;border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px}
-  #mbSet .field input:focus{outline:none;border-color:#2b4de0;box-shadow:0 0 0 3px rgba(43,77,224,.12)}
-  #mbSet .two{display:flex;gap:12px} #mbSet .two .field{flex:1}
-  #mbSet .agree{margin-top:15px;border-radius:12px;padding:14px 15px;display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fbeef1;border:1px solid #e2b3bf}
-  #mbSet .agree .h{font-size:13.5px;font-weight:700;color:#101a3a;margin:0}
-  #mbSet .agree .s{font-size:12px;color:#8a2b42;font-weight:600;margin:3px 0 0}
-  #mbSet .agree .btn{flex:0 0 auto;background:transparent;border:2px solid #8a2b42;color:#8a2b42;font:inherit;font-size:13.5px;font-weight:700;padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
-  #mbSet .agree .btn:hover{background:#f3dde3}
-  #mbSet .agree-done{background:#fbeef1;border:1px solid #e2b3bf;border-radius:12px;padding:13px 15px;margin-top:15px;font-size:12.5px;line-height:1.5}
-  #mbSet .fine{text-align:center;font-size:11.5px;color:#5b6478;margin:14px 0 2px}
-  #mbSet .mut{font-size:12px;color:#5b6478;margin:8px 2px 0;line-height:1.45}
-  .mb-fab{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;cursor:pointer;background:#2f9e5b;color:#fff;font:inherit;font-weight:700;font-size:14px;padding:13px 20px;border-radius:999px;box-shadow:0 12px 30px -8px rgba(47,158,91,.6)}
-  .mb-fab:hover{background:#268a4f}
-  .mb-agree-fab{position:fixed;right:20px;bottom:74px;z-index:9998;border:2px solid #8a2b42;background:#fff;color:#8a2b42;font:inherit;font-weight:700;font-size:12.5px;padding:9px 15px;border-radius:999px;cursor:pointer;box-shadow:0 8px 22px -8px rgba(4,10,30,.4)}
-  .mb-agree-fab:hover{background:#fbeef1}
-  .mb-agree-fab.done{background:#8a2b42;color:#fff;border-color:#8a2b42;cursor:default}
+  /* Layout 7: Timeline + scale */
+  .L7{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start}
 
-/* ===== TWO-COLUMN LAYOUT (legal-fintech theme) ===== */
-.cx-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:start;margin-top:4px;position:relative;left:50%;width:min(1240px,94vw);margin-left:calc(-1 * min(620px,47vw))}
-@media(max-width:860px){.cx-grid{grid-template-columns:1fr}}
-.cx-left{min-width:0}
-.cx-right{min-width:0;display:flex;flex-direction:column;gap:14px}
-/* case-facts strip: reference, parties, amount — all in one place */
-.cx-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:12px 14px;background:linear-gradient(180deg,#fffdf7,#fbf5e9);border-color:#ecdfc4;box-shadow:0 18px 46px -40px rgba(120,90,30,.5)}
-.cx-facts .cx-fact{padding:8px 20px;border-radius:11px;transition:background .18s ease,box-shadow .18s ease}
-.cx-facts .cx-fact + .cx-fact{border-left:1px solid #eadfc6}
-.cx-facts .cx-fact:hover{background:rgba(207,156,52,.14);box-shadow:inset 0 0 0 1px rgba(207,156,52,.4)}
-.cx-fact .k{display:flex;align-items:center;gap:.5em;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:#a9853a;margin-bottom:9px}
-.cx-fact .k::before{content:"";width:6px;height:6px;border-radius:50%;background:#cf9c34;transition:transform .18s ease}
-.cx-facts .cx-fact:hover .k::before{transform:scale(1.5)}
-.cx-fact .v{font-family:"Newsreader",Georgia,serif;font-size:1.05rem;font-weight:500;color:#33291a}
-.cx-fact .v small{display:block;font-family:"Inter",sans-serif;font-size:.7rem;font-weight:400;color:#8a7f68;margin-top:2px}
-.cx-fact .v.mono{font-family:"Spline Sans Mono","JetBrains Mono",monospace;color:#b7791f;font-weight:600;font-size:.98rem;font-variant-numeric:tabular-nums}
-.cx-fact .v.num{font-family:"Fraunces",Georgia,serif;color:#a86d15;font-weight:600;font-size:1.5rem}
-/* full-width human-mediator bar under both columns */
-.cx-mediator{display:flex;flex-direction:column;align-items:stretch;gap:14px;background:linear-gradient(155deg,#16213f,#22376f);color:#fff;border-radius:16px;padding:20px}
-.cx-med-text{display:flex;gap:14px;align-items:flex-start;min-width:0}
-.cx-med-ic{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex:none;color:#e0b34a}
-.cx-med-ic svg{width:20px;height:20px}
-.cx-med-b{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.02rem}
-.cx-med-s{font-size:.8rem;color:rgba(255,255,255,.72);margin-top:3px;line-height:1.5}
-.cx-med-btn{font-weight:600;font-size:.9rem;color:#16213f;background:#e0b34a;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;width:100%;text-align:center}
-.cx-med-btn:disabled{opacity:.6;cursor:default}
-/* invite status chip in the right column */
-.cx-invite-status{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid #e4e9f4}
-.cx-invite-status svg{width:18px;height:18px;flex:none;margin-top:.1em}
-.cx-invite-status b{display:block;font-size:13px}
-.cx-invite-status span{font-size:11.5px;color:#5a6377;line-height:1.5}
-.cx-invite-status.awaiting{background:rgba(224,151,42,.08);border-color:rgba(224,151,42,.32)}
-.cx-invite-status.awaiting svg{color:#b3801f}
-.cx-invite-status.accepted{background:rgba(18,161,80,.08);border-color:rgba(18,161,80,.3)}
-.cx-invite-status.accepted svg{color:#12a150}
-/* invitation aligned to the gold-editorial look (keeps stale/error states) */
-.inv{border-left-color:#cf9c34}
-.inv-eyebrow{display:block;font:700 .6rem/1 'Inter',sans-serif;letter-spacing:.15em;text-transform:uppercase;color:#2b54e6;margin-bottom:6px}
-.inv-title{font:500 1.08rem/1.15 'Newsreader',Georgia,serif;color:#16213f;margin:0 0 12px}
-.inv-head svg{color:#cf9c34}
-.inv.inv-stale .inv-head svg{color:#B5790F}
-.inv.inv-bad .inv-head svg{color:#C25A34}
-.inv-form{flex-direction:column;gap:.6em}
-.inv-form input{width:100%;min-width:0}
-.inv-form button{width:100%}
-.invite-box{font-family:"Spline Sans Mono",monospace;font-size:.72rem;color:#586079;background:#f7f9fe;border:1px dashed #d3ddf0;border-radius:9px;padding:.6em .7em;word-break:break-all;margin-top:.5em}
-/* documents section (full width) */
-.cx-docs{margin-top:18px;padding:22px 24px}
-.cx-docs-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.cx-docs-head h2{font:500 17px/1 "Newsreader",Georgia,serif;color:#16213f}
-.cx-docs-n{font-size:12px;color:#5a6377}
-.cx-docs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.cx-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:100%;min-height:96px;border:1.6px dashed #c7cdda;border-radius:12px;padding:16px;text-align:center;background:#fbfcfe;cursor:pointer;transition:border-color .15s}
-.cx-drop:hover{border-color:#2b54e6}
-.cx-drop-ic{width:36px;height:36px;border-radius:10px;background:rgba(43,84,230,.1);display:grid;place-items:center;color:#2b54e6}
-.cx-drop strong{font-size:13.5px;color:#16213f}
-.cx-drop span{font-size:11.5px;color:#5a6377}
-.cx-file{display:flex;align-items:center;gap:11px;border:1px solid #e4e9f4;border-radius:12px;padding:13px 14px;background:#f7f9fe;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
-.cx-file:hover{border-color:#2b54e6;background:#fff}
-.cx-fi{width:30px;height:30px;border-radius:8px;background:rgba(43,84,230,.12);display:grid;place-items:center;color:#2b54e6;font:700 9px/1 'Inter',sans-serif;flex:none}
-.cx-fmeta{min-width:0;display:flex;flex-direction:column}
-.cx-fn{font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cx-fs{font-size:11px;color:#95a0b8;margin-top:2px}
-.cx-docs-fine{margin-top:14px;font-size:11.5px;color:#95a0b8;line-height:1.5}
-@media(max-width:820px){.cx-docs-grid{grid-template-columns:1fr}}
-@media(max-width:900px){.cx-facts{grid-template-columns:1fr 1fr}.cx-facts .cx-fact{border-left:0;padding:8px 0}.cx-mediator{flex-direction:column;align-items:flex-start}}
-/* --- scale card polished to match the design --- */
-.mb-figwrap{display:none}
-.mb-schead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 16px}
-.mb-eyebrow{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:#2b54e6}
-.mb-rolechip{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#2b54e6;background:rgba(43,84,230,.1);padding:.5em .75em;border-radius:999px}
-.mb-chips{display:flex;gap:10px;flex-wrap:wrap;margin:.2rem 0 1rem}
-.mb-chip{flex:1 1 0;min-width:120px;display:block;border:1px solid #e4e9f4;border-radius:12px;padding:11px 14px;background:rgba(0,0,0,.012)}
-.mb-chip .k{display:flex;align-items:center;gap:.42em;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
-.mb-chip .k::before{content:"";width:8px;height:8px;border-radius:50%;flex:none}
-.mb-chip[data-slot="ideal"] .k::before{background:transparent;border:2px solid #7a5af0;width:9px;height:9px}
-.mb-chip[data-slot="fair"] .k::before{background:#2b54e6}
-.mb-chip[data-slot="res"] .k::before{background:#e0972a}
-.mb-chip .v{display:block;margin-top:8px;font-size:1.2rem;font-weight:600;font-family:"Spline Sans Mono","JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
-/* status pill above the grid */
-.cx-statusrow{display:flex;justify-content:flex-end;margin:-4px 0 12px}
-.cx-pill{display:inline-flex;align-items:center;gap:.5em;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:#2b54e6;background:rgba(43,84,230,.1);border:1px solid rgba(43,84,230,.25);padding:.55em .8em;border-radius:999px}
-.cx-pill.green{color:#12a150;background:rgba(18,161,80,.1);border-color:rgba(18,161,80,.3)}
-.cx-pill.amber{color:#b3801f;background:rgba(224,151,42,.12);border-color:rgba(224,151,42,.32)}
-.cx-col-label{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:#8A93A8;font-weight:600;margin-bottom:2px}
-.cx-info-card{background:#fff;border:1px solid #E4E9F2;border-radius:14px;padding:16px 18px}
-.cx-info-head{display:flex;gap:.65em;align-items:flex-start}
-.cx-info-head svg{width:20px;height:20px;flex:none;color:#2F6BFF;margin-top:1px}
-.cx-info-head b{display:block;color:#0F2350;font-size:.92rem;font-weight:700}
-.cx-info-head span{display:block;color:#59637E;font-size:.82rem;margin-top:2px;line-height:1.45}
-/* right-column invite panel re-themed to match */
-.cx-right .inv{background:#fff;border:1px solid #E4E9F2;border-left:4px solid #2F6BFF;border-radius:14px;padding:16px 18px}
-.cx-right .inv-bad{border-left-color:#C0392B}
-.cx-right .inv-stale{border-left-color:#E7A93B}
+  .timeline-card{padding:16px 18px}
+  .timeline{list-style:none;position:relative;margin:12px 0 0 6px}
+  .timeline li{position:relative;padding:0 0 14px 18px;border-left:2px solid var(--line);font-size:12px}
+  .timeline li:last-child{border-left-color:transparent;padding-bottom:0}
+  .timeline .dot{position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid #fff}
+  .timeline .dot.gold{background:var(--gold)}
+  .timeline .dot.green{background:var(--success)}
+  .timeline .when{font-size:10.5px;color:var(--faint);margin-top:2px}
+  .timeline b{font-weight:600}
 
+  /* Private notes */
+  .notes-card textarea{
+    width:100%;min-height:110px;resize:vertical;
+    border:1px solid var(--line);border-radius:9px;
+    padding:10px 12px;font:inherit;font-size:13px;line-height:1.5;
+    color:var(--ink);background:#FAFBFD;outline:none;
+  }
+  .notes-card textarea:focus{border-color:var(--acc);background:#fff}
+  .notes-card .notes-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--faint)}
+  .notes-card .notes-meta .lock{display:flex;align-items:center;gap:4px}
+
+  @media(max-width:900px){
+    .L7{grid-template-columns:1fr}
+    .ribbon{grid-template-columns:1fr 1fr}
+  }
 </style>
+</head>
+<body>
 
-<%
-  // The invitation panel is shown for the whole time the other side has not joined —
-  // not only in 'awaiting_other'. A failed send leaves the case in 'draft', and that is
-  // exactly when you most need the button.
-  var otherJoined = !!(c.claimant_id && c.respondent_id);
-  var liveCase    = ['settled', 'closed', 'declined'].indexOf(c.status) === -1;
-  var sentAt      = c.invited_at ? new Date(c.invited_at) : null;
-  var days        = sentAt ? Math.floor((Date.now() - sentAt.getTime()) / 86400000) : null;
-  var ago         = days === null ? '' : (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago');
-  var stale       = days !== null && days >= 5;
-%>
-<% if (typeof msg !== 'undefined' && msg) { %>
-  <div class="inv-msg <%= /Could not|does not look/.test(msg) ? 'bad' : '' %>"><%= msg %></div>
-<% } %>
-<div class="card cx-facts">
-  <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
-  <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %></div></div>
-  <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %></div></div>
-  <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
-</div>
-<% if (c.status === 'settled' || otherJoined) { %>
-<div class="cx-statusrow">
-  <% if (c.status === 'settled') { %><span class="cx-pill green">Settled</span>
-  <% } else { %><span class="cx-pill">Active &mdash; bidding open</span><% } %>
-</div>
-<% } %>
-<div class="cx-grid">
-  <!-- LEFT: the bid — scale, figures, one-way rule, submit. SCALE KEPT VERBATIM. -->
-  <div class="cx-left">
-<div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
-  <div class="mb-schead">
-    <span class="mb-eyebrow">Your private figures</span>
-    <span class="mb-rolechip">You &mdash; <%= role === 'claim' ? 'Claimant' : 'Respondent' %></span>
-  </div>
-  <div class="mb-figwrap">
-    <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
-    <div class="mb-figrole" id="figRole">Drag the three handles to set your figures</div>
-  </div>
-
-  <div class="mb-chips" id="chips">
-    <div class="mb-chip" data-slot="ideal"><span class="k" id="kIdeal">Ideal</span><span class="v"><%= cur.symbol %><span id="vIdeal">0</span></span></div>
-    <div class="mb-chip" data-slot="fair"><span class="k">Target</span><span class="v"><%= cur.symbol %><span id="vFair">0</span></span></div>
-    <div class="mb-chip" data-slot="res"><span class="k" id="kRes">Walk-away</span><span class="v"><%= cur.symbol %><span id="vRes">0</span></span></div>
-  </div>
-
-  <div class="mb-track" id="track">
-    <div class="mb-band" id="band"></div>
-    <div class="mb-h" id="hIdeal" data-slot="ideal"><span class="dot"></span></div>
-    <div class="mb-h" id="hFair" data-slot="fair"><span class="dot"></span></div>
-    <div class="mb-you" id="you"><span class="hub"></span><span class="ring" id="ring"><span class="od-blue"></span></span></div>
-    <div class="mb-pops" id="pops"></div>
-  </div>
-  <div class="mb-scale"><span><%= cur.symbol %>0</span><span><%= cur.symbol %><%= fmt(Math.round(c.amount/2)) %></span><span><%= cur.symbol %><%= fmt(c.amount) %></span></div>
-
-  <%# This slot used to hold the proximity bar — the thing that told you how close
-      you were, and so let you find the other side's number by nudging. It is gone.
-      What belongs here instead is the rule that replaced it. %>
-  <div class="mb-oneway" id="onewayNote">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M12 5v14M5 12l7 7 7-7" id="onewayArrow" />
+<!-- Top nav -->
+<header class="topnav">
+  <a href="/" class="brand">
+    <svg viewBox="0 0 120 130" aria-hidden="true">
+      <circle fill="#2B6DE8" cx="60" cy="10" r="7"/>
+      <circle fill="#2B6DE8" cx="42" cy="62" r="36" opacity="0.95"/>
+      <circle fill="#C9A227" cx="78" cy="62" r="36" opacity="0.95"/>
+      <circle fill="#0D9F6E" cx="60" cy="62" r="22"/>
+      <circle fill="#C9A227" cx="60" cy="120" r="7"/>
     </svg>
-    <span id="onewayText"></span>
+    MidBid
+  </a>
+  <div class="nav-right">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/logout">Sign out</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="titlebar">
+    <div class="t">
+      <span class="ref">Case <%= typeof caseRef !== 'undefined' ? caseRef : 'MB-2' %></span>
+      <h1><%= typeof caseTitle !== 'undefined' ? caseTitle : 'Invoice #1042 — final account' %></h1>
+    </div>
+    <span class="pill">● <%= typeof status !== 'undefined' ? status : 'Active' %></span>
   </div>
 
-  <%# Shown when a round has closed with no deal and it is your turn to move again.
-      It deliberately says nothing about how close the two sides were — that would be
-      the leak. It points at your own figure, which is the only thing you should be
-      thinking about. %>
-  <div class="mb-nudge" id="roundNudge" hidden>
-    <div class="mb-nudge-top">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" />
-      </svg>
-      <div>
-        <b id="nudgeTitle">Round closed — no agreement yet</b>
-        <span id="nudgeSub">You can revise your figure and bid again. The moment your ranges meet, it settles.</span>
-      </div>
+  <!-- Summary ribbon -->
+  <div class="card ribbon">
+    <div class="rc">
+      <div class="k">Case reference</div>
+      <div class="v ref"><%= typeof caseRef !== 'undefined' ? caseRef : 'MB-2' %></div>
+    </div>
+    <div class="rc">
+      <div class="k">Claimant</div>
+      <div class="v"><%= typeof claimantName !== 'undefined' ? claimantName : 'Saaba01' %></div>
+    </div>
+    <div class="rc">
+      <div class="k">Respondent</div>
+      <div class="v"><%= typeof respondentName !== 'undefined' ? respondentName : 'saaba02' %></div>
+    </div>
+    <div class="rc">
+      <div class="k">Original amount</div>
+      <div class="v amt"><%= typeof originalAmount !== 'undefined' ? originalAmount : '$899,777' %></div>
     </div>
   </div>
 
-  <div class="coach tone-<%= status.coach ? status.coach.tone : 'idle' %>" id="coachBox" <%= status.coach ? '' : 'style="display:none"' %>>
-    <span class="coach-badge">midbid</span>
-    <span class="coach-text" id="coachText"><%= status.coach ? status.coach.text : '' %></span>
-  </div>
+  <!-- Layout: Timeline + Scale (+ Private notes) -->
+  <div class="L7">
 
-  <div class="mb-ask" id="bidAsk" role="dialog" aria-modal="true" aria-labelledby="askTitle">
-    <div class="mb-ask-box">
-      <div class="mb-ask-ic">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 8v5M12 16.5v.01" /><circle cx="12" cy="12" r="9" />
-        </svg>
+    <!-- LEFT COLUMN -->
+    <div class="stack">
+
+      <!-- Timeline -->
+      <div class="card timeline-card">
+        <span class="eyebrow">Case activity</span>
+        <h3 class="ct">Timeline</h3>
+        <ul class="timeline">
+          <li>
+            <span class="dot green"></span>
+            <b>Case opened</b>
+            <div class="when"><%= typeof openedAt !== 'undefined' ? openedAt : '28 Jul 2026 · 09:14' %></div>
+          </li>
+          <li>
+            <span class="dot gold"></span>
+            <b>Invitation sent</b>
+            <div class="when"><%= typeof invitedAt !== 'undefined' ? invitedAt : '28 Jul 2026 · 09:16' %></div>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <b>Claimant figures saved</b>
+            <div class="when"><%= typeof figuresSavedAt !== 'undefined' ? figuresSavedAt : '28 Jul 2026 · 11:42' %></div>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <b>Awaiting respondent</b>
+            <div class="when">Current</div>
+          </li>
+        </ul>
       </div>
-      <h3 id="askTitle">Submit these figures?</h3>
-      <p id="askBody"></p>
-      <div class="mb-ask-figs" id="askFigs"></div>
-      <p class="mb-ask-warn" id="askWarn"></p>
-      <div class="mb-ask-foot">
-        <button type="button" class="btn btn-ghost" id="askNo">Not yet</button>
-        <button type="button" class="btn btn-gold" id="askYes">Submit &amp; lock</button>
+
+      <!-- Invite -->
+      <div class="card pad">
+        <span class="eyebrow">The other party</span>
+        <h3 class="ct">Invite the respondent</h3>
+        <div class="status">
+          <div>
+            <b>Invitation sent</b><br>
+            <span><%= typeof inviteStatus !== 'undefined' ? inviteStatus : '2 days ago to saaba02@…' %></span>
+          </div>
+        </div>
+        <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/resend-invite">
+          <button type="submit" class="btn full">Resend invitation</button>
+        </form>
+        <div class="link"><%= typeof joinLink !== 'undefined' ? joinLink : 'midbid.org/join/MB-2-8f3a…' %></div>
       </div>
-    </div>
-  </div>
 
-  <div class="mb-actions">
-    <button class="btn btn-primary" type="button" id="saveBtn">Save my figures</button>
-    <button class="btn btn-ghost" type="button" id="resetBtn" title="The figures will go back to your last saved numbers.">Reset</button>
-    <button class="mb-approve" type="button" id="approve" style="display:none"><span class="lbl" id="approveLbl">Settle</span></button>
-    <span class="muted" id="saveHint"></span>
-    <span class="muted" id="roundLine" style="display:block;width:100%;margin-top:.4rem;font-size:.82rem"></span>
-  </div>
-
-  <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
-
-
-  <!-- RIGHT: the case — invitation, link, and case info. -->
-  <div class="mb-med-wrap" id="medWrap">
-    <% if (c.status === 'settled') { %>
-      <span class="mb-med-cap"><% if (pay && pay.enabled && pay.fee && !pay.released) { %>Add your details, then settle the service charge to release your agreement.<% } else { %>Add your details to complete your settlement agreement.<% } %></span>
-    <% } %>
-    <button id="settleBtn" type="button" hidden aria-hidden="true"></button>
-  </div>
-</div>
-  </div>
-
-  <div class="cx-right">
-    <% if (otherJoined) { %>
-      <div class="cx-invite-status accepted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Invitation accepted</b><span>The other party has joined — bidding is live on the left.</span></div></div>
-    <% } else if (liveCase) { %>
-      <div class="cx-invite-status awaiting"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><b>Awaiting the other party</b><span>They haven't joined the case yet.</span></div></div>
-    <% } %>
-<% if (!otherJoined && liveCase) { %>
-  <div class="inv <%= c.last_invite_error ? 'inv-bad' : (stale ? 'inv-stale' : '') %>">
-    <span class="inv-eyebrow">The other party</span>
-    <h3 class="inv-title">Invite the respondent</h3>
-    <div class="inv-head">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
-      </svg>
-      <div>
-        <b><%= c.invite_count > 0 ? 'Invitation sent' : 'They have not been invited yet' %></b>
-        <span>
-          <% if (c.last_invite_error) { %>
-            The last attempt failed, so nothing reached them.
-          <% } else if (c.invite_count > 0) { %>
-            Sent <%= ago %><%= c.invite_count > 1 ? ' \u00b7 ' + c.invite_count + ' times' : '' %> to <%= c.other_email || 'them' %>.
-            <%= stale ? 'No reply yet — worth another nudge.' : 'Waiting for them to open it.' %>
-          <% } else { %>
-            Nothing has been sent. They cannot join a case they have not heard about.
-          <% } %>
-        </span>
+      <!-- Mediator -->
+      <div class="mediator">
+        <div class="mb">Bring in a mediator</div>
+        <div class="ms">Accredited human mediator. Both parties must agree before a session is scheduled.</div>
+        <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/request-mediator">
+          <button type="submit" class="mbtn">Request mediator</button>
+        </form>
       </div>
+
     </div>
 
-    <% if (c.last_invite_error) { %>
-      <p class="inv-err"><b>Why it failed:</b> <%= c.last_invite_error %></p>
-    <% } %>
+    <!-- RIGHT COLUMN -->
+    <div class="stack">
 
-    <form class="inv-form" method="POST" action="/cases/<%= c.id %>/invite">
-      <% if (!c.other_email) { %>
-        <input type="email" name="email" placeholder="their@email.com" required />
-      <% } %>
-      <button class="btn btn-primary" type="submit">
-        <%= c.invite_count > 0 ? 'Resend invitation' : 'Send invitation' %>
-      </button>
-    </form>
-
-    <details class="inv-alt">
-      <summary>Or send them the link yourself</summary>
-      <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
-      <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.6rem">Copy link</button>
-      <p class="inv-fine">This link is unique to this case and does not expire. Anyone who has it can join as the other side.</p>
-    </details>
-  </div>
-<% } %>
-
-    <div class="cx-mediator" id="escalate">
-      <div class="cx-med-text">
-        <div class="cx-med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><circle cx="12" cy="15" r="6"/></svg></div>
-        <div>
-          <div class="cx-med-b">Stuck? Bring in an accredited mediator.</div>
-          <div class="cx-med-s">An independent human mediator can help close the gap when the two sides can't quite meet. Both parties must agree to proceed.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></div>
+      <!-- Private figures / scale -->
+      <div class="card scale">
+        <div class="top">
+          <span class="eyebrow" style="margin:0">Your private figures</span>
+          <span class="rolechip">You — <%= typeof role !== 'undefined' ? role : 'Claimant' %></span>
+        </div>
+        <div class="chips">
+          <div class="chip i">
+            <div class="k">Ideal</div>
+            <div class="v"><%= typeof ideal !== 'undefined' ? ideal : '$720,000' %></div>
+          </div>
+          <div class="chip t">
+            <div class="k">Target</div>
+            <div class="v"><%= typeof target !== 'undefined' ? target : '$600,000' %></div>
+          </div>
+          <div class="chip w">
+            <div class="k">Walk-away</div>
+            <div class="v"><%= typeof walkAway !== 'undefined' ? walkAway : '$480,000' %></div>
+          </div>
+        </div>
+        <div class="trk">
+          <div class="b"></div>
+          <div class="n w"></div>
+          <div class="n t"></div>
+          <div class="n i"></div>
+        </div>
+        <div class="axis">
+          <span>$0</span>
+          <span>$450,000</span>
+          <span>$900,000</span>
+        </div>
+        <div class="oneway">One-way only — each committed figure moves toward settlement and cannot be withdrawn.</div>
+        <div class="acts">
+          <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/figures" style="display:inline">
+            <button type="submit" class="btn">Save figures</button>
+          </form>
+          <button type="button" class="btn g" onclick="/* reset UI */">Reset</button>
         </div>
       </div>
-      <button class="cx-med-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
-    </div>
-  </div>
-</div>
 
-<div class="card cx-docs" id="documents">
-  <div class="cx-docs-head">
-    <h2>Documents</h2>
-    <span class="cx-docs-n">Invoices, contracts, correspondence — add at any stage of the case.</span>
-  </div>
-  <div class="cx-docs-grid">
-    <form method="POST" action="/cases/<%= c.id %>/documents" enctype="multipart/form-data" class="cx-drop-form">
-      <label class="cx-drop">
-        <input type="file" name="documents" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" onchange="this.form.submit()" hidden />
-        <span class="cx-drop-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
-        <strong>Add files</strong>
-        <span>PDF, JPG, PNG · up to 5 files · 5&nbsp;MB each</span>
-      </label>
-    </form>
-    <% if (docs && docs.length) { docs.forEach(function(d){ %>
-      <a class="cx-file" href="/cases/<%= c.id %>/documents/<%= d.id %>" target="_blank" rel="noopener">
-        <span class="cx-fi"><%= (String(d.filename).split('.').pop() || 'FILE').toUpperCase().slice(0,4) %></span>
-        <span class="cx-fmeta"><span class="cx-fn"><%= d.filename %></span><span class="cx-fs"><%= d.size < 1048576 ? Math.max(1, Math.round(d.size/1024)) + ' KB' : (d.size/1048576).toFixed(1) + ' MB' %> &middot; <%= new Date(d.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) %></span></span>
-      </a>
-    <% }); } %>
-  </div>
-  <p class="cx-docs-fine">Documents are only used as identifiers for the case. They are assessed solely for the purpose of mediation, and only where a human mediator is involved.</p>
-</div>
-
-<% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
-<div class="card">
-  <div class="eyebrow">Service charge</div>
-  <h2 style="margin-top:.35rem">Release your settlement agreement</h2>
-
-  <div class="ledger">
-    <div class="lrow"><span class="lk">MidBid service charge</span><span class="lv"><%= pay.fee.grossLabel %></span></div>
-    <% if (pay.fee.credit > 0) { %>
-      <div class="lrow credit"><span class="lk">Less activation fee already paid</span><span class="lv">&minus;<%= pay.fee.creditLabel %></span></div>
-    <% } %>
-    <% if (pay.myPaid > 0) { %>
-      <div class="lrow credit"><span class="lk">You have paid</span><span class="lv">&minus;<%= pay.myPaidLabel %></span></div>
-    <% } %>
-    <div class="lrow total"><span class="lk">Outstanding on this case</span><span class="lv"><%= pay.fee.outstandingLabel %></span></div>
-  </div>
-
-  <form method="POST" action="/cases/<%= c.id %>/pay/success-fee" id="feeForm">
-    <p class="muted" style="margin-bottom:.7rem">How would you like to cover it?</p>
-
-    <label class="choice on" id="choiceSplit">
-      <input type="radio" name="choice" value="split" checked />
-      <span><b>Split it 50/50</b>
-      <span>You pay <%= pay.fee.halfLabel %>. The other party is asked to pay their half.</span></span>
-    </label>
-
-    <label class="choice" id="choiceFull">
-      <input type="radio" name="choice" value="full" />
-      <span><b>I&rsquo;ll cover it in full</b>
-      <span>You pay <%= pay.fee.outstandingLabel %>. Your agreement is released straight away.</span></span>
-    </label>
-
-    <div class="hint">
-      <span class="k">&#9679;</span>
-      <span>What the other party chooses to pay is not shared with you. If they never pay their half, you can come back and cover the balance to release the agreement &mdash; and recover it from them under clause 5 of the terms.</span>
-    </div>
-
-    <button class="btn btn-primary btn-block" type="button" id="feeOpen">Continue to payment</button>
-  </form>
-
-  <p class="note">The service charge is payable because a settlement was reached. It is not a payment for the document, and it is not refundable if the other party later declines to sign.</p>
-</div>
-
-<div class="rel-veil" id="relModal" hidden>
-  <div class="rel" role="dialog" aria-modal="true" aria-labelledby="relTitle">
-    <div class="mi">&#10003;</div>
-    <h3 id="relTitle">Release the settlement agreement?</h3>
-    <p>Once the service charge is paid in full, a link to the executable settlement agreement is emailed to <strong>both parties</strong>. This cannot be undone.</p>
-    <p>Nothing is binding until both parties sign it.</p>
-    <label class="consent">
-      <input type="checkbox" id="relConsent" />
-      <span>I authorise MidBid to charge my card <strong id="relAmount"><%= pay.fee.halfLabel %></strong> and release the agreement.</span>
-    </label>
-    <div class="rel-actions">
-      <button class="btn btn-ghost" type="button" id="relCancel">Not yet</button>
-      <button class="btn btn-primary" type="button" id="relGo" disabled>Pay <span id="relAmount2"><%= pay.fee.halfLabel %></span></button>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  var form=document.getElementById('feeForm');
-  if(!form) return;
-  var HALF=<%- JSON.stringify(pay.fee.halfLabel) %>, FULL=<%- JSON.stringify(pay.fee.outstandingLabel) %>;
-  var modal=document.getElementById('relModal'), consent=document.getElementById('relConsent'),
-      go=document.getElementById('relGo'), cancel=document.getElementById('relCancel'),
-      open=document.getElementById('feeOpen'),
-      a1=document.getElementById('relAmount'), a2=document.getElementById('relAmount2'),
-      cs=document.getElementById('choiceSplit'), cf=document.getElementById('choiceFull');
-
-  function picked(){ var el=form.querySelector('input[name=choice]:checked'); return el?el.value:'split'; }
-  function paint(){
-    var full = picked()==='full';
-    cs.classList.toggle('on',!full); cf.classList.toggle('on',full);
-    a1.textContent = a2.textContent = full?FULL:HALF;
-  }
-  form.addEventListener('change',paint); paint();
-
-  open.addEventListener('click',function(){ consent.checked=false; go.disabled=true; modal.hidden=false; });
-  cancel.addEventListener('click',function(){ modal.hidden=true; });
-  modal.addEventListener('click',function(e){ if(e.target===modal) modal.hidden=true; });
-  consent.addEventListener('change',function(){ go.disabled=!consent.checked; });
-  go.addEventListener('click',function(){ go.disabled=true; go.textContent='Processing…'; form.submit(); });
-})();
-</script>
-<% } %>
-
-<!-- Settlement details + e-signature hand-off -->
-<div class="mb-cer" id="settleCer" hidden aria-live="polite" onclick="this.hidden=true;document.body.style.overflow=''">
-  <div class="mb-cer-sky"></div>
-  <div class="mb-cer-card">
-    <div class="mb-cer-seal">
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/>
-        <path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="mb-cer-eyebrow">Congratulations</div>
-    <h2 class="mb-cer-h">Agreed</h2>
-    <div class="mb-cer-fig"><span id="cerFig">£0</span></div>
-    <p class="mb-cer-sub"><span id="cerTitle"></span> landed at the midpoint of both sides' walk-aways — a fair figure, reached without either side seeing the other's numbers, and without lawyers, court, or months of back-and-forth.</p>
-    <p class="mb-cer-why" id="cerWhy"></p>
-    <p class="mb-cer-fine">Fast, private, and fair — that's the whole idea.</p>
-  </div>
-
-  <%# Step two: the confirmation, after they press Settle. This is the "we'll email you"
-      moment. It fires on a real settlement, so nothing here leaks. %>
-  <div class="mb-cer-card mb-cer-done" id="cerDone" hidden>
-    <div class="mb-cer-seal"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/><path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="mb-cer-eyebrow">You're done</div>
-    <h2 class="mb-cer-h">Congratulations</h2>
-    <% if (role === 'resp') { %>
-      <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. When you're ready, complete your payment from your case page.</p>
-    <% } else { %>
-      <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. Set up your payout details from your case page so we can get your money to you.</p>
-    <% } %>
-
-    <div class="mb-cer-agree" id="cerAgree">
-      <div>
-        <p class="h">Need a signed settlement agreement?</p>
-        <p class="s">Optional &middot; recommended for higher-value or complex disputes &middot; additional cost</p>
-      </div>
-      <button class="btn" type="button" id="cerAgreeBtn">Request</button>
-    </div>
-
-    <button class="mb-cer-go" type="button" id="cerDoneGo">View your case &rarr;</button>
-    <% if (role === 'resp') { %>
-      <p class="mb-cer-fine">Nothing else to do here — your payment step is on your case page.</p>
-    <% } else { %>
-      <p class="mb-cer-fine">Nothing else to do here — your payout setup is on your case page.</p>
-    <% } %>
-  </div>
-</div>
-
-<div class="mb-modal" id="settleModal" hidden>
-  <div class="mb-modal-back" id="settleBack"></div>
-  <div class="mb-modal-card" role="dialog" aria-modal="true" aria-labelledby="settleTitle">
-    <button class="mb-modal-x" id="settleClose" type="button" aria-label="Close">×</button>
-
-    <div id="settleStep1" <%= myDetailsDone ? 'hidden' : '' %>>
-      <div class="mb-modal-badge">Agreed</div>
-      <h2 id="settleTitle">Your settlement is agreed</h2>
-      <p class="mb-modal-sub">Both sides have settled. Add your details below so your settlement agreement names you correctly.</p>
-
-      <label for="pdName">Full name</label>
-      <input id="pdName" type="text" maxlength="200" placeholder="As it should appear on the agreement" />
-
-      <label for="pdCompany">Company name <span class="opt">(optional)</span></label>
-      <input id="pdCompany" type="text" maxlength="200" placeholder="e.g. Northgate Interiors Ltd" />
-
-      <label for="pdAddress">Address</label>
-      <textarea id="pdAddress" rows="3" maxlength="500" placeholder="Street, city, postcode"></textarea>
-
-      <div class="mb-modal-err" id="pdErr" hidden></div>
-      <button class="mb-modal-go" id="pdSave" type="button">Save my details</button>
-      <p class="mb-modal-fine">Used only to identify the parties on the settlement agreement.</p>
-    </div>
-
-    <div id="settleStep2" <%= myDetailsDone ? '' : 'hidden' %>>
-      <div class="mb-modal-badge ok">Details saved</div>
-
-      <div id="pdWait" <%= bothDetailsDone ? 'hidden' : '' %>>
-        <h2>Waiting for the other side</h2>
-        <p class="mb-modal-sub">Thanks — your details are recorded. As soon as the other party adds theirs, your settlement agreement is ready to release.</p>
+      <!-- Private notes -->
+      <div class="card pad notes-card">
+        <span class="eyebrow">Private notes</span>
+        <h3 class="ct">Your working notes</h3>
+        <p class="muted" style="margin:4px 0 10px">Visible only to you. Never shared with the other party or shown in any settlement record.</p>
+        <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/notes">
+          <textarea name="notes" placeholder="Record context, solicitor advice, or your thinking for this case…"><%= typeof notes !== 'undefined' ? notes : '' %></textarea>
+          <div class="notes-meta">
+            <span class="lock">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Private to you
+            </span>
+            <button type="submit" class="btn" style="padding:7px 14px;font-size:12px">Save notes</button>
+          </div>
+        </form>
       </div>
 
-      <div id="pdReady" <%= bothDetailsDone ? '' : 'hidden' %>>
-        <% if (pay && pay.enabled && !pay.released) { %>
-          <h2>One step to release</h2>
-          <p class="mb-modal-sub">Both sides have provided their details. Your settlement agreement is released as soon as the MidBid service charge is paid. Close this and choose how to cover it.</p>
-          <button class="mb-modal-go" type="button" onclick="document.getElementById('settleModal').hidden=true;document.body.style.overflow='';var f=document.getElementById('feeForm');if(f)f.scrollIntoView({behavior:'smooth'})">Continue to the service charge →</button>
-        <% } else { %>
-          <h2>Your agreement is ready</h2>
-          <p class="mb-modal-sub">Both sides have provided their details and the service charge is settled. Your executable settlement agreement is ready to view and download.</p>
-          <a class="mb-modal-go" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener">View &amp; download the agreement →</a>
-        <% } %>
+      <!-- Documents -->
+      <div class="card pad docs">
+        <div class="dhead">
+          <h3 class="ct">Documents</h3>
+        </div>
+        <div class="stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="drop">
+            <strong>Add files</strong>
+            <span>Max 5 MB each</span>
+          </div>
+          <div class="file">
+            <span class="fi">PDF</span>
+            <div>
+              <div class="fn">Invoice_1042.pdf</div>
+              <div class="fs">240 KB</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <p class="mb-modal-fine">MidBid never holds the settlement money. You and the other party settle the agreed sum directly.</p>
+
     </div>
   </div>
+
 </div>
 
-<p style="margin-top:1.2rem"><a href="/dashboard">← Back to my cases</a></p>
-
-<script>
-  var AMOUNT = <%= c.amount %>;
-  var CUR = { symbol: <%- JSON.stringify(cur.symbol) %>, locale: <%- JSON.stringify(cur.locale) %> };
-  var CASE_ID = <%= c.id %>;
-  var ROLE = '<%= role %>';                       // 'claim' (wants high) or 'resp' (wants low)
-  var INIT = <%- JSON.stringify({ mine: status.mine, state: status.state, locked: !!status.locked,
-    round: status.round, limit: status.limit, limitText: status.limitText,
-    coach: status.coach, theirBidIn: !!status.theirBidIn, settledValue: status.settledValue,
-    settleReason: status.settleReason }) %>;
-  var CASE_TITLE = <%- JSON.stringify(c.title) %>;
-
-  var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
-  var hIdeal=document.getElementById('hIdeal'), hFair=document.getElementById('hFair'), band=document.getElementById('band');
-  var figNum=document.getElementById('figNum'), figRole=document.getElementById('figRole'), pops=document.getElementById('pops');
-  var vIdeal=document.getElementById('vIdeal'), vFair=document.getElementById('vFair'), vRes=document.getElementById('vRes');
-  var kIdeal=document.getElementById('kIdeal'), kRes=document.getElementById('kRes');
-  var saveBtn=document.getElementById('saveBtn'), saveHint=document.getElementById('saveHint');
-  var btn=document.getElementById('approve'), approveLbl=document.getElementById('approveLbl');
-  var coachBox=document.getElementById('coachBox'), coachText=document.getElementById('coachText');
-  var proxFill=document.getElementById('proxFill'), proxText=document.getElementById('proxText');
-  var medWrap=document.getElementById('medWrap'), chips=document.getElementById('chips');
-
-  // Role-aware labels. Both roles read left->right as [low, mid, high].
-  // The rule, said the way it actually applies to you. A claimant's walk-away can
-  // only fall; a respondent's ceiling can only rise. "Cannot be reduced" is only
-  // true for one of them, so neither gets told the other's version.
-  function setOneway(s){
-    var box = document.getElementById('onewayNote');
-    var txt = document.getElementById('onewayText');
-    var arw = document.getElementById('onewayArrow');
-    if(!box || !txt) return;
-    if(s && s.state === 'settled'){ box.style.display = 'none'; return; }
-    box.style.display = 'flex';
-    if(s && s.locked){
-      box.classList.add('locked');
-      arw.setAttribute('d','M5 12h14M12 5l7 7-7 7');
-      txt.innerHTML = 'Locked for this round. Your figures cannot be changed until the other side has bid.';
-      return;
-    }
-    box.classList.remove('locked');
-    arw.setAttribute('d', ROLE==='claim' ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7');
-    var base = ROLE==='claim'
-      ? 'One way only — each bid moves you toward a settlement, never away from it. Once you commit a figure it stays committed, and can\'t be taken back.'
-      : 'One way only — each bid moves you toward a settlement, never away from it. Once you commit a figure it stays committed, and can\'t be taken back.';
-    if(s && s.limitText) base += ' ' + s.limitText;
-    txt.innerHTML = base;
-  }
-
-  var LBL = ROLE==='claim'
-    ? { res:'The least you’ll accept', fair:'Your target figure', ideal:'Your ideal outcome', kIdeal:'Ideal', kRes:'Walk-away' }
-    : { res:'The most you’ll pay',     fair:'Your target figure', ideal:'Your ideal outcome', kIdeal:'Ideal', kRes:'Walk-away' };
-  kIdeal.textContent=LBL.kIdeal; kRes.textContent=LBL.kRes;
-
-  // slot fractions, always lo <= mid <= hi (left to right on the track)
-  var MINGAP=0.015, lo, mid, hi;
-  function fracFromVal(v){ return Math.max(0,Math.min(1, v/AMOUNT)); }
-  if (INIT.mine && INIT.mine.reservation!=null){
-    var a=INIT.mine;
-    if (ROLE==='claim'){ lo=fracFromVal(a.reservation); mid=fracFromVal(a.fair!=null?a.fair:a.reservation); hi=fracFromVal(a.ideal!=null?a.ideal:a.fair); }
-    else { hi=fracFromVal(a.reservation); mid=fracFromVal(a.fair!=null?a.fair:a.reservation); lo=fracFromVal(a.ideal!=null?a.ideal:a.fair); }
-  } else {
-    if (ROLE==='claim'){ lo=0.40; mid=0.60; hi=0.80; } else { lo=0.20; mid=0.40; hi=0.60; }
-  }
-  var savedLo=lo, savedMid=mid, savedHi=hi;
-  function order(){ if(mid<lo+MINGAP)mid=lo+MINGAP; if(hi<mid+MINGAP)hi=mid+MINGAP; if(hi>1){hi=1; if(mid>hi-MINGAP)mid=hi-MINGAP; if(lo>mid-MINGAP)lo=mid-MINGAP;} if(lo<0)lo=0; }
-
-  // map slots -> meaning
-  function resFrac(){ return ROLE==='claim'?lo:hi; }
-  function idealFrac(){ return ROLE==='claim'?hi:lo; }
-  function anchorsGBP(){
-    return { ideal:Math.round(idealFrac()*AMOUNT), fair:Math.round(mid*AMOUNT), reservation:Math.round(resFrac()*AMOUNT) };
-  }
-
-  var dragging=null, lastPopX=null, locked=false;
-  var gClose=false, phase='negotiate', t=0, btnX=0, btnY=0, btnW=120, btnH=36, circleStart=0;
-
-  function gbp(n){ return Number(n).toLocaleString(CUR.locale); }
-
-  function makeSnake(hex, glow){
-    var layer=document.createElement('div'); layer.className='mb-snake'; track.appendChild(layer);
-    var segs=[];
-    for(var i=0;i<8;i++){
-      var s=document.createElement('span'); s.className='seg'; var size=14-i;
-      s.style.width=size+'px'; s.style.height=size+'px'; s.style.background=hex; s.style.opacity=(1-i*0.1).toFixed(2);
-      s.style.boxShadow='0 0 '+(10-i)+'px '+Math.max(0.5,(3-i*0.25)).toFixed(2)+'px '+glow.replace('A',(0.5-i*0.045).toFixed(2));
-      layer.appendChild(s); segs.push(s);
-    }
-    return {layer:layer, segs:segs, hist:[], x:0.5*520, y:0};
-  }
-  var yellow=makeSnake('#f5b400','rgba(245,180,0,A)');
-  var blue=makeSnake('#2b54e6','rgba(43,84,230,A)'); blue.layer.style.display='none';
-
-  function placeAll(){
-    order();
-    you.style.left=(resFrac()*100)+'%';
-    hFair.style.left=(mid*100)+'%';
-    hIdeal.style.left=(idealFrac()*100)+'%';
-    band.style.left=(lo*100)+'%';
-    band.style.width=((hi-lo)*100)+'%';
-    var a=anchorsGBP();
-    vIdeal.textContent=gbp(a.ideal); vFair.textContent=gbp(a.fair); vRes.textContent=gbp(a.reservation);
-    you.setAttribute('aria-valuenow',a.reservation);
-  }
-  function headline(slot){
-    var a=anchorsGBP();
-    if(slot==='ideal'){ figNum.textContent=gbp(a.ideal); figRole.textContent=LBL.ideal; }
-    else if(slot==='res'){ figNum.textContent=gbp(a.reservation); figRole.textContent=LBL.res; }
-    else { figNum.textContent=gbp(a.fair); figRole.textContent=LBL.fair; }
-    [].forEach.call(chips.children,function(ch){ ch.classList.toggle('sel', ch.getAttribute('data-slot')===slot); });
-  }
-  // chip click jumps the headline to that figure
-  [].forEach.call(chips.children,function(ch){ ch.addEventListener('click',function(){ headline(ch.getAttribute('data-slot')); }); });
-
-  function setCoach(tone,text){
-    if(!coachBox)return;
-    if(!text){ coachBox.style.display='none'; return; }
-    var changed=coachText.textContent!==text;
-    coachText.textContent=text; coachBox.className='coach tone-'+(tone||'idle'); coachBox.style.display='flex';
-    if(changed){ coachBox.classList.remove('pop'); void coachBox.offsetWidth; coachBox.classList.add('pop'); }
-  }
-  // setProx() is gone with the proximity bar. Its elements no longer exist, so
-  // calling it would throw on load and take the whole page's script with it.
-  function setApprove(state){
-    btn.classList.remove('ready');
-    if(state==='ready'){ btn.classList.add('ready'); approveLbl.textContent='Settle'; }
-    else if(state==='waiting'){ approveLbl.textContent='Waiting for the other side…'; }
-    else if(state==='green'){ btn.classList.add('is-green'); approveLbl.textContent='Settle'; }
-    else { approveLbl.textContent='Settle'; }
-  }
-
-  function applyStatus(s){
-    if(!s) return;
-    var nudge = document.getElementById('roundNudge');
-    if(nudge){
-      // Only when a later round is open and you have not yet bid in it. Never carries
-      // any hint of the gap — just that the round turned over and it is your move.
-      var showNudge = (s.state === 'round_open') && !s.locked;
-      nudge.hidden = !showNudge;
-      if(showNudge && s.round){
-        document.getElementById('nudgeTitle').textContent = 'Round ' + (s.round - 1) + ' closed — no agreement yet';
-      }
-    }
-    gClose = false;                       // there is no "close" signal any more — that WAS the leak
-    LIMIT = (s.limit != null) ? s.limit : null;
-    // Settled first: hide both status bars, then run the seal. Stops the "Locked…"
-    // bar lingering / flashing yellow once the case is done.
-    if(s.state==='settled'){
-      var _ob=document.getElementById('onewayNote'); if(_ob) _ob.style.display='none';
-      setCoach('idle','');
-      runSeal(); return;
-    }
-    setOneway(s);
-    if(locked) return;
-
-    // Your bid for this round is in. It cannot be changed, and nothing about the
-    // other side is shown — so there is nothing here to probe with.
-    if(s.locked){ lockRound(s); return; }
-
-    phase='negotiate';
-    setApprove('idle');
-    roundLine(s);
-    if(s.coach){
-      // Don't repeat the status bar's message as a coach line.
-      var _dupe = s.locked || /waiting for the other side to bid/i.test(s.coach.text || '');
-      setCoach(s.coach.tone, _dupe ? '' : s.coach.text);
-    }
-  }
-
-  var LIMIT = null;                       // your previous walk-away: the one-way rule
-  function lockRound(s){
-    phase='sealed';
-    setOneway(s);
-    [hIdeal,hFair,you].forEach(function(h){ if(h){ h.style.pointerEvents='none'; h.style.opacity='.55'; } });
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Locked in for round ' + s.round;
-    setApprove('idle');
-    if(btn) btn.style.display='none';
-    setCoach('idle', '');   // one-way bar already carries "Locked… until the other side has bid"
-    roundLine(s);
-  }
-  function roundLine(s){
-    var el = document.getElementById('roundLine');
-    if(!el) return;
-    var bits = ['Round ' + s.round];
-    if(s.limitText) bits.push(s.limitText);
-    el.textContent = bits.join(' · ');
-  }
-
-  function step(sn,tx,ty,e){ sn.x+=(tx-sn.x)*e; sn.y+=(ty-sn.y)*e; sn.hist.unshift({x:sn.x,y:sn.y}); if(sn.hist.length>70)sn.hist.pop(); }
-  function draw(sn){ for(var i=0;i<sn.segs.length;i++){ var h=sn.hist[Math.min(i*5,sn.hist.length-1)]; if(!h)continue; sn.segs[i].style.left=h.x+'px'; sn.segs[i].style.top='calc(50% + '+h.y+'px)'; } }
-
-  function frame(){
-    t+=0.025; var W=track.clientWidth||520;
-    if(phase==='travel'){
-      var Rx=btnW/2+12;
-      step(blue, btnX-Rx, btnY, 0.05); draw(blue);
-      step(yellow, btnX+Rx, btnY, 0.05); draw(yellow);
-    } else if(phase==='circle'){
-      var rx=btnW/2+12, ry=btnH/2+12, a=(performance.now()-circleStart)/1000*4.0;
-      var wB=Math.sin(a*3)*3, wY=Math.sin(a*3+1.2)*3, ba=Math.PI+a, ya=a;
-      step(blue, btnX+(rx+wB)*Math.cos(ba), btnY+(ry+wB)*Math.sin(ba), 0.42); draw(blue);
-      step(yellow, btnX+(rx+wY)*Math.cos(ya), btnY+(ry+wY)*Math.sin(ya), 0.42); draw(yellow);
-    } else if(phase!=='agreed'){
-      var nx=Math.max(0.02,Math.min(0.98, 0.5 + Math.sin(t*0.32)*0.42));
-      step(yellow, nx*W, Math.sin(nx*W*0.05 + t*1.4)*7, 0.12); draw(yellow);
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function spawnPop(px){
-    for(var i=0;i<2;i++){
-      var d=document.createElement('span'); d.className='pp'; var bl=Math.random()<0.5;
-      d.style.background=bl?'#2b54e6':'#5b7bf0'; d.style.boxShadow='0 0 7px 1px '+(bl?'rgba(43,84,230,.5)':'rgba(91,123,240,.5)');
-      d.style.left=(px+(Math.random()*16-8))+'px'; d.style.top='50%'; d.style.transform='translate(-50%,-50%)'; pops.appendChild(d);
-      (function(el){var up=18+Math.random()*10;
-        requestAnimationFrame(function(){el.style.transition='transform .3s cubic-bezier(.3,1.25,.5,1)';el.style.transform='translate(-50%,calc(-50% - '+up+'px))';});
-        setTimeout(function(){el.style.transform='translate(-50%,calc(-50% - 9px))';},320);
-        setTimeout(function(){el.style.transition='opacity .45s';el.style.opacity='0';},980);
-        setTimeout(function(){el.remove();},1480);})(d);
-    }
-  }
-  function burstAt(cx,cy){
-    for(var i=0;i<22;i++){
-      var d=document.createElement('span'); d.className='pp'; var bl=(i%2)===0;
-      d.style.background=bl?'#2b54e6':'#23a259'; d.style.boxShadow='0 0 8px 2px '+(bl?'rgba(43,84,230,.5)':'rgba(35,162,89,.55)');
-      d.style.left=cx+'px'; d.style.top='calc(50% + '+cy+'px)'; d.style.transform='translate(-50%,-50%)'; pops.appendChild(d);
-      (function(el){var ang=Math.random()*Math.PI*2,dist=30+Math.random()*55;var tx=Math.cos(ang)*dist,ty=Math.sin(ang)*dist;
-        requestAnimationFrame(function(){el.style.transition='transform .9s cubic-bezier(.2,.7,.3,1), opacity .9s';el.style.transform='translate(calc(-50% + '+tx+'px),calc(-50% + '+(cy+ty)+'px)) scale(.5)';el.style.opacity='0';});
-        setTimeout(function(){el.remove();},950);})(d);
-    }
-  }
-
-  function measureBtn(){
-    var tr=track.getBoundingClientRect(), br=btn.getBoundingClientRect();
-    btnX=(br.left+br.width/2)-tr.left; btnY=(br.top+br.height/2)-(tr.top+tr.height/2); btnW=br.width; btnH=br.height;
-  }
-  function runSeal(){
-    if(locked) return; locked=true;
-    saveBtn.style.display='none';
-    measureBtn();
-    var W=track.clientWidth||520;
-    you.style.display='none'; hFair.style.display='none'; hIdeal.style.display='none';
-    blue.layer.style.display='block'; blue.x=resFrac()*W; blue.y=0; blue.hist=[];
-    setCoach('success',"Both sides approved — preparing your agreement…");
-    phase='travel';
-    setTimeout(function(){ phase='circle'; circleStart=performance.now(); },1100);
-    setTimeout(finalizeAgreed,2700);
-  }
-  function finalizeAgreed(){
-    phase='agreed';
-    setApprove('green');
-    burstAt(btnX,btnY);
-    var esc=document.getElementById('escalate'); if(esc) esc.style.display='none';
-    setTimeout(function(){ blue.layer.style.opacity='0'; yellow.layer.style.opacity='0'; },350);
-    // The scale has driven to green; now the announcement lands. It reads the settled
-    // figure from the just-returned status, so it is the real agreed amount.
-    setTimeout(function(){ showCeremony(SETTLED_VALUE); },700);
-  }
-
-  var SETTLED_VALUE = (INIT && INIT.settledValue != null) ? INIT.settledValue : null;
-
-  // The announcement. Fires only when the case is genuinely settled. It reveals the
-  // agreed figure — which is safe, because the negotiation is over — and nothing about
-  // how the two sides' numbers related on the way there.
-  function showCeremony(value){
-    var cer = document.getElementById('settleCer');
-    if(!cer || cer.dataset.shown) return;
-    cer.dataset.shown = '1';
-    document.getElementById('cerTitle').textContent = CASE_TITLE || 'This case';
-    var why = document.getElementById('cerWhy');
-    if(why){
-      // Only says WHICH rule fired — never the figures, never how close. On overlap it
-      // stays silent; on a band settle it explains the 5%.
-      if(INIT.settleReason === 'band'){
-        why.textContent = 'Your two figures were within 5% of each other, so MidBid closed the gap and settled at the midpoint.';
-        why.style.display = '';
-      } else {
-        why.style.display = 'none';
-      }
-    }
-    cer.hidden = false;
-    document.body.style.overflow = 'hidden';
-
-    var target = Number(value) || 0, t0 = null, DUR = 1100;
-    var figEl = document.getElementById('cerFig');
-    function tick(ts){
-      if(t0 === null) t0 = ts;
-      var p = Math.min(1, (ts - t0) / DUR);
-      var eased = 1 - Math.pow(1 - p, 3);
-      figEl.textContent = CUR.symbol + gbp(Math.round(target * eased));
-      if(p < 1) requestAnimationFrame(tick);
-    }
-    if(target > 0) requestAnimationFrame(tick); else figEl.textContent = CUR.symbol + '0';
-
-    // One celebratory card now — dismissed by clicking anywhere (overlay onclick).
-    // Step two: into the settled view (agreement + any service charge).
-    var d = document.getElementById('cerDoneGo');
-    if(d) d.onclick = function(){ cer.hidden = true; document.body.style.overflow=''; location.reload(); };
-    var ab = document.getElementById('cerAgreeBtn');
-    if(ab) ab.onclick = function(){
-      var box = document.getElementById('cerAgree');
-      if(box){ box.className='mb-cer-agree-done'; box.textContent = "Noted \u2014 we'll email you the additional information and the cost to prepare your settlement agreement under the applicable law."; }
-    };
-  }
-  function finalizeNow(){
-    locked=true; phase='agreed';
-    saveBtn.style.display='none';
-    var esc=document.getElementById('escalate'); if(esc) esc.style.display='none';
-    you.style.display='none'; hFair.style.display='none'; hIdeal.style.display='none';
-    yellow.layer.style.display='none'; blue.layer.style.display='none';
-    setApprove('green');
-    setCoach('success',"Agreed. This figure is locked in by both sides.");
-    medWrap.classList.add('show');
-  }
-
-  function postForm(url,body){ return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body}).then(function(r){return r.json();}); }
-
-  /* ===== Settle modal: details for the agreement, then service charge ===== */
-  (function(){
-    var modal=document.getElementById('settleModal');
-    if(!modal) return;
-    var openBtn=document.getElementById('settleBtn');
-    var back=document.getElementById('settleBack'), closeBtn=document.getElementById('settleClose');
-    var step1=document.getElementById('settleStep1'), step2=document.getElementById('settleStep2');
-    var company=document.getElementById('pdCompany'), address=document.getElementById('pdAddress');
-    var fullName=document.getElementById('pdName');
-    var save=document.getElementById('pdSave'), err=document.getElementById('pdErr');
-    var wait=document.getElementById('pdWait'), ready=document.getElementById('pdReady');
-    var MY_DETAILS_DONE = <%= myDetailsDone ? 'true' : 'false' %>;
-
-    function open(){ modal.hidden=false; document.body.style.overflow='hidden'; var f=step1.hidden?null:fullName; if(f) setTimeout(function(){f.focus();},80); }
-    function close(){ modal.hidden=true; document.body.style.overflow=''; }
-    if(openBtn) openBtn.addEventListener('click',open);
-    // After settlement the single green "Settle" button opens the details modal.
-    var SETTLED = <%= c.status === 'settled' ? 'true' : 'false' %>;
-    var mainBtn=document.getElementById('approve');
-    if(SETTLED && mainBtn){ mainBtn.style.cursor='pointer'; mainBtn.addEventListener('click',open); }
-    if(back) back.addEventListener('click',close);
-    if(closeBtn) closeBtn.addEventListener('click',close);
-    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!modal.hidden) close(); });
-
-    function fail(msg,el){ err.textContent=msg; err.hidden=false; if(el) el.focus(); }
-    if(save) save.addEventListener('click',function(){
-      var n=(fullName.value||'').trim(), a=(address.value||'').trim();
-      if(n.length<2){ return fail('Please enter your full name as it should appear on the agreement.', fullName); }
-      if(a.length<6){ return fail('Please enter an address so the agreement can name you correctly.', address); }
-      err.hidden=true; save.disabled=true; save.textContent='Saving…';
-      var body='full_name='+encodeURIComponent(n)
-             +'&company='+encodeURIComponent((company.value||'').trim())
-             +'&address='+encodeURIComponent(a);
-      postForm('/cases/'+CASE_ID+'/party-details',body)
-        .then(function(r){
-          if(!r||!r.ok) throw new Error((r&&r.error)||'failed');
-          step1.hidden=true; step2.hidden=false;
-          if(r.bothIn){
-            if(wait) wait.hidden=true;
-            if(ready) ready.hidden=false;
-          }
-        })
-        .catch(function(){ save.disabled=false; save.textContent='Save my details'; fail('Could not save your details — please try again.'); });
-    });
-
-    // Pop the modal automatically the moment the case becomes agreed — but only
-    // once the Settle step is actually available (i.e. any success fee is paid).
-    window.mbOpenSettleModal=function(){ if(openBtn && modal.hidden) setTimeout(open,900); };
-    if(openBtn && MY_DETAILS_DONE===false && INIT.state==='settled') setTimeout(open,600);
-
-    // While we wait on the other side, watch for their details and reveal the
-    // "ready to release" step (service charge, then agreement) automatically.
-    function unlockReady(){
-      if(wait) wait.hidden=true;
-      if(ready) ready.hidden=false;
-    }
-    var watch=setInterval(function(){
-      // Only poll while we're actually parked on the waiting screen.
-      if(!wait || wait.hidden || step2.hidden) { clearInterval(watch); return; }
-      fetch('/cases/'+CASE_ID+'/status').then(function(r){return r.json();}).then(function(s){
-        if(s && s.bothDetailsDone){ unlockReady(); clearInterval(watch); }
-      }).catch(function(){});
-    },6000);
-  })();
-
-  // Ask in the product's own voice rather than the browser's grey system box.
-  function askToSubmit(a){
-    return new Promise(function(resolve){
-      var box=document.getElementById('bidAsk');
-      document.getElementById('askBody').textContent = ROLE==='claim'
-        ? 'These lock for this round. If they will pay at or above your walk-away, this settles automatically at the midpoint.'
-        : 'These lock for this round. If they will accept at or below your ceiling, this settles automatically at the midpoint.';
-      document.getElementById('askFigs').innerHTML =
-        '<div class="mb-ask-fig"><div class="k">Ideal</div><div class="v">'+CUR.symbol+gbp(a.ideal)+'</div></div>' +
-        '<div class="mb-ask-fig"><div class="k">Target</div><div class="v">'+CUR.symbol+gbp(a.fair)+'</div></div>' +
-        '<div class="mb-ask-fig walk"><div class="k">'+(ROLE==='claim'?'Walk-away':'Ceiling')+'</div><div class="v">'+CUR.symbol+gbp(a.reservation)+'</div></div>';
-      document.getElementById('askWarn').innerHTML = ROLE==='claim'
-        ? 'You cannot raise your walk-away later. This is the least you will accept.'
-        : 'You cannot reduce your ceiling later. This is the most you will pay.';
-      box.classList.add('on');
-      var yes=document.getElementById('askYes'), no=document.getElementById('askNo');
-      function done(v){ box.classList.remove('on'); yes.onclick=null; no.onclick=null; box.onclick=null; resolve(v); }
-      yes.onclick=function(){ done(true); };
-      no.onclick=function(){ done(false); };
-      box.onclick=function(e){ if(e.target===box) done(false); };
-    });
-  }
-  function saveFigures(){
-    var a=anchorsGBP();
-    askToSubmit(a).then(function(ok){ if(ok) doSubmit(a); });
-  }
-  function doSubmit(a){
-    saveBtn.disabled=true; saveHint.textContent='Submitting…';
-    postForm('/cases/'+CASE_ID+'/bid','ideal='+a.ideal+'&fair='+a.fair+'&reservation='+a.reservation)
-      .then(function(s){
-        if(s && s.error){ saveHint.textContent=s.error; saveBtn.disabled=false; setCoach('warning', s.error); return; }
-        applyStatus(s); savedLo=lo; savedMid=mid; savedHi=hi; saveHint.textContent='Submitted.';
-        setTimeout(function(){saveHint.textContent='';},2000);
-      })
-      .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not submit — try again.'; });
-  }
-  // Settlement is automatic now: your submitted figure IS your approval. Kept only
-  // so any old handler still bound to the button does something harmless.
-  function approve(){
-    setCoach('idle', 'There is nothing to approve — if your ranges meet, the round settles itself.');
-    return;
-    /* eslint-disable no-unreachable */
-    if(phase!=='negotiate'||locked) return;
-    if(!gClose){ return; }
-    btn.classList.remove('ready'); setApprove('waiting'); setCoach('success',"You've approved — letting the other side know…");
-    postForm('/cases/'+CASE_ID+'/approve','')
-      .then(function(s){ applyStatus(s); })
-      .catch(function(){ setCoach('warning',"Could not record your approval — try again."); setApprove('ready'); });
-  }
-
-  // ---- three-handle dragging with ordering constraints ----
-  function clampSlot(slot,p){
-    if(slot==='lo')  return Math.max(0, Math.min(p, mid-MINGAP));
-    if(slot==='mid') return Math.max(lo+MINGAP, Math.min(p, hi-MINGAP));
-    return Math.max(mid+MINGAP, Math.min(p, 1));   // 'hi'
-  }
-  function slotForHandle(el){
-    if(el===hFair) return 'mid';
-    if(el===you) return ROLE==='claim'?'lo':'hi';
-    if(el===hIdeal) return ROLE==='claim'?'hi':'lo';
-    return null;
-  }
-  function chipSlotFor(slot){
-    if(slot==='mid') return 'fair';
-    if(slot===(ROLE==='claim'?'lo':'hi')) return 'res';
-    return 'ideal';
-  }
-  function setSlot(slot,p){
-    if(slot==='lo')lo=clampSlot('lo',p); else if(slot==='mid')mid=clampSlot('mid',p); else hi=clampSlot('hi',p);
-    placeAll(); headline(chipSlotFor(slot));
-  }
-  function nearestHandle(p){
-    var cands=[{el:you,f:resFrac()},{el:hFair,f:mid},{el:hIdeal,f:idealFrac()}];
-    cands.sort(function(a,b){return Math.abs(a.f-p)-Math.abs(b.f-p);});
-    return cands[0].el;
-  }
-  function pFromClientX(clientX){ var r=track.getBoundingClientRect(); return Math.max(0,Math.min(1,(clientX-r.left)/r.width)); }
-  function down(el,e){
-    if(locked||phase==='agreed') return;
-    dragging=el; lastPopX=null; el.classList.add('live');
-    if(el.setPointerCapture&&e.pointerId!=null){try{el.setPointerCapture(e.pointerId);}catch(_){}}
-    var p=pFromClientX(e.clientX); var slot=slotForHandle(el);
-    var px=p*(track.getBoundingClientRect().width);
-    if(lastPopX===null||Math.abs(px-lastPopX)>26){ spawnPop(px); lastPopX=px; }
-    setSlot(slot,p); e.preventDefault();
-  }
-  you.addEventListener('pointerdown',function(e){down(you,e);});
-  hFair.addEventListener('pointerdown',function(e){down(hFair,e);});
-  hIdeal.addEventListener('pointerdown',function(e){down(hIdeal,e);});
-  track.addEventListener('pointerdown',function(e){ if(e.target.closest('.mb-you,.mb-h'))return; down(nearestHandle(pFromClientX(e.clientX)),e); });
-  window.addEventListener('pointermove',function(e){
-    if(!dragging) return;
-    var p=pFromClientX(e.clientX), slot=slotForHandle(dragging);
-    var px=p*(track.getBoundingClientRect().width);
-    if(lastPopX===null||Math.abs(px-lastPopX)>26){ spawnPop(px); lastPopX=px; }
-    setSlot(slot,p);
-  });
-  window.addEventListener('pointerup',function(){ if(dragging){dragging.classList.remove('live'); dragging=null;} lastPopX=null; });
-
-  // keyboard for the reservation hub
-  you.tabIndex=0; you.setAttribute('role','slider'); you.setAttribute('aria-label','Your walk-away figure'); you.setAttribute('aria-valuemin',0); you.setAttribute('aria-valuemax',AMOUNT);
-  you.addEventListener('keydown',function(e){
-    if(locked)return; var slot=ROLE==='claim'?'lo':'hi'; var cur=resFrac();
-    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ setSlot(slot,cur-0.02); spawnPop(resFrac()*track.clientWidth); e.preventDefault(); }
-    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ setSlot(slot,cur+0.02); spawnPop(resFrac()*track.clientWidth); e.preventDefault(); }
-  });
-
-  if(saveBtn) saveBtn.addEventListener('click',saveFigures);
-  var resetBtn=document.getElementById('resetBtn');
-  if(resetBtn) resetBtn.addEventListener('click',function(){ if(locked)return; lo=savedLo; mid=savedMid; hi=savedHi; order(); placeAll(); [].forEach.call(chips.children,function(ch){ch.classList.remove('sel');}); });
-  btn.addEventListener('click',approve);
-
-  var mediatorBtn=document.getElementById('mediatorBtn'), mediatorLbl=document.getElementById('mediatorLbl');
-  if(mediatorBtn) mediatorBtn.addEventListener('click',function(){
-    mediatorBtn.disabled=true; mediatorLbl.textContent='Requesting…';
-    postForm('/cases/'+CASE_ID+'/mediator','')
-      .then(function(r){ mediatorLbl.textContent='✓ Human mediator requested'; })
-      .catch(function(){ mediatorBtn.disabled=false; mediatorLbl.textContent='Request a human mediator'; });
-  });
-
-  var copyBtn=document.getElementById('copyBtn');
-  if(copyBtn) copyBtn.addEventListener('click',function(){ var x=document.getElementById('inviteBox').textContent.trim(); navigator.clipboard.writeText(x).then(function(){ copyBtn.textContent='Copied!'; setTimeout(function(){copyBtn.textContent='Copy link';},1500); }); });
-
-  // Poll so the other side's moves and approval show up here.
-  setInterval(function(){
-    if(locked) return;
-    fetch('/cases/'+CASE_ID+'/status').then(function(r){return r.json();}).then(function(s){ if(s&&s.state) applyStatus(s); }).catch(function(){});
-  },4000);
-
-  placeAll();
-  headline('fair');
-  if(INIT.state==='settled'){
-    // Landed on an already-settled case (a reload, or the other side settled while you
-    // were away). Show the announcement once; if it has already been seen this load,
-    // finalizeNow just tidies the scale.
-    finalizeNow();
-    if(INIT.settledValue != null) setTimeout(function(){ showCeremony(INIT.settledValue); }, 350);
-  }
-  else { applyStatus(INIT); }   // INIT now carries locked/limit/round — pass it straight through,
-                                // or the page paints unlocked until the first poll corrects it.
-  requestAnimationFrame(frame);
-</script>
-<% if (c.status === 'settled') { %>
-<% var _mbSettled = money(c.settled_value, c.currency);
-   var _mbFeeShare = (pay && pay.fee) ? pay.fee.halfLabel : '';
-   var _mbTotal = (pay && pay.fee) ? money((c.settled_value||0) + (pay.fee.half||0)/100, c.currency) : _mbSettled;
-   var _mbPaid = (typeof settlementPaid !== 'undefined') && settlementPaid;
-   var _mbReady = (typeof payeeOnboarded !== 'undefined') && payeeOnboarded; %>
-<% if (role === 'resp') { %>
-  <% if (_mbPaid) { %><span class="mb-fab" style="background:#268a4f;cursor:default;box-shadow:none">Paid &#10003;</span>
-  <% } else if (_mbReady) { %><form method="post" action="/cases/<%= c.id %>/pay" style="margin:0"><button class="mb-fab" type="submit">Pay <%= _mbTotal %></button></form>
-  <% } else { %><span class="mb-fab" style="background:#8a8f99;cursor:default;box-shadow:none" title="This activates once the other party has added their bank details to receive the funds.">Payment opens once they add bank details</span><% } %>
-<% } else { %>
-  <% if (_mbReady) { %><span class="mb-fab" style="background:#268a4f;cursor:default;box-shadow:none">Payouts ready &#10003;</span>
-  <% } else { %><form method="post" action="/cases/<%= c.id %>/payout/onboard" style="margin:0"><button class="mb-fab" type="submit">Add your bank details to get paid</button></form><% } %>
-<% } %>
-<% var _agreeAsked = (typeof agreementRequested !== 'undefined') && agreementRequested; %>
-<% if (_agreeAsked) { %>
-  <span class="mb-agree-fab done">&#10003; Agreement requested</span>
-<% } else { %>
-  <button class="mb-agree-fab" type="button" id="mbAgreeFab" onclick="document.getElementById('mbAgree').classList.add('show')">Request a settlement agreement</button>
-<% } %>
-
-<%# The settlement agreement is the premium, human-reviewed path. Rather than
-    auto-generating a contract per jurisdiction, high-value cases upload their papers
-    and MidBid prepares the agreement from them. This popup makes that offer. %>
-<div id="mbAgree" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="m" role="dialog" aria-modal="true" aria-labelledby="agreeH">
-    <button class="x" aria-label="Close" onclick="document.getElementById('mbAgree').classList.remove('show')">&times;</button>
-    <span class="badge" style="background:#16306B">Recommended for high-value cases</span>
-    <h3 id="agreeH">A formal settlement agreement</h3>
-    <p class="mut" style="margin:0 0 4px">Your settlement is already binding — both sides committed to the figure through MidBid, and that record stands on its own. A formal written agreement is an added layer, worth it when the sum is large or you may need to rely on the document later.</p>
-    <p class="mut" style="margin:10px 0 16px">Upload the papers relevant to this dispute — the contract, invoices, correspondence — and we will prepare a formal settlement agreement and issue it to both parties.</p>
-
-    <form method="post" action="/cases/<%= c.id %>/agreement/request" enctype="multipart/form-data">
-      <label class="aglabel" for="agDocs">Upload case documents</label>
-      <input class="agfile" id="agDocs" type="file" name="documents" multiple
-             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-      <p class="agfine">PDF, Word or images, up to 5 MB each. You can add more later from your case page.</p>
-
-      <label class="aglabel" for="agNote">Anything we should know? <span class="opt">(optional)</span></label>
-      <textarea class="agnote" id="agNote" name="note" rows="3" maxlength="1000"
-                placeholder="e.g. the key dispute was over the final two invoices"></textarea>
-
-      <button class="cta" type="submit" style="margin-top:14px">Request the agreement &rarr;</button>
-      <p class="agfine" style="margin-top:10px">Fees for the agreement are quoted case by case, as they depend on the jurisdiction and the documents involved, and are separate from your settlement. We will provide a quotation for your approval before any work begins.</p>
-    </form>
-  </div>
-</div>
-<div id="mbSet" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="m" role="dialog" aria-modal="true">
-    <button class="x" aria-label="Close" onclick="document.getElementById('mbSet').classList.remove('show')">&times;</button>
-    <span class="badge">Settled</span>
-    <% if (role === 'claim') { %>
-      <h3>You've settled — let's get you paid</h3>
-      <div class="status ok"><span class="k">Status</span>Settled at <strong><%= _mbSettled %></strong>. <b>The other party's payment button stays locked until you add your bank details here</b> — that's how we know where to send the money. The moment you finish, their button activates and we email them to pay.</div>
-      <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
-        <div class="status ok" style="margin-top:12px"><span class="k">Bank details added</span>You're set up to receive the funds. The other party's payment button is now active — we've emailed them to pay, and your money is released as soon as they do.</div>
-      <% } else { %>
-        <p class="mut">We use Stripe to collect your bank details securely and pay you directly — MidBid never sees or stores your account number.</p>
-        <label class="tc"><input type="checkbox" onchange="document.getElementById('mbOnb').disabled=!this.checked"><span>I accept MidBid's <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span></label>
-        <form method="post" action="/cases/<%= c.id %>/payout/onboard" style="margin:0"><button class="cta" id="mbOnb" type="submit" disabled>Set up secure payouts &rarr;</button></form>
-      <% } %>
-    <% } else { %>
-      <h3>Complete your payment</h3>
-      <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
-        <div class="status ok"><span class="k">Ready to pay</span>The other party has added their bank details, so your payment can be routed to them. You're clear to pay.</div>
-      <% } else { %>
-        <div class="status wait"><span class="k">Payment locked</span>Your <b>Pay</b> button unlocks as soon as the other party adds their bank details to receive the funds. Until then there's nowhere to send the money, so payment is held. We'll email you the instant it opens — you don't need to keep checking.</div>
-      <% } %>
-      <div class="bd"><div class="r"><span class="l">Settlement sum</span><span class="v"><%= _mbSettled %></span></div><div class="r sub"><span class="l">MidBid service fee (your share)</span><span class="v"><%= _mbFeeShare %></span></div><div class="r tot"><span class="l">Total to pay</span><span class="v"><%= _mbTotal %></span></div></div>
-      <% if (typeof payeeOnboarded !== 'undefined' && payeeOnboarded) { %>
-        <label class="tc"><input type="checkbox" onchange="document.getElementById('mbPay').disabled=!this.checked"><span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>, including that this payment discharges the settlement.</span></label>
-        <button class="cta" id="mbPay" disabled title="Payment goes live in Stage 2">Pay <%= _mbTotal %></button>
-      <% } else { %>
-        <button class="cta" disabled>Waiting for the other party…</button>
-        <p class="mut">You don't need to do anything yet — we'll let you know when payment opens.</p>
-      <% } %>
-    <% } %>
-    <div class="agree" id="mbAgree"><div><p class="h"><%= role === 'claim' ? 'Want a signed settlement agreement?' : 'Also want a signed settlement agreement?' %></p><p class="s">Optional — additional cost<%= role === 'claim' ? ', shared between the parties' : '' %>.</p></div><button class="btn" type="button" onclick="mbReqAgree()">Request</button></div>
-    <p class="fine">Click outside this box to close · nothing is lost</p>
-  </div>
-</div>
-<script>
-  function mbOpen(){ document.getElementById('mbSet').classList.add('show'); }
-  function mbReqAgree(){ document.getElementById('mbAgree').outerHTML='<div class="agree-done" id="mbAgree">Noted \u2014 we\'ll email you the cost and the details we need to prepare your settlement agreement under the applicable law.</div>'; }
-</script>
-<% } %>
-
-<%- include('partials/foot') %>
+</body>
+</html>
