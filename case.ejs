@@ -384,164 +384,176 @@
 .cx-right .inv-bad{border-left-color:#C0392B}
 .cx-right .inv-stale{border-left-color:#E7A93B}
 
+</style>
+<style>
+  /* Balanced layout + band (from approved mock) — does not alter scale behaviour */
+  .cx-band{position:relative;color:#fff;padding:30px 40px 34px;border-top:3px solid #e0b34a;border-bottom:3px solid #e0b34a;
+    background:radial-gradient(820px 420px at 92% -30%,rgba(224,180,80,.20),transparent 60%),linear-gradient(115deg,#14224e 0%,#1d2f6b 60%,#26377d 100%);
+    display:grid;grid-template-columns:1fr 340px;gap:34px;align-items:center;margin:0 0 0}
+  .cx-band .eyebrow{font:600 12px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#e6c079}
+  .cx-band .title{font:500 42px/1 Fraunces,serif;letter-spacing:-.01em;margin-top:8px}
+  .cx-band .statusline{display:flex;align-items:center;gap:12px;margin-top:18px}
+  .cx-band .apill{display:inline-flex;align-items:center;gap:.5em;font:700 11px/1 Inter;letter-spacing:.09em;text-transform:uppercase;color:#7ee0a8;background:rgba(18,161,80,.16);border:1px solid rgba(126,224,168,.4);padding:.5em .8em;border-radius:999px}
+  .cx-band .apill .d{width:7px;height:7px;border-radius:50%;background:#7ee0a8;box-shadow:0 0 8px #7ee0a8}
+  .cx-band .rd{font-size:14px;color:rgba(255,255,255,.82)}
+  .cx-band .prog{margin-top:16px;max-width:520px}
+  .cx-band .ptrack{height:6px;border-radius:6px;background:rgba(255,255,255,.16);position:relative}
+  .cx-band .pf{position:absolute;left:0;top:0;height:6px;width:34%;border-radius:6px;background:linear-gradient(90deg,#e0b34a,#6f8df0)}
+  .cx-band .pdot{position:absolute;top:3px;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#e0b34a;border:2px solid #14224e}
+  .cx-band .plabels{display:flex;justify-content:space-between;margin-top:9px;font-size:12px;color:rgba(255,255,255,.6)}
+  .cx-band .plabels b{color:#fff;font-weight:600}
+  .cx-band .bandbtns{display:flex;gap:12px;margin-top:22px}
+  .cx-band .bbtn{font:600 13.5px/1 Inter;padding:12px 20px;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff}
+  .cx-band .bbtn.solid{background:#fff;color:#14224e;border-color:#fff}
+  .cx-band .fpanel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:20px 22px;display:grid;grid-template-columns:1fr 1fr;gap:18px 26px}
+  .cx-band .fk{font:600 10px/1 Inter;letter-spacing:.13em;text-transform:uppercase;color:#e0b34a;display:flex;align-items:center;gap:.4em;margin-bottom:7px}
+  .cx-band .fk::before{content:"";width:6px;height:6px;border-radius:50%;background:#e0b34a}
+  .cx-band .fv{font:500 1rem/1.1 Newsreader,serif;color:#f4f6fb}
+  .cx-band .fv.ref{font-family:Spline Sans Mono,monospace;font-weight:600;color:#f0c976;font-size:.95rem}
+  .cx-band .fv.amt{font:600 1.25rem/1 Fraunces,serif;color:#f0c976}
 
-  /* ===== Timeline + Private notes (Layout 7) ===== */
-  .cx-grid{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start}
-  .cx-stack{display:flex;flex-direction:column;gap:12px}
-  .cx-timeline-card{padding:16px 18px}
-  .cx-timeline{list-style:none;position:relative;margin:12px 0 0 6px;padding:0}
-  .cx-timeline li{position:relative;padding:0 0 14px 18px;border-left:2px solid #DCE3EF;font-size:12px}
-  .cx-timeline li:last-child{border-left-color:transparent;padding-bottom:0}
-  .cx-timeline .dot{position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:#2b54e6;border:2px solid #fff}
-  .cx-timeline .dot.gold{background:#c98f2a}
-  .cx-timeline .dot.green{background:#12a150}
-  .cx-timeline .when{font-size:10.5px;color:#95a0b8;margin-top:2px}
-  .cx-timeline b{font-weight:600}
-  .cx-notes{padding:16px 18px;margin-top:0}
-  .cx-notes textarea{width:100%;min-height:110px;resize:vertical;border:1px solid #DCE3EF;border-radius:9px;padding:10px 12px;font:inherit;font-size:13px;line-height:1.5;color:#16213f;background:#f7f9fe;outline:none}
-  .cx-notes textarea:focus{border-color:#2b54e6;background:#fff}
-  .cx-notes-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:#95a0b8}
-  .cx-notes-meta .lock{display:flex;align-items:center;gap:4px}
-  .cx-notes-eyebrow{font:700 .56rem/1 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#2b54e6;display:block;margin-bottom:7px}
-  .cx-notes-h{font:500 14.5px/1.2 Newsreader,Georgia,serif;margin:0 0 4px}
-  .cx-notes-muted{font-size:12px;color:#5a6377;line-height:1.5;margin:4px 0 10px}
-  @media(max-width:900px){.cx-grid{grid-template-columns:1fr}}
+  .cx-body{padding:26px 0 34px}
+  .cx-grid{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+  .cx-stack{display:flex;flex-direction:column;gap:16px}
+  .cx-card{background:#fff;border:1px solid #e4e9f4;border-radius:15px;box-shadow:0 16px 40px -40px rgba(20,30,60,.5)}
+  .cx-pad{padding:18px 20px}
+  .cx-ceyebrow{font:700 .6rem/1 Inter;letter-spacing:.15em;text-transform:uppercase;color:#2b54e6;display:block;margin-bottom:3px}
+  .cx-ct{font:500 15px/1.15 Newsreader,serif;margin-bottom:2px}
+  .cx-muted{font-size:11.5px;color:#5a6377;line-height:1.5}
 
+  .cx-tl{position:relative;margin-top:12px;padding-left:20px}
+  .cx-tl::before{content:"";position:absolute;left:4px;top:4px;bottom:4px;width:2px;background:#e4e9f4}
+  .cx-ti{position:relative;margin-bottom:16px}
+  .cx-ti:last-child{margin-bottom:0}
+  .cx-ti::before{content:"";position:absolute;left:-20px;top:3px;width:9px;height:9px;border-radius:50%;background:#2b54e6;box-shadow:0 0 0 3px #fff}
+  .cx-ti.g::before{background:#12a150}.cx-ti.a::before{background:#e0b34a}
+  .cx-ti .h{font-size:13px;font-weight:600}.cx-ti .t{font-size:11px;color:#95a0b8;margin-top:1px}
+  .cx-ti.now .h{color:#2b54e6}
+
+  .cx-notes textarea{width:100%;min-height:88px;border:1px solid #e4e9f4;border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;resize:vertical;background:#f7f9fe}
+  .cx-notes .meta{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+  .cx-lock{display:flex;align-items:center;gap:.4em;font-size:11px;color:#95a0b8}
+
+  .cx-drop{display:flex;flex-direction:column;align-items:center;gap:5px;min-height:70px;border:1.6px dashed #c7cdda;border-radius:11px;background:#fbfcfe;justify-content:center;text-align:center;padding:12px;cursor:pointer;color:#5a6377}
+  .cx-drop strong{font-size:12.5px;color:#16213f}.cx-drop span{font-size:10.5px}
+  .cx-file{display:flex;align-items:center;gap:9px;border:1px solid #e4e9f4;border-radius:10px;padding:10px 11px;background:#f7f9fe;text-decoration:none;color:inherit}
+  .cx-file .fi{width:26px;height:26px;border-radius:7px;background:rgba(43,84,230,.12);color:#2b54e6;display:grid;place-items:center;font:700 8px/1 Inter;flex:none}
+  .cx-file .fn{font-size:12px;font-weight:500}.cx-file .fs{font-size:10px;color:#95a0b8;margin-top:1px}
+  .cx-docs-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  .cx-mediator{background:linear-gradient(150deg,#16213f,#22376f);color:#fff;border-radius:15px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:16px}
+  .cx-mediator .mb{font:500 1rem/1.15 Fraunces,serif}
+  .cx-mediator .ms{font-size:.78rem;color:rgba(255,255,255,.72);margin:4px 0 0;line-height:1.5;max-width:52ch}
+  .cx-mediator .mbtn{flex:none;font-weight:600;font-size:.85rem;color:#16213f;background:#c98f2a;border:none;border-radius:9px;padding:11px 18px;cursor:pointer}
+  .cx-mediator .mbtn:disabled{opacity:.7;cursor:default}
+
+  @media(max-width:900px){
+    .cx-band{grid-template-columns:1fr}
+    .cx-grid{grid-template-columns:1fr}
+    .cx-band .fpanel{grid-template-columns:1fr 1fr}
+    .cx-docs-row{grid-template-columns:1fr}
+    .cx-mediator{flex-direction:column;align-items:flex-start}
+  }
 </style>
 
 <%
-  // The invitation panel is shown for the whole time the other side has not joined —
-  // not only in 'awaiting_other'. A failed send leaves the case in 'draft', and that is
-  // exactly when you most need the button.
   var otherJoined = !!(c.claimant_id && c.respondent_id);
   var liveCase    = ['settled', 'closed', 'declined'].indexOf(c.status) === -1;
   var sentAt      = c.invited_at ? new Date(c.invited_at) : null;
   var days        = sentAt ? Math.floor((Date.now() - sentAt.getTime()) / 86400000) : null;
   var ago         = days === null ? '' : (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago');
   var stale       = days !== null && days >= 5;
+  var progressPct = typeof progressFor === 'function' ? progressFor(c) : 34;
+  var mediatorAlready = !!(c.mediator_requested || (pay && pay.mediatorRequested));
 %>
 <% if (typeof msg !== 'undefined' && msg) { %>
   <div class="inv-msg <%= /Could not|does not look/.test(msg) ? 'bad' : '' %>"><%= msg %></div>
 <% } %>
-<div class="card cx-facts">
-  <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
-  <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %></div></div>
-  <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %></div></div>
-  <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
-</div>
-<% if (c.status === 'settled' || otherJoined) { %>
-<div class="cx-statusrow">
-  <% if (c.status === 'settled') { %><span class="cx-pill green">Settled</span>
-  <% } else { %><span class="cx-pill">Active &mdash; bidding open</span><% } %>
-</div>
-<% } %>
-<div class="cx-grid">
-  <!-- LEFT: timeline + invite + mediator -->
-  <div class="cx-stack">
 
-      <div class="card cx-timeline-card">
-        <span class="cx-notes-eyebrow">Case activity</span>
-        <h3 class="cx-notes-h">Timeline</h3>
-        <ul class="cx-timeline">
-          <li>
-            <span class="dot green"></span>
-            <b>Case opened</b>
-            <div class="when"><%= fmtDate(c.created_at) %></div>
-          </li>
+<!-- ===== BAND (approved mock — unchanged structure) ===== -->
+<div class="cx-band">
+  <div>
+    <div class="eyebrow">Case MB-<%= c.id %></div>
+    <div class="title"><%= c.title %></div>
+    <div class="statusline">
+      <% if (c.status === 'settled') { %>
+        <span class="apill"><span class="d"></span> Settled</span>
+        <span class="rd"><%= money(c.settled_value, c.currency) %></span>
+      <% } else if (liveCase) { %>
+        <span class="apill"><span class="d"></span> Active</span>
+        <span class="rd">Round <%= c.round || 1 %> · <%= otherJoined ? 'both parties on the case' : 'awaiting respondent' %></span>
+      <% } else { %>
+        <span class="apill" style="color:#cdd;border-color:#666"><span class="d" style="background:#aaa;box-shadow:none"></span> <%= c.status %></span>
+      <% } %>
+    </div>
+    <div class="prog">
+      <div class="ptrack"><div class="pf" style="width:<%= progressPct %>%"></div><div class="pdot" style="left:<%= progressPct %>%"></div></div>
+      <div class="plabels"><b>Opened</b><span>Both bid</span><span>Settled</span></div>
+    </div>
+    <% if (!otherJoined && liveCase) { %>
+    <div class="bandbtns">
+      <button type="button" class="bbtn" id="copyBtn">Copy invite link</button>
+      <form method="post" action="/cases/<%= c.id %>/invite" style="display:inline;margin:0">
+        <button type="submit" class="bbtn solid"><%= (c.invite_count && c.invite_count > 0) ? 'Resend invite' : 'Send invite' %></button>
+      </form>
+    </div>
+    <% if (typeof inviteUrl !== 'undefined' && inviteUrl) { %>
+      <div id="inviteBox" style="display:none"><%= inviteUrl %></div>
+    <% } %>
+    <% } %>
+  </div>
+  <div class="fpanel">
+    <div><div class="fk">Case reference</div><div class="fv ref">MB-<%= c.id %></div></div>
+    <div><div class="fk">Claimant</div><div class="fv"><%= c.claim_full_name || (role === 'claim' ? 'You' : '—') %></div></div>
+    <div><div class="fk">Respondent</div><div class="fv"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting')) %></div></div>
+    <div><div class="fk">Original amount</div><div class="fv amt"><%= money(c.amount, c.currency) %></div></div>
+  </div>
+</div>
+
+<!-- ===== BODY (balanced columns) ===== -->
+<div class="cx-body">
+  <div class="cx-grid">
+
+    <!-- LEFT: Timeline + Private notes -->
+    <div class="cx-stack">
+      <div class="cx-card cx-pad">
+        <span class="cx-ceyebrow">Case activity</span>
+        <h3 class="cx-ct">Timeline</h3>
+        <div class="cx-tl">
+          <div class="cx-ti g"><div class="h">Case opened</div><div class="t"><%= fmtDate(c.created_at) %></div></div>
           <% if (c.invited_at) { %>
-          <li>
-            <span class="dot gold"></span>
-            <b>Invitation sent</b>
-            <div class="when"><%= fmtDate(c.invited_at) %></div>
-          </li>
+          <div class="cx-ti a"><div class="h">Invitation sent</div><div class="t"><%= fmtDate(c.invited_at) %></div></div>
           <% } %>
           <% if ((role === 'claim' ? c.claim_value : c.resp_value) != null) { %>
-          <li>
-            <span class="dot"></span>
-            <b>Your figures saved</b>
-            <div class="when">—</div>
-          </li>
+          <div class="cx-ti"><div class="h">Your figures saved</div><div class="t">—</div></div>
           <% } %>
           <% if (c.status === 'settled') { %>
-          <li>
-            <span class="dot green"></span>
-            <b>Settled at <%= money(c.settled_value, c.currency) %></b>
-            <div class="when"><%= fmtDate(c.settled_at) %></div>
-          </li>
+          <div class="cx-ti g"><div class="h">Settled at <%= money(c.settled_value, c.currency) %></div><div class="t"><%= fmtDate(c.settled_at) %></div></div>
           <% } else { %>
-          <li>
-            <span class="dot"></span>
-            <b><%= otherJoined ? 'Both parties on the case' : 'Awaiting the other party' %></b>
-            <div class="when">Current</div>
-          </li>
+          <div class="cx-ti now"><div class="h"><%= otherJoined ? 'Both parties on the case' : 'Awaiting the other party' %></div><div class="t">Current</div></div>
           <% } %>
-        </ul>
-      </div>
-
-<% if (otherJoined) { %>
-      <div class="cx-invite-status accepted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Invitation accepted</b><span>The other party has joined — bidding is live on the left.</span></div></div>
-    <% } else if (liveCase) { %>
-      <div class="cx-invite-status awaiting"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><b>Awaiting the other party</b><span>They haven't joined the case yet.</span></div></div>
-    <% } %>
-<% if (!otherJoined && liveCase) { %>
-  <div class="inv <%= c.last_invite_error ? 'inv-bad' : (stale ? 'inv-stale' : '') %>">
-    <span class="inv-eyebrow">The other party</span>
-    <h3 class="inv-title">Invite the respondent</h3>
-    <div class="inv-head">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
-      </svg>
-      <div>
-        <b><%= c.invite_count > 0 ? 'Invitation sent' : 'They have not been invited yet' %></b>
-        <span>
-          <% if (c.last_invite_error) { %>
-            The last attempt failed, so nothing reached them.
-          <% } else if (c.invite_count > 0) { %>
-            Sent <%= ago %><%= c.invite_count > 1 ? ' \u00b7 ' + c.invite_count + ' times' : '' %> to <%= c.other_email || 'them' %>.
-            <%= stale ? 'No reply yet — worth another nudge.' : 'Waiting for them to open it.' %>
-          <% } else { %>
-            Nothing has been sent. They cannot join a case they have not heard about.
-          <% } %>
-        </span>
-      </div>
-    </div>
-
-    <% if (c.last_invite_error) { %>
-      <p class="inv-err"><b>Why it failed:</b> <%= c.last_invite_error %></p>
-    <% } %>
-
-    <form class="inv-form" method="POST" action="/cases/<%= c.id %>/invite">
-      <% if (!c.other_email) { %>
-        <input type="email" name="email" placeholder="their@email.com" required />
-      <% } %>
-      <button class="btn btn-primary" type="submit">
-        <%= c.invite_count > 0 ? 'Resend invitation' : 'Send invitation' %>
-      </button>
-    </form>
-
-    <details class="inv-alt">
-      <summary>Or send them the link yourself</summary>
-      <div class="invite-box" id="inviteBox"><%= inviteUrl %></div>
-      <button class="btn btn-ghost" type="button" id="copyBtn" style="margin-top:.6rem">Copy link</button>
-      <p class="inv-fine">This link is unique to this case and does not expire. Anyone who has it can join as the other side.</p>
-    </details>
-  </div>
-<% } %>
-
-    <div class="cx-mediator" id="escalate">
-      <div class="cx-med-text">
-        <div class="cx-med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><circle cx="12" cy="15" r="6"/></svg></div>
-        <div>
-          <div class="cx-med-b">Stuck? Bring in an accredited mediator.</div>
-          <div class="cx-med-s">An independent human mediator can help close the gap when the two sides can't quite meet. Both parties must agree to proceed.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></div>
         </div>
       </div>
-      <button class="cx-med-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
-    </div>
-  </div>
 
-  <!-- RIGHT: full interactive scale (verbatim) + private notes -->
-  <div class="cx-stack">
+      <div class="cx-card cx-pad cx-notes">
+        <span class="cx-ceyebrow">Private notes</span>
+        <h3 class="cx-ct">Your working notes</h3>
+        <p class="cx-muted" style="margin:4px 0 10px">Visible only to you. Never shared with the other party.</p>
+        <form method="post" action="/cases/<%= c.id %>/notes">
+          <textarea name="notes" maxlength="4000" placeholder="Record context, solicitor advice, or your thinking for this case…"><%= typeof privateNotes !== 'undefined' ? privateNotes : '' %></textarea>
+          <div class="meta">
+            <span class="cx-lock">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Private to you
+            </span>
+            <button type="submit" class="btn btn-primary" style="padding:9px 16px;font-size:13px">Save notes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT: Scale (full interactive) + Documents -->
+    <div class="cx-stack">
 <div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
   <div class="mb-schead">
     <span class="mb-eyebrow">Your private figures</span>
@@ -626,243 +638,69 @@
 
   <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
 
-
-  <!-- RIGHT: the case — invitation, link, and case info. -->
-  <div class="mb-med-wrap" id="medWrap">
-    <% if (c.status === 'settled') { %>
-      <span class="mb-med-cap"><% if (pay && pay.enabled && pay.fee && !pay.released) { %>Add your details, then settle the service charge to release your agreement.<% } else { %>Add your details to complete your settlement agreement.<% } %></span>
-    <% } %>
-    <button id="settleBtn" type="button" hidden aria-hidden="true"></button>
-  </div>
-</div>
-
-      <div class="card cx-notes">
-        <span class="cx-notes-eyebrow">Private notes</span>
-        <h3 class="cx-notes-h">Your working notes</h3>
-        <p class="cx-notes-muted">Visible only to you. Never shared with the other party or shown in any settlement record.</p>
-        <form method="post" action="/cases/<%= c.id %>/notes">
-          <textarea name="notes" maxlength="4000" placeholder="Record context, solicitor advice, or your thinking for this case…"><%= typeof privateNotes !== 'undefined' ? privateNotes : '' %></textarea>
-          <div class="cx-notes-meta">
-            <span class="lock">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-              Private to you
-            </span>
-            <button type="submit" class="btn btn-primary" style="padding:7px 14px;font-size:12px">Save notes</button>
+      <div class="cx-card cx-pad" id="documents">
+        <span class="cx-ceyebrow">Evidence</span>
+        <h3 class="cx-ct">Documents</h3>
+        <p class="cx-muted" style="margin:4px 0 10px">Add at any stage of the case.</p>
+        <div class="cx-docs-row">
+          <form method="post" action="/cases/<%= c.id %>/documents" enctype="multipart/form-data" style="margin:0">
+            <label class="cx-drop" for="docInput">
+              <strong>Add files</strong>
+              <span>PDF, JPG, PNG · 5 MB each</span>
+            </label>
+            <input type="file" name="documents" id="docInput" multiple
+                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt,.csv"
+                   style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden"
+                   onchange="this.form.submit()">
+          </form>
+          <div>
+            <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
+              <% docs.forEach(function(d){ %>
+                <a class="cx-file" href="/cases/<%= c.id %>/documents/<%= d.id %>" target="_blank" rel="noopener" style="margin-top:0;margin-bottom:8px;display:flex">
+                  <span class="fi"><%= (d.mime||'').indexOf('pdf')>=0 ? 'PDF' : 'DOC' %></span>
+                  <div>
+                    <div class="fn"><%= d.filename %></div>
+                    <div class="fs"><%= d.size ? (Math.round(d.size/1024)+' KB') : '' %></div>
+                  </div>
+                </a>
+              <% }) %>
+            <% } %>
           </div>
-        </form>
+        </div>
       </div>
-
-  </div>
-</div>
-
-<div class="card cx-docs" id="documents">
-  <div class="cx-docs-head">
-    <h2>Documents</h2>
-    <span class="cx-docs-n">Invoices, contracts, correspondence — add at any stage of the case.</span>
-  </div>
-  <div class="cx-docs-grid">
-    <form method="POST" action="/cases/<%= c.id %>/documents" enctype="multipart/form-data" class="cx-drop-form">
-      <label class="cx-drop">
-        <input type="file" name="documents" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" onchange="this.form.submit()" hidden />
-        <span class="cx-drop-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
-        <strong>Add files</strong>
-        <span>PDF, JPG, PNG · up to 5 files · 5&nbsp;MB each</span>
-      </label>
-    </form>
-    <% if (docs && docs.length) { docs.forEach(function(d){ %>
-      <a class="cx-file" href="/cases/<%= c.id %>/documents/<%= d.id %>" target="_blank" rel="noopener">
-        <span class="cx-fi"><%= (String(d.filename).split('.').pop() || 'FILE').toUpperCase().slice(0,4) %></span>
-        <span class="cx-fmeta"><span class="cx-fn"><%= d.filename %></span><span class="cx-fs"><%= d.size < 1048576 ? Math.max(1, Math.round(d.size/1024)) + ' KB' : (d.size/1048576).toFixed(1) + ' MB' %> &middot; <%= new Date(d.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) %></span></span>
-      </a>
-    <% }); } %>
-  </div>
-  <p class="cx-docs-fine">Documents are only used as identifiers for the case. They are assessed solely for the purpose of mediation, and only where a human mediator is involved.</p>
-</div>
-
-<% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
-<div class="card">
-  <div class="eyebrow">Service charge</div>
-  <h2 style="margin-top:.35rem">Release your settlement agreement</h2>
-
-  <div class="ledger">
-    <div class="lrow"><span class="lk">MidBid service charge</span><span class="lv"><%= pay.fee.grossLabel %></span></div>
-    <% if (pay.fee.credit > 0) { %>
-      <div class="lrow credit"><span class="lk">Less activation fee already paid</span><span class="lv">&minus;<%= pay.fee.creditLabel %></span></div>
-    <% } %>
-    <% if (pay.myPaid > 0) { %>
-      <div class="lrow credit"><span class="lk">You have paid</span><span class="lv">&minus;<%= pay.myPaidLabel %></span></div>
-    <% } %>
-    <div class="lrow total"><span class="lk">Outstanding on this case</span><span class="lv"><%= pay.fee.outstandingLabel %></span></div>
-  </div>
-
-  <form method="POST" action="/cases/<%= c.id %>/pay/success-fee" id="feeForm">
-    <p class="muted" style="margin-bottom:.7rem">How would you like to cover it?</p>
-
-    <label class="choice on" id="choiceSplit">
-      <input type="radio" name="choice" value="split" checked />
-      <span><b>Split it 50/50</b>
-      <span>You pay <%= pay.fee.halfLabel %>. The other party is asked to pay their half.</span></span>
-    </label>
-
-    <label class="choice" id="choiceFull">
-      <input type="radio" name="choice" value="full" />
-      <span><b>I&rsquo;ll cover it in full</b>
-      <span>You pay <%= pay.fee.outstandingLabel %>. Your agreement is released straight away.</span></span>
-    </label>
-
-    <div class="hint">
-      <span class="k">&#9679;</span>
-      <span>What the other party chooses to pay is not shared with you. If they never pay their half, you can come back and cover the balance to release the agreement &mdash; and recover it from them under clause 5 of the terms.</span>
     </div>
+  </div>
 
-    <button class="btn btn-primary btn-block" type="button" id="feeOpen">Continue to payment</button>
-  </form>
-
-  <p class="note">The service charge is payable because a settlement was reached. It is not a payment for the document, and it is not refundable if the other party later declines to sign.</p>
-</div>
-
-<div class="rel-veil" id="relModal" hidden>
-  <div class="rel" role="dialog" aria-modal="true" aria-labelledby="relTitle">
-    <div class="mi">&#10003;</div>
-    <h3 id="relTitle">Release the settlement agreement?</h3>
-    <p>Once the service charge is paid in full, a link to the executable settlement agreement is emailed to <strong>both parties</strong>. This cannot be undone.</p>
-    <p>Nothing is binding until both parties sign it.</p>
-    <label class="consent">
-      <input type="checkbox" id="relConsent" />
-      <span>I authorise MidBid to charge my card <strong id="relAmount"><%= pay.fee.halfLabel %></strong> and release the agreement.</span>
-    </label>
-    <div class="rel-actions">
-      <button class="btn btn-ghost" type="button" id="relCancel">Not yet</button>
-      <button class="btn btn-primary" type="button" id="relGo" disabled>Pay <span id="relAmount2"><%= pay.fee.halfLabel %></span></button>
+  <!-- Mediator full width -->
+  <div class="cx-mediator">
+    <div>
+      <div class="mb">Stuck? Bring in a mediator.</div>
+      <div class="ms">An accredited human mediator can help close the gap. Both parties must agree.<%= (pay && pay.mediatorNote) ? (' ' + pay.mediatorNote) : '' %></div>
     </div>
+    <button type="button" class="mbtn" id="mediatorBtn" <%= mediatorAlready ? 'disabled' : '' %>>
+      <span id="mediatorLbl"><%= mediatorAlready ? '✓ Human mediator requested' : 'Request a human mediator' %></span>
+    </button>
   </div>
 </div>
 
 <script>
 (function(){
-  var form=document.getElementById('feeForm');
-  if(!form) return;
-  var HALF=<%- JSON.stringify(pay.fee.halfLabel) %>, FULL=<%- JSON.stringify(pay.fee.outstandingLabel) %>;
-  var modal=document.getElementById('relModal'), consent=document.getElementById('relConsent'),
-      go=document.getElementById('relGo'), cancel=document.getElementById('relCancel'),
-      open=document.getElementById('feeOpen'),
-      a1=document.getElementById('relAmount'), a2=document.getElementById('relAmount2'),
-      cs=document.getElementById('choiceSplit'), cf=document.getElementById('choiceFull');
-
-  function picked(){ var el=form.querySelector('input[name=choice]:checked'); return el?el.value:'split'; }
-  function paint(){
-    var full = picked()==='full';
-    cs.classList.toggle('on',!full); cf.classList.toggle('on',full);
-    a1.textContent = a2.textContent = full?FULL:HALF;
+  var copyBtn = document.getElementById('copyBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function(){
+      var box = document.getElementById('inviteBox');
+      if (!box) return;
+      var text = box.textContent.trim();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function(){
+          copyBtn.textContent = 'Copied!';
+          setTimeout(function(){ copyBtn.textContent = 'Copy invite link'; }, 1500);
+        });
+      }
+    });
   }
-  form.addEventListener('change',paint); paint();
-
-  open.addEventListener('click',function(){ consent.checked=false; go.disabled=true; modal.hidden=false; });
-  cancel.addEventListener('click',function(){ modal.hidden=true; });
-  modal.addEventListener('click',function(e){ if(e.target===modal) modal.hidden=true; });
-  consent.addEventListener('change',function(){ go.disabled=!consent.checked; });
-  go.addEventListener('click',function(){ go.disabled=true; go.textContent='Processing…'; form.submit(); });
 })();
 </script>
-<% } %>
-
-<!-- Settlement details + e-signature hand-off -->
-<div class="mb-cer" id="settleCer" hidden aria-live="polite" onclick="this.hidden=true;document.body.style.overflow=''">
-  <div class="mb-cer-sky"></div>
-  <div class="mb-cer-card">
-    <div class="mb-cer-seal">
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/>
-        <path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="mb-cer-eyebrow">Congratulations</div>
-    <h2 class="mb-cer-h">Agreed</h2>
-    <div class="mb-cer-fig"><span id="cerFig">£0</span></div>
-    <p class="mb-cer-sub"><span id="cerTitle"></span> landed at the midpoint of both sides' walk-aways — a fair figure, reached without either side seeing the other's numbers, and without lawyers, court, or months of back-and-forth.</p>
-    <p class="mb-cer-why" id="cerWhy"></p>
-    <p class="mb-cer-fine">Fast, private, and fair — that's the whole idea.</p>
-  </div>
-
-  <%# Step two: the confirmation, after they press Settle. This is the "we'll email you"
-      moment. It fires on a real settlement, so nothing here leaks. %>
-  <div class="mb-cer-card mb-cer-done" id="cerDone" hidden>
-    <div class="mb-cer-seal"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/><path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="mb-cer-eyebrow">You're done</div>
-    <h2 class="mb-cer-h">Congratulations</h2>
-    <% if (role === 'resp') { %>
-      <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. When you're ready, complete your payment from your case page.</p>
-    <% } else { %>
-      <p class="mb-cer-sub" style="margin-top:.6rem">You settled without lawyers' fees, court, or months of back-and-forth. Set up your payout details from your case page so we can get your money to you.</p>
-    <% } %>
-
-    <div class="mb-cer-agree" id="cerAgree">
-      <div>
-        <p class="h">Need a signed settlement agreement?</p>
-        <p class="s">Optional &middot; recommended for higher-value or complex disputes &middot; additional cost</p>
-      </div>
-      <button class="btn" type="button" id="cerAgreeBtn">Request</button>
-    </div>
-
-    <button class="mb-cer-go" type="button" id="cerDoneGo">View your case &rarr;</button>
-    <% if (role === 'resp') { %>
-      <p class="mb-cer-fine">Nothing else to do here — your payment step is on your case page.</p>
-    <% } else { %>
-      <p class="mb-cer-fine">Nothing else to do here — your payout setup is on your case page.</p>
-    <% } %>
-  </div>
-</div>
-
-<div class="mb-modal" id="settleModal" hidden>
-  <div class="mb-modal-back" id="settleBack"></div>
-  <div class="mb-modal-card" role="dialog" aria-modal="true" aria-labelledby="settleTitle">
-    <button class="mb-modal-x" id="settleClose" type="button" aria-label="Close">×</button>
-
-    <div id="settleStep1" <%= myDetailsDone ? 'hidden' : '' %>>
-      <div class="mb-modal-badge">Agreed</div>
-      <h2 id="settleTitle">Your settlement is agreed</h2>
-      <p class="mb-modal-sub">Both sides have settled. Add your details below so your settlement agreement names you correctly.</p>
-
-      <label for="pdName">Full name</label>
-      <input id="pdName" type="text" maxlength="200" placeholder="As it should appear on the agreement" />
-
-      <label for="pdCompany">Company name <span class="opt">(optional)</span></label>
-      <input id="pdCompany" type="text" maxlength="200" placeholder="e.g. Northgate Interiors Ltd" />
-
-      <label for="pdAddress">Address</label>
-      <textarea id="pdAddress" rows="3" maxlength="500" placeholder="Street, city, postcode"></textarea>
-
-      <div class="mb-modal-err" id="pdErr" hidden></div>
-      <button class="mb-modal-go" id="pdSave" type="button">Save my details</button>
-      <p class="mb-modal-fine">Used only to identify the parties on the settlement agreement.</p>
-    </div>
-
-    <div id="settleStep2" <%= myDetailsDone ? '' : 'hidden' %>>
-      <div class="mb-modal-badge ok">Details saved</div>
-
-      <div id="pdWait" <%= bothDetailsDone ? 'hidden' : '' %>>
-        <h2>Waiting for the other side</h2>
-        <p class="mb-modal-sub">Thanks — your details are recorded. As soon as the other party adds theirs, your settlement agreement is ready to release.</p>
-      </div>
-
-      <div id="pdReady" <%= bothDetailsDone ? '' : 'hidden' %>>
-        <% if (pay && pay.enabled && !pay.released) { %>
-          <h2>One step to release</h2>
-          <p class="mb-modal-sub">Both sides have provided their details. Your settlement agreement is released as soon as the MidBid service charge is paid. Close this and choose how to cover it.</p>
-          <button class="mb-modal-go" type="button" onclick="document.getElementById('settleModal').hidden=true;document.body.style.overflow='';var f=document.getElementById('feeForm');if(f)f.scrollIntoView({behavior:'smooth'})">Continue to the service charge →</button>
-        <% } else { %>
-          <h2>Your agreement is ready</h2>
-          <p class="mb-modal-sub">Both sides have provided their details and the service charge is settled. Your executable settlement agreement is ready to view and download.</p>
-          <a class="mb-modal-go" href="/cases/<%= c.id %>/agreement" target="_blank" rel="noopener">View &amp; download the agreement →</a>
-        <% } %>
-      </div>
-      <p class="mb-modal-fine">MidBid never holds the settlement money. You and the other party settle the agreed sum directly.</p>
-    </div>
-  </div>
-</div>
-
-<p style="margin-top:1.2rem"><a href="/dashboard">← Back to my cases</a></p>
-
 <script>
   var AMOUNT = <%= c.amount %>;
   var CUR = { symbol: <%- JSON.stringify(cur.symbol) %>, locale: <%- JSON.stringify(cur.locale) %> };
