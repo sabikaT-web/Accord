@@ -111,6 +111,8 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_phone TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_phone  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS case_details TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_notes TEXT;`);
+  await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_notes  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_sent BOOLEAN NOT NULL DEFAULT false;`);
 
   // Supporting documents attached to a case. Stored in the database because

@@ -982,10 +982,12 @@ app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
     mediatorNote: MEDIATOR_FEE_NOTE
   };
   const docs = await db.documentsForCase(c.id);
+  const privateNotes = role === 'claim' ? (c.claim_notes || '') : (c.resp_notes || '');
   const myDetailsDone = role === 'claim' ? !!(c.claim_full_name && c.claim_address) : !!(c.resp_full_name && c.resp_address);
   const bothDetailsDone = !!(c.claim_full_name && c.claim_address && c.resp_full_name && c.resp_address);
   res.render('case', { c, role, status, inviteUrl, pay, cur: curOf(c.currency), docs, myDetailsDone, bothDetailsDone, payeeOnboarded: !!c.payee_payouts_ready, settlementPaid: !!c.settlement_paid_at,
     agreementRequested: !!c.agreement_requested_at,
+    privateNotes,
     msg: req.query.msg || null });
 }));
 
@@ -1181,6 +1183,21 @@ app.post('/cases/:id/documents', requireLogin, uploadDocs, wrap(async (req, res)
   }
   if (files.length) await db.addEvent(c.id, 'documents', files.length + ' document' + (files.length === 1 ? '' : 's') + ' added on the case page');
   res.redirect('/cases/' + c.id + '#documents');
+}));
+
+app.post('/cases/:id/notes', requireLogin, wrap(async (req, res) => {
+  const c = await db.caseById(Number(req.params.id));
+  if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
+  const role = roleOf(c, req.session.userId);
+  if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
+  const notes = String(req.body.notes || '').trim().slice(0, 4000);
+  if (role === 'claim') {
+    await pool.query('UPDATE cases SET claim_notes = $1 WHERE id = $2', [notes || null, c.id]);
+  } else {
+    await pool.query('UPDATE cases SET resp_notes = $1 WHERE id = $2', [notes || null, c.id]);
+  }
+  await db.addEvent(c.id, 'notes', (role === 'claim' ? 'Claimant' : 'Respondent') + ' updated private notes');
+  res.redirect('/cases/' + c.id + '?msg=' + encodeURIComponent('Private notes saved.'));
 }));
 
 app.get('/cases/:id/documents', requireLogin, wrap(async (req, res) => {
