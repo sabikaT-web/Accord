@@ -114,6 +114,26 @@ async function init() {
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS claim_notes TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS resp_notes  TEXT;`);
   await pool.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS agreement_sent BOOLEAN NOT NULL DEFAULT false;`);
+  // ---------------------------------------------------------------------------
+// One-time currency clean-up. Add these lines inside db.js init() (after the
+// other ALTER TABLE / migration lines). They are safe to leave in permanently
+// and safe to run on every boot — each only touches rows that are actually wrong.
+// ---------------------------------------------------------------------------
+
+// 1) Fix case MB-2 specifically (the one showing $ instead of £).
+await pool.query(`UPDATE cases SET currency = 'GBP' WHERE id = 2;`);
+
+// 2) General clean-up: any case with no currency, or a value that isn't one of
+//    the supported 3-letter codes, becomes GBP so it can never fall back to $.
+await pool.query(`
+  UPDATE cases
+  SET currency = 'GBP'
+  WHERE currency IS NULL
+     OR currency NOT IN ('GBP','USD','CAD','EUR','SGD','INR');
+`);
+
+// 3) Normalise casing (e.g. 'gbp' -> 'GBP') so curOf() always matches.
+await pool.query(`UPDATE cases SET currency = upper(currency);`);
 
   // Supporting documents attached to a case. Stored in the database because
   // Render's filesystem is wiped on every deploy.
