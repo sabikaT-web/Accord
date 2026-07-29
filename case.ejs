@@ -3,6 +3,7 @@
   title: c.title,
   sub: ''
 } }) %>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Spline+Sans+Mono:wght@500;600&display=swap" rel="stylesheet">
 
 <style>
   .mb-card{margin-top:1rem}
@@ -292,23 +293,25 @@
 .cx-left{min-width:0}
 .cx-right{min-width:0;display:flex;flex-direction:column;gap:14px}
 /* case-facts strip: reference, parties, amount — all in one place */
-.cx-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:16px 22px;background:linear-gradient(180deg,#ffffff,#f5f8ff);border-color:#dfe6f6}
-.cx-facts .cx-fact{padding:2px 22px;border-left:1px solid #e1e7f6}
-.cx-facts .cx-fact:first-child{border-left:0;padding-left:0}
-.cx-fact .k{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#6b7aa8;margin-bottom:6px}
-.cx-fact .v{font-size:.98rem;font-weight:600;color:#16213f}
-.cx-fact .v small{display:block;font-size:.7rem;font-weight:400;color:#7a86a0;margin-top:2px}
-.cx-fact .v.mono{color:#2b54e6}
-.cx-fact .v.num{color:#16306B;font-size:1.08rem}
-.cx-fact .v.mono,.cx-fact .v.num{font-family:"Spline Sans Mono","JetBrains Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600}
+.cx-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:12px 14px;background:linear-gradient(180deg,#fffdf7,#fbf5e9);border-color:#ecdfc4;box-shadow:0 18px 46px -40px rgba(120,90,30,.5)}
+.cx-facts .cx-fact{padding:8px 20px;border-radius:11px;transition:background .18s ease,box-shadow .18s ease}
+.cx-facts .cx-fact + .cx-fact{border-left:1px solid #eadfc6}
+.cx-facts .cx-fact:hover{background:rgba(207,156,52,.14);box-shadow:inset 0 0 0 1px rgba(207,156,52,.4)}
+.cx-fact .k{display:flex;align-items:center;gap:.5em;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:#a9853a;margin-bottom:9px}
+.cx-fact .k::before{content:"";width:6px;height:6px;border-radius:50%;background:#cf9c34;transition:transform .18s ease}
+.cx-facts .cx-fact:hover .k::before{transform:scale(1.5)}
+.cx-fact .v{font-family:"Newsreader",Georgia,serif;font-size:1.05rem;font-weight:500;color:#33291a}
+.cx-fact .v small{display:block;font-family:"Inter",sans-serif;font-size:.7rem;font-weight:400;color:#8a7f68;margin-top:2px}
+.cx-fact .v.mono{font-family:"Spline Sans Mono","JetBrains Mono",monospace;color:#b7791f;font-weight:600;font-size:.98rem;font-variant-numeric:tabular-nums}
+.cx-fact .v.num{font-family:"Fraunces",Georgia,serif;color:#a86d15;font-weight:600;font-size:1.5rem}
 /* full-width human-mediator bar under both columns */
-.cx-mediator{margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;background:linear-gradient(120deg,#16213f,#22376f);color:#fff;border-radius:16px;padding:18px 24px}
-.cx-med-text{display:flex;gap:14px;align-items:center;min-width:0}
+.cx-mediator{display:flex;flex-direction:column;align-items:stretch;gap:14px;background:linear-gradient(155deg,#16213f,#22376f);color:#fff;border-radius:16px;padding:20px}
+.cx-med-text{display:flex;gap:14px;align-items:flex-start;min-width:0}
 .cx-med-ic{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex:none;color:#e0b34a}
 .cx-med-ic svg{width:20px;height:20px}
 .cx-med-b{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.02rem}
 .cx-med-s{font-size:.8rem;color:rgba(255,255,255,.72);margin-top:3px;line-height:1.5}
-.cx-med-btn{font-weight:600;font-size:.9rem;color:#16213f;background:#e0b34a;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;white-space:nowrap}
+.cx-med-btn{font-weight:600;font-size:.9rem;color:#16213f;background:#e0b34a;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;width:100%;text-align:center}
 .cx-med-btn:disabled{opacity:.6;cursor:default}
 @media(max-width:900px){.cx-facts{grid-template-columns:1fr 1fr}.cx-facts .cx-fact{border-left:0;padding:8px 0}.cx-mediator{flex-direction:column;align-items:flex-start}}
 /* --- scale card polished to match the design --- */
@@ -358,8 +361,8 @@
 <% } %>
 <div class="card cx-facts">
   <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
-  <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %><small>is owed</small></div></div>
-  <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %><small>owes</small></div></div>
+  <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %></div></div>
+  <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %></div></div>
   <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
 </div>
 <div class="cx-statusrow">
@@ -517,18 +520,18 @@
         </div>
       </div>
     <% } %>
-  </div>
-</div>
 
-<div class="cx-mediator" id="escalate">
-  <div class="cx-med-text">
-    <div class="cx-med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><circle cx="12" cy="15" r="6"/></svg></div>
-    <div>
-      <div class="cx-med-b">Stuck? Bring in an accredited mediator.</div>
-      <div class="cx-med-s">An independent human mediator can help close the gap when the two sides can't quite meet. Both parties must agree to proceed.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></div>
+    <div class="cx-mediator" id="escalate">
+      <div class="cx-med-text">
+        <div class="cx-med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><circle cx="12" cy="15" r="6"/></svg></div>
+        <div>
+          <div class="cx-med-b">Stuck? Bring in an accredited mediator.</div>
+          <div class="cx-med-s">An independent human mediator can help close the gap when the two sides can't quite meet. Both parties must agree to proceed.<%= pay && pay.mediatorNote ? ' ' + pay.mediatorNote : '' %></div>
+        </div>
+      </div>
+      <button class="cx-med-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
     </div>
   </div>
-  <button class="cx-med-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
 </div>
 
 <% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
