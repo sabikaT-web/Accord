@@ -1172,6 +1172,17 @@ app.post('/cases/:id/agreement/request', requireLogin, uploadDocs, wrap(async (r
   res.redirect('/cases/' + c.id + '?msg=' + encodeURIComponent('Your settlement agreement request is in — we\'ll be in touch with next steps.'));
 }));
 
+app.post('/cases/:id/documents', requireLogin, uploadDocs, wrap(async (req, res) => {
+  const c = await guardCase(req, res); if (!c) return;
+  if (req.uploadError) return res.redirect('/cases/' + c.id + '?msg=' + encodeURIComponent(req.uploadError) + '#documents');
+  const files = req.files || [];
+  for (const f of files) {
+    await db.addDocument(c.id, req.session.userId, f.originalname, f.mimetype, f.size, f.buffer);
+  }
+  if (files.length) await db.addEvent(c.id, 'documents', files.length + ' document' + (files.length === 1 ? '' : 's') + ' added on the case page');
+  res.redirect('/cases/' + c.id + '#documents');
+}));
+
 app.get('/cases/:id/documents', requireLogin, wrap(async (req, res) => {
   const c = await guardCase(req, res); if (!c) return;
   res.json(await db.documentsForCase(c.id));

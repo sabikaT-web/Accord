@@ -313,6 +313,34 @@
 .cx-med-s{font-size:.8rem;color:rgba(255,255,255,.72);margin-top:3px;line-height:1.5}
 .cx-med-btn{font-weight:600;font-size:.9rem;color:#16213f;background:#e0b34a;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;width:100%;text-align:center}
 .cx-med-btn:disabled{opacity:.6;cursor:default}
+/* invite status chip in the right column */
+.cx-invite-status{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid #e4e9f4}
+.cx-invite-status svg{width:18px;height:18px;flex:none;margin-top:.1em}
+.cx-invite-status b{display:block;font-size:13px}
+.cx-invite-status span{font-size:11.5px;color:#5a6377;line-height:1.5}
+.cx-invite-status.awaiting{background:rgba(224,151,42,.08);border-color:rgba(224,151,42,.32)}
+.cx-invite-status.awaiting svg{color:#b3801f}
+.cx-invite-status.accepted{background:rgba(18,161,80,.08);border-color:rgba(18,161,80,.3)}
+.cx-invite-status.accepted svg{color:#12a150}
+/* documents section (full width) */
+.cx-docs{margin-top:18px;padding:22px 24px}
+.cx-docs-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.cx-docs-head h2{font:500 17px/1 "Newsreader",Georgia,serif;color:#16213f}
+.cx-docs-n{font-size:12px;color:#5a6377}
+.cx-docs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.cx-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:100%;min-height:96px;border:1.6px dashed #c7cdda;border-radius:12px;padding:16px;text-align:center;background:#fbfcfe;cursor:pointer;transition:border-color .15s}
+.cx-drop:hover{border-color:#2b54e6}
+.cx-drop-ic{width:36px;height:36px;border-radius:10px;background:rgba(43,84,230,.1);display:grid;place-items:center;color:#2b54e6}
+.cx-drop strong{font-size:13.5px;color:#16213f}
+.cx-drop span{font-size:11.5px;color:#5a6377}
+.cx-file{display:flex;align-items:center;gap:11px;border:1px solid #e4e9f4;border-radius:12px;padding:13px 14px;background:#f7f9fe;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
+.cx-file:hover{border-color:#2b54e6;background:#fff}
+.cx-fi{width:30px;height:30px;border-radius:8px;background:rgba(43,84,230,.12);display:grid;place-items:center;color:#2b54e6;font:700 9px/1 'Inter',sans-serif;flex:none}
+.cx-fmeta{min-width:0;display:flex;flex-direction:column}
+.cx-fn{font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-fs{font-size:11px;color:#95a0b8;margin-top:2px}
+.cx-docs-fine{margin-top:14px;font-size:11.5px;color:#95a0b8;line-height:1.5}
+@media(max-width:820px){.cx-docs-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.cx-facts{grid-template-columns:1fr 1fr}.cx-facts .cx-fact{border-left:0;padding:8px 0}.cx-mediator{flex-direction:column;align-items:flex-start}}
 /* --- scale card polished to match the design --- */
 .mb-figwrap{display:none}
@@ -365,11 +393,12 @@
   <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %></div></div>
   <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
 </div>
+<% if (c.status === 'settled' || otherJoined) { %>
 <div class="cx-statusrow">
   <% if (c.status === 'settled') { %><span class="cx-pill green">Settled</span>
-  <% } else if (otherJoined) { %><span class="cx-pill">Active &mdash; bidding open</span>
-  <% } else { %><span class="cx-pill amber">Awaiting the other party</span><% } %>
+  <% } else { %><span class="cx-pill">Active &mdash; bidding open</span><% } %>
 </div>
+<% } %>
 <div class="cx-grid">
   <!-- LEFT: the bid — scale, figures, one-way rule, submit. SCALE KEPT VERBATIM. -->
   <div class="cx-left">
@@ -470,6 +499,11 @@
 
   <div class="cx-right">
     <div class="cx-col-label">The case</div>
+    <% if (otherJoined) { %>
+      <div class="cx-invite-status accepted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Invitation accepted</b><span>The other party has joined — bidding is live on the left.</span></div></div>
+    <% } else if (liveCase) { %>
+      <div class="cx-invite-status awaiting"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><b>Awaiting the other party</b><span>They haven't joined the case yet.</span></div></div>
+    <% } %>
 <% if (!otherJoined && liveCase) { %>
   <div class="inv <%= c.last_invite_error ? 'inv-bad' : (stale ? 'inv-stale' : '') %>">
     <div class="inv-head">
@@ -512,14 +546,6 @@
     </details>
   </div>
 <% } %>
-    <% if (otherJoined) { %>
-      <div class="cx-info-card">
-        <div class="cx-info-head">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          <div><b>Both parties joined</b><span>This case is active. Bidding runs on the left.</span></div>
-        </div>
-      </div>
-    <% } %>
 
     <div class="cx-mediator" id="escalate">
       <div class="cx-med-text">
@@ -532,6 +558,30 @@
       <button class="cx-med-btn" type="button" id="mediatorBtn"<%= pay && pay.mediatorRequested ? ' disabled' : '' %>><span id="mediatorLbl"><%= pay && pay.mediatorRequested ? '✓ Human mediator requested' : 'Request a human mediator' %></span></button>
     </div>
   </div>
+</div>
+
+<div class="card cx-docs" id="documents">
+  <div class="cx-docs-head">
+    <h2>Documents</h2>
+    <span class="cx-docs-n">Invoices, contracts, correspondence — add at any stage of the case.</span>
+  </div>
+  <div class="cx-docs-grid">
+    <form method="POST" action="/cases/<%= c.id %>/documents" enctype="multipart/form-data" class="cx-drop-form">
+      <label class="cx-drop">
+        <input type="file" name="documents" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" onchange="this.form.submit()" hidden />
+        <span class="cx-drop-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+        <strong>Add files</strong>
+        <span>PDF, JPG, PNG · up to 5 files · 5&nbsp;MB each</span>
+      </label>
+    </form>
+    <% if (docs && docs.length) { docs.forEach(function(d){ %>
+      <a class="cx-file" href="/cases/<%= c.id %>/documents/<%= d.id %>" target="_blank" rel="noopener">
+        <span class="cx-fi"><%= (String(d.filename).split('.').pop() || 'FILE').toUpperCase().slice(0,4) %></span>
+        <span class="cx-fmeta"><span class="cx-fn"><%= d.filename %></span><span class="cx-fs"><%= d.size < 1048576 ? Math.max(1, Math.round(d.size/1024)) + ' KB' : (d.size/1048576).toFixed(1) + ' MB' %></span></span>
+      </a>
+    <% }); } %>
+  </div>
+  <p class="cx-docs-fine">Documents are only used as identifiers for the case. They are assessed solely for the purpose of mediation, and only where a human mediator is involved.</p>
 </div>
 
 <% if (pay && pay.enabled && pay.fee && c.status === 'settled' && !pay.released) { %>
