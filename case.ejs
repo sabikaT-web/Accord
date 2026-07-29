@@ -292,12 +292,14 @@
 .cx-left{min-width:0}
 .cx-right{min-width:0;display:flex;flex-direction:column;gap:14px}
 /* case-facts strip: reference, parties, amount — all in one place */
-.cx-facts{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:0;padding:15px 20px}
-.cx-facts .cx-fact{padding:2px 20px;border-left:1px solid #e4e9f4}
+.cx-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:16px 22px;background:linear-gradient(180deg,#ffffff,#f5f8ff);border-color:#dfe6f6}
+.cx-facts .cx-fact{padding:2px 22px;border-left:1px solid #e1e7f6}
 .cx-facts .cx-fact:first-child{border-left:0;padding-left:0}
-.cx-fact .k{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#95a0b8;margin-bottom:5px}
-.cx-fact .v{font-size:.95rem;font-weight:500;color:#16213f}
-.cx-fact .v small{display:block;font-size:.7rem;font-weight:400;color:#5a6377;margin-top:1px}
+.cx-fact .k{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#6b7aa8;margin-bottom:6px}
+.cx-fact .v{font-size:.98rem;font-weight:600;color:#16213f}
+.cx-fact .v small{display:block;font-size:.7rem;font-weight:400;color:#7a86a0;margin-top:2px}
+.cx-fact .v.mono{color:#2b54e6}
+.cx-fact .v.num{color:#16306B;font-size:1.08rem}
 .cx-fact .v.mono,.cx-fact .v.num{font-family:"Spline Sans Mono","JetBrains Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600}
 /* full-width human-mediator bar under both columns */
 .cx-mediator{margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;background:linear-gradient(120deg,#16213f,#22376f);color:#fff;border-radius:16px;padding:18px 24px}
@@ -354,6 +356,12 @@
 <% if (typeof msg !== 'undefined' && msg) { %>
   <div class="inv-msg <%= /Could not|does not look/.test(msg) ? 'bad' : '' %>"><%= msg %></div>
 <% } %>
+<div class="card cx-facts">
+  <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
+  <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %><small>is owed</small></div></div>
+  <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %><small>owes</small></div></div>
+  <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
+</div>
 <div class="cx-statusrow">
   <% if (c.status === 'settled') { %><span class="cx-pill green">Settled</span>
   <% } else if (otherJoined) { %><span class="cx-pill">Active &mdash; bidding open</span>
@@ -362,12 +370,6 @@
 <div class="cx-grid">
   <!-- LEFT: the bid — scale, figures, one-way rule, submit. SCALE KEPT VERBATIM. -->
   <div class="cx-left">
-    <div class="card cx-facts">
-      <div class="cx-fact"><div class="k">Case reference</div><div class="v mono">MB-<%= c.id %></div></div>
-      <div class="cx-fact"><div class="k">Claimant</div><div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '\u2014') %><small>is owed</small></div></div>
-      <div class="cx-fact"><div class="k">Respondent</div><div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting the other party')) %><small>owes</small></div></div>
-      <div class="cx-fact"><div class="k">Original amount claimed</div><div class="v num"><%= cur.symbol %><%= fmt(c.amount) %></div></div>
-    </div>
 <div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
   <div class="mb-schead">
     <span class="mb-eyebrow">Your private figures</span>
@@ -444,6 +446,7 @@
 
   <div class="mb-actions">
     <button class="btn btn-primary" type="button" id="saveBtn">Save my figures</button>
+    <button class="btn btn-ghost" type="button" id="resetBtn" title="The figures will go back to your last saved numbers.">Reset</button>
     <button class="mb-approve" type="button" id="approve" style="display:none"><span class="lbl" id="approveLbl">Settle</span></button>
     <span class="muted" id="saveHint"></span>
     <span class="muted" id="roundLine" style="display:block;width:100%;margin-top:.4rem;font-size:.82rem"></span>
@@ -754,8 +757,8 @@
     box.classList.remove('locked');
     arw.setAttribute('d', ROLE==='claim' ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7');
     var base = ROLE==='claim'
-      ? 'One way only — your walk-away can come <b>down</b>, never back up. Once you lower it, it stays lowered.'
-      : 'One way only — your ceiling can go <b>up</b>, never back down. Once you raise it, it cannot be reduced.';
+      ? 'One way only — each bid moves you toward a settlement, never away from it. Once you commit a figure it stays committed, and can\'t be taken back.'
+      : 'One way only — each bid moves you toward a settlement, never away from it. Once you commit a figure it stays committed, and can\'t be taken back.';
     if(s && s.limitText) base += ' ' + s.limitText;
     txt.innerHTML = base;
   }
@@ -775,6 +778,7 @@
   } else {
     if (ROLE==='claim'){ lo=0.40; mid=0.60; hi=0.80; } else { lo=0.20; mid=0.40; hi=0.60; }
   }
+  var savedLo=lo, savedMid=mid, savedHi=hi;
   function order(){ if(mid<lo+MINGAP)mid=lo+MINGAP; if(hi<mid+MINGAP)hi=mid+MINGAP; if(hi>1){hi=1; if(mid>hi-MINGAP)mid=hi-MINGAP; if(lo>mid-MINGAP)lo=mid-MINGAP;} if(lo<0)lo=0; }
 
   // map slots -> meaning
@@ -1124,7 +1128,7 @@
     postForm('/cases/'+CASE_ID+'/bid','ideal='+a.ideal+'&fair='+a.fair+'&reservation='+a.reservation)
       .then(function(s){
         if(s && s.error){ saveHint.textContent=s.error; saveBtn.disabled=false; setCoach('warning', s.error); return; }
-        applyStatus(s); saveHint.textContent='Submitted.';
+        applyStatus(s); savedLo=lo; savedMid=mid; savedHi=hi; saveHint.textContent='Submitted.';
         setTimeout(function(){saveHint.textContent='';},2000);
       })
       .catch(function(){ saveBtn.disabled=false; saveHint.textContent='Could not submit — try again.'; });
@@ -1201,6 +1205,8 @@
   });
 
   if(saveBtn) saveBtn.addEventListener('click',saveFigures);
+  var resetBtn=document.getElementById('resetBtn');
+  if(resetBtn) resetBtn.addEventListener('click',function(){ if(locked)return; lo=savedLo; mid=savedMid; hi=savedHi; order(); placeAll(); [].forEach.call(chips.children,function(ch){ch.classList.remove('sel');}); });
   btn.addEventListener('click',approve);
 
   var mediatorBtn=document.getElementById('mediatorBtn'), mediatorLbl=document.getElementById('mediatorLbl');
