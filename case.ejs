@@ -385,10 +385,18 @@
 <style>
   /* Balanced layout + band (from approved mock) — does not alter scale behaviour */
   html,body{overflow-x:hidden}
-  .cx-band-wrap{width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;background:#163A6B;border-top:3px solid #e0b34a;border-bottom:3px solid #e0b34a}
-  .cx-band{position:relative;color:#fff;padding:30px 40px 34px;max-width:1200px;margin:0 auto;
-    background:#163A6B;
-    display:grid;grid-template-columns:1fr 340px;gap:34px;align-items:center}
+  .cx-band-wrap{
+    width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;
+    border-top:3px solid #e0b34a;border-bottom:3px solid #e0b34a;
+    background:
+      radial-gradient(820px 420px at 92% -30%,rgba(224,180,80,.20),transparent 60%),
+      linear-gradient(115deg,#14224e 0%,#1d2f6b 60%,#26377d 100%);
+  }
+  .cx-band{
+    position:relative;color:#fff;padding:30px 40px 34px;max-width:1200px;margin:0 auto;
+    background:transparent;
+    display:grid;grid-template-columns:1fr 340px;gap:34px;align-items:center;
+  }
   .cx-band .eyebrow{font:600 12px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#e6c079}
   .cx-band .title{font:500 42px/1 Fraunces,serif;letter-spacing:-.01em;margin-top:8px}
   .cx-band .statusline{display:flex;align-items:center;gap:12px;margin-top:18px}
