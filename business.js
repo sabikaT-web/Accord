@@ -323,7 +323,7 @@ router.get('/', requireLogin, wrap(async (req, res) => {
       joinRate,
       inBand: at('bidding').length,          // rounds in play — not how close anyone is
       settledValue: sum(cases.filter((c) => c.status === 'settled'), 'settled_value'),
-      currency: cases[0] ? cases[0].currency : 'GBP',
+      currency: (function(){ var m={}; cases.forEach(function(c){ var k=c.currency||'GBP'; m[k]=(m[k]||0)+1; }); return Object.keys(m).sort(function(a,b){return m[b]-m[a];})[0] || 'GBP'; })(),
     },
     stages: STAGES,
     presets: await bz.presets(me.id),

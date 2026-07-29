@@ -23,7 +23,10 @@
     .map(c => Math.max(0, Math.round((new Date(c.settled_at) - new Date(c.created_at)) / 86400000)));
   const typical = spans.length ? Math.round(spans.reduce((a, b) => a + b, 0) / spans.length) : null;
 
-  const cur = cases[0] ? cases[0].currency : 'GBP';
+  // KPI totals only make sense within one currency; use the most common currency
+  // across the viewer's cases so a single case in another currency can't flip the symbol.
+  const _cc = {}; cases.forEach(function(c){ var k = c.currency || 'GBP'; _cc[k] = (_cc[k]||0)+1; });
+  const cur = Object.keys(_cc).sort(function(a,b){ return _cc[b]-_cc[a]; })[0] || 'GBP';
   const STAGE_META = {
     draft:      { label: 'Draft',       color: '#B4B2A9' },
     awaiting:   { label: 'Awaiting',    color: '#F5B312' },
