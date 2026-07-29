@@ -1,346 +1,457 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>MidBid · Case <%= typeof caseRef !== 'undefined' ? caseRef : 'MB-2' %></title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600&display=swap" rel="stylesheet">
+<%- include('partials/head', { pageHead: {
+  eyebrow: 'Case MB-' + c.id,
+  title: c.title,
+  sub: ''
+} }) %>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Spline+Sans+Mono:wght@500;600&display=swap" rel="stylesheet">
+
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --acc:#1E4FBF;
-    --acc-soft:rgba(30,79,191,.09);
-    --gold:#C9A227;
-    --ink:#0F1C2E;
-    --soft:#4A5568;
-    --faint:#7A879C;
-    --line:#DCE3EF;
-    --panel2:#F4F6FA;
-    --success:#0D9F6E;
-    --navy:#0B1F3A;
-  }
-  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#EEF1F6;min-height:100vh}
+  /* ---- Layout: Timeline + Scale + Private notes ---- */
+  .cx-grid{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start;margin-top:14px}
+  .cx-stack{display:flex;flex-direction:column;gap:12px}
+  .cx-card{background:#fff;border:1px solid #DCE3EF;border-radius:12px;box-shadow:0 12px 36px -32px rgba(15,28,46,.45)}
+  .cx-pad{padding:16px 18px}
 
-  /* ---- Nav (minimal, matches product) ---- */
-  .topnav{
-    background:var(--navy);color:#C5D0E0;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:0 24px;height:56px;
-  }
-  .topnav .brand{display:flex;align-items:center;gap:.55em;font-family:'Newsreader',serif;font-weight:500;font-size:1.15rem;color:#fff;text-decoration:none}
-  .topnav .brand svg{width:22px;height:24px}
-  .topnav .nav-right{display:flex;align-items:center;gap:1.2rem;font-size:.9rem}
-  .topnav a{color:#A8B8D0;text-decoration:none;font-weight:500}
-  .topnav a:hover{color:#fff}
-
-  .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 48px}
-
-  .titlebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
-  .titlebar .t{display:flex;align-items:baseline;gap:10px}
-  .ref{font:600 11.5px/1 'Spline Sans Mono',monospace;color:var(--acc);background:var(--acc-soft);padding:.4em .65em;border-radius:6px}
-  .titlebar h1{font:500 22px/1.15 'Newsreader',serif}
-  .pill{
-    font:600 10px/1 'Inter';letter-spacing:.08em;text-transform:uppercase;
-    color:var(--success);background:rgba(13,159,110,.1);border:1px solid rgba(13,159,110,.28);
-    padding:.5em .75em;border-radius:999px;
-  }
-
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 36px -32px rgba(15,28,46,.45)}
+  .cx-eyebrow{font:700 .56rem/1 'Inter',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1E4FBF;display:block;margin-bottom:7px}
+  .cx-h{font:500 14.5px/1.2 'Newsreader',Georgia,serif;margin:0 0 4px}
+  .cx-muted{font-size:12px;color:#4A5568;line-height:1.5}
 
   /* ribbon */
-  .ribbon{
-    display:grid;grid-template-columns:repeat(4,1fr);
-    padding:11px 12px;margin-bottom:14px;
-    background:linear-gradient(180deg,#FFFEF8,#F8F1DF);
-    border:1px solid #E8D9B0;border-radius:12px;
-  }
-  .rc{padding:5px 16px}.rc+.rc{border-left:1px solid #E4D4A8}
-  .rc .k{display:flex;align-items:center;gap:.35em;font:600 .58rem/1 'Inter';letter-spacing:.12em;text-transform:uppercase;color:#9A7B2E;margin-bottom:6px}
-  .rc .k::before{content:"";width:5px;height:5px;border-radius:50%;background:#C9A227}
-  .rc .v{font:500 1rem/1.15 'Newsreader',serif;color:#2A2416}
-  .rc .v.ref{font-family:'Spline Sans Mono',monospace;color:#9A6B18;font-weight:600;font-size:.9rem}
-  .rc .v.amt{font:600 1.25rem/1 'Fraunces',serif;color:#8A5A0F}
+  .cx-ribbon{display:grid;grid-template-columns:repeat(4,1fr);padding:11px 12px;margin-bottom:4px;
+    background:linear-gradient(180deg,#FFFEF8,#F8F1DF);border:1px solid #E8D9B0;border-radius:12px}
+  .cx-rc{padding:5px 16px}.cx-rc+.cx-rc{border-left:1px solid #E4D4A8}
+  .cx-rc .k{display:flex;align-items:center;gap:.35em;font:600 .58rem/1 'Inter',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#9A7B2E;margin-bottom:6px}
+  .cx-rc .k::before{content:"";width:5px;height:5px;border-radius:50%;background:#C9A227}
+  .cx-rc .v{font:500 1rem/1.15 'Newsreader',serif;color:#2A2416}
+  .cx-rc .v.mono{font-family:'Spline Sans Mono',monospace;color:#9A6B18;font-weight:600;font-size:.9rem}
+  .cx-rc .v.amt{font:600 1.25rem/1 'Fraunces',serif;color:#8A5A0F}
 
-  h3.ct{font:500 14.5px/1.2 'Newsreader',serif;margin-bottom:3px}
-  .eyebrow{font:700 .56rem/1 'Inter';letter-spacing:.14em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:7px}
-  .muted{font-size:12px;color:var(--soft);line-height:1.5}
+  .cx-titlebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap}
+  .cx-titlebar h1{font:500 22px/1.15 'Newsreader',serif;margin:0}
+  .cx-ref{font:600 11.5px/1 'Spline Sans Mono',monospace;color:#1E4FBF;background:rgba(30,79,191,.09);padding:.4em .65em;border-radius:6px;margin-right:8px}
+  .cx-pill{font:600 10px/1 'Inter',system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#0D9F6E;background:rgba(13,159,110,.1);border:1px solid rgba(13,159,110,.28);padding:.5em .75em;border-radius:999px}
 
-  /* scale */
-  .scale{padding:18px 20px}
-  .scale .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  .rolechip{font:700 .58rem/1 'Inter';letter-spacing:.06em;text-transform:uppercase;color:var(--acc);background:var(--acc-soft);padding:.45em .65em;border-radius:999px}
-  .chips{display:flex;gap:8px;margin-bottom:4px}
-  .chip{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#FAFBFD}
-  .chip .k{font:700 .55rem/1 'Inter';letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:.35em;color:var(--soft)}
-  .chip .k::before{content:"";width:7px;height:7px;border-radius:50%}
-  .chip.i .k::before{background:transparent;border:2px solid #6B5AF0;width:8px;height:8px}
-  .chip.i .k,.chip.i .v{color:#5B4AD8}
-  .chip.t .k::before{background:var(--acc)}
-  .chip.t .k,.chip.t .v{color:var(--acc)}
-  .chip.w .k::before{background:var(--gold)}
-  .chip.w .k,.chip.w .v{color:#9A6B18}
-  .chip .v{font:600 .95rem/1 'Spline Sans Mono',monospace;margin-top:6px}
-  .trk{position:relative;height:4px;border-radius:4px;background:#E1E7F4;margin:26px 4px 0}
-  .trk .b{position:absolute;top:0;height:4px;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--acc),#6B5AF0);left:55%;width:32%}
-  .trk .n{position:absolute;top:2px;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%}
-  .trk .n.w{left:55%;background:var(--gold);border:2px solid #fff;box-shadow:0 0 0 3px rgba(201,162,39,.18);width:16px;height:16px}
-  .trk .n.t{left:72%;background:var(--acc)}
-  .trk .n.i{left:87%;background:#fff;border:2px solid #6B5AF0}
-  .axis{display:flex;justify-content:space-between;margin-top:12px;font:500 10.5px/1 'Spline Sans Mono',monospace;color:var(--faint)}
-  .oneway{margin-top:14px;padding:9px 12px;border-radius:9px;background:var(--acc-soft);border:1px solid rgba(30,79,191,.18);font-size:11.5px;color:var(--soft);line-height:1.45}
-  .acts{display:flex;gap:8px;margin-top:12px}
-  .btn{font:600 13px/1 'Inter';color:#fff;background:var(--acc);border:none;border-radius:8px;padding:10px 16px;cursor:pointer}
-  .btn:hover{background:#163A8F}
-  .btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}
-  .btn.g:hover{border-color:var(--ink);background:var(--panel2)}
-  .btn.full{width:100%;text-align:center;margin-top:2px}
+  /* timeline */
+  .cx-timeline{list-style:none;position:relative;margin:12px 0 0 6px;padding:0}
+  .cx-timeline li{position:relative;padding:0 0 14px 18px;border-left:2px solid #DCE3EF;font-size:12px}
+  .cx-timeline li:last-child{border-left-color:transparent;padding-bottom:0}
+  .cx-timeline .dot{position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:#1E4FBF;border:2px solid #fff}
+  .cx-timeline .dot.gold{background:#C9A227}
+  .cx-timeline .dot.green{background:#0D9F6E}
+  .cx-timeline .when{font-size:10.5px;color:#7A879C;margin-top:2px}
+  .cx-timeline b{font-weight:600}
 
-  .pad{padding:16px 18px}
-  .status{display:flex;gap:8px;padding:9px 11px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--gold);margin:9px 0}
-  .status b{font-size:12px}.status span{font-size:11px;color:var(--soft)}
-  .link{margin-top:9px;font:500 10.5px/1.4 'Spline Sans Mono',monospace;color:var(--soft);background:var(--panel2);border:1px dashed #C8D2E4;border-radius:8px;padding:7px 9px;word-break:break-all}
+  /* invite / status */
+  .cx-status{display:flex;gap:8px;padding:9px 11px;border-radius:9px;background:#F4F6FA;border:1px solid #DCE3EF;border-left:3px solid #C9A227;margin:9px 0}
+  .cx-status b{font-size:12px;display:block}.cx-status span{font-size:11px;color:#4A5568}
+  .cx-link{margin-top:9px;font:500 10.5px/1.4 'Spline Sans Mono',monospace;color:#4A5568;background:#F4F6FA;border:1px dashed #C8D2E4;border-radius:8px;padding:7px 9px;word-break:break-all}
 
-  .mediator{background:linear-gradient(145deg,#0B1F3A,#163A6B);color:#fff;border-radius:12px;padding:16px}
-  .mediator .mb{font:500 .95rem/1.2 'Fraunces',serif}
-  .mediator .ms{font-size:.76rem;color:rgba(255,255,255,.7);margin:4px 0 11px;line-height:1.45}
-  .mediator .mbtn{width:100%;font-weight:600;font-size:.84rem;color:#0B1F3A;background:var(--gold);border:none;border-radius:8px;padding:10px;cursor:pointer}
+  /* buttons */
+  .cx-btn{font:600 13px/1 'Inter',system-ui,sans-serif;color:#fff;background:#1E4FBF;border:none;border-radius:8px;padding:10px 16px;cursor:pointer}
+  .cx-btn:hover{background:#163A8F}
+  .cx-btn:disabled{opacity:.55;cursor:default}
+  .cx-btn.full{width:100%;text-align:center;display:block}
+  .cx-btn.ghost{background:transparent;color:#0F1C2E;border:1px solid #DCE3EF}
+  .cx-btn.ghost:hover{border-color:#0F1C2E;background:#F4F6FA}
+  .cx-btn.sm{padding:7px 14px;font-size:12px}
 
-  .docs .dhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
-  .drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:72px;border:1.5px dashed #C2CBD9;border-radius:10px;background:#FBFCFF;text-align:center;padding:12px;cursor:pointer;color:var(--soft)}
-  .drop strong{font-size:12.5px;color:var(--ink)}.drop span{font-size:10.5px}
-  .file{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2)}
-  .file .fi{width:26px;height:26px;border-radius:6px;background:var(--acc-soft);color:var(--acc);display:grid;place-items:center;font:700 7.5px/1 'Inter';flex:none}
-  .file .fn{font-size:11.5px;font-weight:500}.file .fs{font-size:10px;color:var(--faint);margin-top:1px}
+  /* mediator */
+  .cx-mediator{background:linear-gradient(145deg,#0B1F3A,#163A6B);color:#fff;border-radius:12px;padding:16px}
+  .cx-mediator .mb{font:500 .95rem/1.2 'Fraunces',serif}
+  .cx-mediator .ms{font-size:.76rem;color:rgba(255,255,255,.7);margin:4px 0 11px;line-height:1.45}
+  .cx-mediator .mbtn{width:100%;font-weight:600;font-size:.84rem;color:#0B1F3A;background:#C9A227;border:none;border-radius:8px;padding:10px;cursor:pointer}
+  .cx-mediator .mbtn:disabled{opacity:.7;cursor:default}
 
-  .stack{display:flex;flex-direction:column;gap:12px}
+  /* private notes */
+  .cx-notes textarea{width:100%;min-height:110px;resize:vertical;border:1px solid #DCE3EF;border-radius:9px;padding:10px 12px;font:inherit;font-size:13px;line-height:1.5;color:#0F1C2E;background:#FAFBFD;outline:none}
+  .cx-notes textarea:focus{border-color:#1E4FBF;background:#fff}
+  .cx-notes-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:#7A879C}
+  .cx-notes-meta .lock{display:flex;align-items:center;gap:4px}
 
-  /* Layout 7: Timeline + scale */
-  .L7{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start}
+  /* documents */
+  .cx-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:72px;border:1.5px dashed #C2CBD9;border-radius:10px;background:#FBFCFF;text-align:center;padding:12px;cursor:pointer;color:#4A5568}
+  .cx-drop strong{font-size:12.5px;color:#0F1C2E}.cx-drop span{font-size:10.5px}
+  .cx-file{display:flex;align-items:center;gap:9px;border:1px solid #DCE3EF;border-radius:10px;padding:10px;background:#F4F6FA;text-decoration:none;color:inherit}
+  .cx-file .fi{width:26px;height:26px;border-radius:6px;background:rgba(30,79,191,.09);color:#1E4FBF;display:grid;place-items:center;font:700 7.5px/1 'Inter',system-ui,sans-serif;flex:none}
+  .cx-file .fn{font-size:11.5px;font-weight:500}.cx-file .fs{font-size:10px;color:#7A879C;margin-top:1px}
 
-  .timeline-card{padding:16px 18px}
-  .timeline{list-style:none;position:relative;margin:12px 0 0 6px}
-  .timeline li{position:relative;padding:0 0 14px 18px;border-left:2px solid var(--line);font-size:12px}
-  .timeline li:last-child{border-left-color:transparent;padding-bottom:0}
-  .timeline .dot{position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid #fff}
-  .timeline .dot.gold{background:var(--gold)}
-  .timeline .dot.green{background:var(--success)}
-  .timeline .when{font-size:10.5px;color:var(--faint);margin-top:2px}
-  .timeline b{font-weight:600}
-
-  /* Private notes */
-  .notes-card textarea{
-    width:100%;min-height:110px;resize:vertical;
-    border:1px solid var(--line);border-radius:9px;
-    padding:10px 12px;font:inherit;font-size:13px;line-height:1.5;
-    color:var(--ink);background:#FAFBFD;outline:none;
-  }
-  .notes-card textarea:focus{border-color:var(--acc);background:#fff}
-  .notes-card .notes-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--faint)}
-  .notes-card .notes-meta .lock{display:flex;align-items:center;gap:4px}
+  /* scale inputs */
+  .cx-scale{padding:18px 20px}
+  .cx-scale-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .cx-rolechip{font:700 .58rem/1 'Inter',system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#1E4FBF;background:rgba(30,79,191,.09);padding:.45em .65em;border-radius:999px}
+  .cx-chips{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+  .cx-chip{border:1px solid #DCE3EF;border-radius:10px;padding:10px 12px;background:#FAFBFD}
+  .cx-chip .k{font:700 .55rem/1 'Inter',system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#4A5568;margin-bottom:6px}
+  .cx-chip input{width:100%;border:1px solid #DCE3EF;border-radius:7px;padding:7px 9px;font:600 .95rem/1 'Spline Sans Mono',monospace;color:#0F1C2E;background:#fff;outline:none}
+  .cx-chip input:focus{border-color:#1E4FBF}
+  .cx-chip.ideal .k{color:#5B4AD8}
+  .cx-chip.target .k{color:#1E4FBF}
+  .cx-chip.walk .k{color:#9A6B18}
+  .cx-oneway{margin:12px 0;padding:9px 12px;border-radius:9px;background:rgba(30,79,191,.07);border:1px solid rgba(30,79,191,.22);font-size:11.5px;color:#4A5568;line-height:1.45}
+  .cx-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;align-items:center}
+  .cx-hint{font-size:12px;color:#4A5568}
 
   @media(max-width:900px){
-    .L7{grid-template-columns:1fr}
-    .ribbon{grid-template-columns:1fr 1fr}
+    .cx-grid{grid-template-columns:1fr}
+    .cx-ribbon{grid-template-columns:1fr 1fr}
   }
 </style>
-</head>
-<body>
 
-<!-- Top nav -->
-<header class="topnav">
-  <a href="/" class="brand">
-    <svg viewBox="0 0 120 130" aria-hidden="true">
-      <circle fill="#2B6DE8" cx="60" cy="10" r="7"/>
-      <circle fill="#2B6DE8" cx="42" cy="62" r="36" opacity="0.95"/>
-      <circle fill="#C9A227" cx="78" cy="62" r="36" opacity="0.95"/>
-      <circle fill="#0D9F6E" cx="60" cy="62" r="22"/>
-      <circle fill="#C9A227" cx="60" cy="120" r="7"/>
-    </svg>
-    MidBid
-  </a>
-  <div class="nav-right">
-    <a href="/dashboard">Dashboard</a>
-    <a href="/logout">Sign out</a>
-  </div>
-</header>
+<%
+  var otherJoined = !!(c.claimant_id && c.respondent_id);
+  var liveCase = ['settled','closed','declined'].indexOf(c.status) === -1;
+  var inviteUrlSafe = (typeof inviteUrl !== 'undefined' && inviteUrl) ? inviteUrl : '';
+  var myIdeal = (role === 'claim' ? c.claim_ideal : c.resp_ideal);
+  var myFair  = (role === 'claim' ? c.claim_fair  : c.resp_fair);
+  var myRes   = (role === 'claim' ? c.claim_value : c.resp_value);
+  var privateNotes = (typeof privateNotes !== 'undefined') ? privateNotes
+                   : (c.private_notes || '');
+  var mediatorAlready = !!(c.mediator_requested || (typeof status !== 'undefined' && status && status.mediatorRequested));
+%>
 
-<div class="wrap">
+<div class="wrap-wide" style="max-width:1180px;margin:0 auto;padding:0 22px 48px">
 
-  <div class="titlebar">
-    <div class="t">
-      <span class="ref">Case <%= typeof caseRef !== 'undefined' ? caseRef : 'MB-2' %></span>
-      <h1><%= typeof caseTitle !== 'undefined' ? caseTitle : 'Invoice #1042 — final account' %></h1>
+  <div class="cx-titlebar">
+    <div>
+      <span class="cx-ref">Case MB-<%= c.id %></span>
+      <h1><%= c.title %></h1>
     </div>
-    <span class="pill">● <%= typeof status !== 'undefined' ? status : 'Active' %></span>
+    <% if (c.status === 'settled') { %>
+      <span class="cx-pill">● Settled</span>
+    <% } else if (liveCase) { %>
+      <span class="cx-pill">● Active</span>
+    <% } else { %>
+      <span class="cx-pill" style="color:#586079;background:#F4F6FA;border-color:#DCE3EF">● <%= c.status %></span>
+    <% } %>
   </div>
 
   <!-- Summary ribbon -->
-  <div class="card ribbon">
-    <div class="rc">
+  <div class="cx-card cx-ribbon">
+    <div class="cx-rc">
       <div class="k">Case reference</div>
-      <div class="v ref"><%= typeof caseRef !== 'undefined' ? caseRef : 'MB-2' %></div>
+      <div class="v mono">MB-<%= c.id %></div>
     </div>
-    <div class="rc">
+    <div class="cx-rc">
       <div class="k">Claimant</div>
-      <div class="v"><%= typeof claimantName !== 'undefined' ? claimantName : 'Saaba01' %></div>
+      <div class="v"><%= c.claim_full_name || (role === 'claim' ? 'You' : '—') %></div>
     </div>
-    <div class="rc">
+    <div class="cx-rc">
       <div class="k">Respondent</div>
-      <div class="v"><%= typeof respondentName !== 'undefined' ? respondentName : 'saaba02' %></div>
+      <div class="v"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting')) %></div>
     </div>
-    <div class="rc">
+    <div class="cx-rc">
       <div class="k">Original amount</div>
-      <div class="v amt"><%= typeof originalAmount !== 'undefined' ? originalAmount : '$899,777' %></div>
+      <div class="v amt"><%= money(c.amount, c.currency) %></div>
     </div>
   </div>
 
-  <!-- Layout: Timeline + Scale (+ Private notes) -->
-  <div class="L7">
+  <div class="cx-grid">
 
     <!-- LEFT COLUMN -->
-    <div class="stack">
+    <div class="cx-stack">
 
       <!-- Timeline -->
-      <div class="card timeline-card">
-        <span class="eyebrow">Case activity</span>
-        <h3 class="ct">Timeline</h3>
-        <ul class="timeline">
+      <div class="cx-card cx-pad">
+        <span class="cx-eyebrow">Case activity</span>
+        <h3 class="cx-h">Timeline</h3>
+        <ul class="cx-timeline">
           <li>
             <span class="dot green"></span>
             <b>Case opened</b>
-            <div class="when"><%= typeof openedAt !== 'undefined' ? openedAt : '28 Jul 2026 · 09:14' %></div>
+            <div class="when"><%= fmtDate(c.created_at) %></div>
           </li>
+          <% if (c.invited_at) { %>
           <li>
             <span class="dot gold"></span>
             <b>Invitation sent</b>
-            <div class="when"><%= typeof invitedAt !== 'undefined' ? invitedAt : '28 Jul 2026 · 09:16' %></div>
+            <div class="when"><%= fmtDate(c.invited_at) %></div>
           </li>
+          <% } %>
+          <% if (myRes != null) { %>
           <li>
             <span class="dot"></span>
-            <b>Claimant figures saved</b>
-            <div class="when"><%= typeof figuresSavedAt !== 'undefined' ? figuresSavedAt : '28 Jul 2026 · 11:42' %></div>
+            <b>Your figures saved</b>
+            <div class="when">—</div>
           </li>
+          <% } %>
+          <% if (c.status === 'settled') { %>
+          <li>
+            <span class="dot green"></span>
+            <b>Settled at <%= money(c.settled_value, c.currency) %></b>
+            <div class="when"><%= fmtDate(c.settled_at) %></div>
+          </li>
+          <% } else { %>
           <li>
             <span class="dot"></span>
-            <b>Awaiting respondent</b>
+            <b><%= otherJoined ? 'Both parties on the case' : 'Awaiting the other party' %></b>
             <div class="when">Current</div>
           </li>
+          <% } %>
         </ul>
       </div>
 
       <!-- Invite -->
-      <div class="card pad">
-        <span class="eyebrow">The other party</span>
-        <h3 class="ct">Invite the respondent</h3>
-        <div class="status">
-          <div>
-            <b>Invitation sent</b><br>
-            <span><%= typeof inviteStatus !== 'undefined' ? inviteStatus : '2 days ago to saaba02@…' %></span>
+      <div class="cx-card cx-pad">
+        <span class="cx-eyebrow">The other party</span>
+        <h3 class="cx-h">Invite the respondent</h3>
+        <% if (otherJoined) { %>
+          <div class="cx-status" style="border-left-color:#0D9F6E">
+            <div><b>Invitation accepted</b><span>The other party has joined the case.</span></div>
           </div>
-        </div>
-        <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/resend-invite">
-          <button type="submit" class="btn full">Resend invitation</button>
-        </form>
-        <div class="link"><%= typeof joinLink !== 'undefined' ? joinLink : 'midbid.org/join/MB-2-8f3a…' %></div>
+        <% } else { %>
+          <div class="cx-status">
+            <div>
+              <b><%= (c.invite_count && c.invite_count > 0) ? 'Invitation sent' : 'Not yet invited' %></b>
+              <span><%= c.invited_at ? ('Last sent ' + fmtDate(c.invited_at)) : 'Send an invitation to get started.' %></span>
+            </div>
+          </div>
+          <form method="post" action="/cases/<%= c.id %>/invite" style="margin-top:8px">
+            <button type="submit" class="cx-btn full">
+              <%= (c.invite_count && c.invite_count > 0) ? 'Resend invitation' : 'Send invitation' %>
+            </button>
+          </form>
+          <% if (inviteUrlSafe) { %>
+            <div class="cx-link" id="inviteBox"><%= inviteUrlSafe %></div>
+            <button type="button" class="cx-btn ghost sm" style="margin-top:8px" id="copyBtn">Copy link</button>
+          <% } %>
+        <% } %>
       </div>
 
       <!-- Mediator -->
-      <div class="mediator">
+      <div class="cx-mediator">
         <div class="mb">Bring in a mediator</div>
         <div class="ms">Accredited human mediator. Both parties must agree before a session is scheduled.</div>
-        <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/request-mediator">
-          <button type="submit" class="mbtn">Request mediator</button>
-        </form>
+        <button type="button" class="mbtn" id="mediatorBtn" <%= mediatorAlready ? 'disabled' : '' %>>
+          <%= mediatorAlready ? 'Mediator requested' : 'Request mediator' %>
+        </button>
+        <div class="ms" id="mediatorLbl" style="margin:8px 0 0"></div>
       </div>
 
     </div>
 
     <!-- RIGHT COLUMN -->
-    <div class="stack">
+    <div class="cx-stack">
 
-      <!-- Private figures / scale -->
-      <div class="card scale">
-        <div class="top">
-          <span class="eyebrow" style="margin:0">Your private figures</span>
-          <span class="rolechip">You — <%= typeof role !== 'undefined' ? role : 'Claimant' %></span>
+      <!-- Private figures -->
+      <div class="cx-card cx-scale">
+        <div class="cx-scale-top">
+          <span class="cx-eyebrow" style="margin:0">Your private figures</span>
+          <span class="cx-rolechip">You — <%= role === 'claim' ? 'Claimant' : 'Respondent' %></span>
         </div>
-        <div class="chips">
-          <div class="chip i">
-            <div class="k">Ideal</div>
-            <div class="v"><%= typeof ideal !== 'undefined' ? ideal : '$720,000' %></div>
+
+        <form id="figuresForm">
+          <div class="cx-chips">
+            <div class="cx-chip ideal">
+              <div class="k">Ideal</div>
+              <input type="number" name="ideal" id="figIdeal" step="any" min="0"
+                     value="<%= myIdeal != null ? myIdeal : '' %>"
+                     placeholder="Best case"
+                     <%= !liveCase ? 'readonly' : '' %> required>
+            </div>
+            <div class="cx-chip target">
+              <div class="k">Target</div>
+              <input type="number" name="fair" id="figFair" step="any" min="0"
+                     value="<%= myFair != null ? myFair : '' %>"
+                     placeholder="Realistic figure"
+                     <%= !liveCase ? 'readonly' : '' %> required>
+            </div>
+            <div class="cx-chip walk">
+              <div class="k"><%= role === 'claim' ? 'Walk-away' : 'Ceiling' %></div>
+              <input type="number" name="reservation" id="figRes" step="any" min="0"
+                     value="<%= myRes != null ? myRes : '' %>"
+                     placeholder="<%= role === 'claim' ? 'Least you accept' : 'Most you will pay' %>"
+                     <%= !liveCase ? 'readonly' : '' %> required>
+            </div>
           </div>
-          <div class="chip t">
-            <div class="k">Target</div>
-            <div class="v"><%= typeof target !== 'undefined' ? target : '$600,000' %></div>
+
+          <div class="cx-oneway">
+            One-way only — each committed figure moves toward settlement and cannot be withdrawn once submitted for this round.
           </div>
-          <div class="chip w">
-            <div class="k">Walk-away</div>
-            <div class="v"><%= typeof walkAway !== 'undefined' ? walkAway : '$480,000' %></div>
+
+          <% if (liveCase) { %>
+          <div class="cx-acts">
+            <button type="submit" class="cx-btn" id="saveBtn">Save figures</button>
+            <button type="button" class="cx-btn ghost" id="resetBtn">Reset</button>
+            <span class="cx-hint" id="saveHint"></span>
           </div>
-        </div>
-        <div class="trk">
-          <div class="b"></div>
-          <div class="n w"></div>
-          <div class="n t"></div>
-          <div class="n i"></div>
-        </div>
-        <div class="axis">
-          <span>$0</span>
-          <span>$450,000</span>
-          <span>$900,000</span>
-        </div>
-        <div class="oneway">One-way only — each committed figure moves toward settlement and cannot be withdrawn.</div>
-        <div class="acts">
-          <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/figures" style="display:inline">
-            <button type="submit" class="btn">Save figures</button>
-          </form>
-          <button type="button" class="btn g" onclick="/* reset UI */">Reset</button>
-        </div>
+          <% } %>
+        </form>
       </div>
 
       <!-- Private notes -->
-      <div class="card pad notes-card">
-        <span class="eyebrow">Private notes</span>
-        <h3 class="ct">Your working notes</h3>
-        <p class="muted" style="margin:4px 0 10px">Visible only to you. Never shared with the other party or shown in any settlement record.</p>
-        <form method="POST" action="/case/<%= typeof caseId !== 'undefined' ? caseId : '2' %>/notes">
-          <textarea name="notes" placeholder="Record context, solicitor advice, or your thinking for this case…"><%= typeof notes !== 'undefined' ? notes : '' %></textarea>
-          <div class="notes-meta">
+      <div class="cx-card cx-pad cx-notes">
+        <span class="cx-eyebrow">Private notes</span>
+        <h3 class="cx-h">Your working notes</h3>
+        <p class="cx-muted" style="margin:4px 0 10px">Visible only to you. Never shared with the other party or shown in any settlement record.</p>
+        <form method="post" action="/cases/<%= c.id %>/notes" id="notesForm">
+          <textarea name="notes" id="notesField" placeholder="Record context, solicitor advice, or your thinking for this case…" maxlength="4000"><%= privateNotes %></textarea>
+          <div class="cx-notes-meta">
             <span class="lock">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
               Private to you
             </span>
-            <button type="submit" class="btn" style="padding:7px 14px;font-size:12px">Save notes</button>
+            <button type="submit" class="cx-btn sm">Save notes</button>
           </div>
         </form>
       </div>
 
       <!-- Documents -->
-      <div class="card pad docs">
-        <div class="dhead">
-          <h3 class="ct">Documents</h3>
-        </div>
-        <div class="stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="drop">
+      <div class="cx-card cx-pad" id="documents">
+        <span class="cx-eyebrow">Documents</span>
+        <h3 class="cx-h">Supporting files</h3>
+        <form method="post" action="/cases/<%= c.id %>/documents" enctype="multipart/form-data" style="margin-top:10px">
+          <label class="cx-drop" for="docInput">
             <strong>Add files</strong>
-            <span>Max 5 MB each</span>
+            <span>PDF, Word or images · max 5 MB each</span>
+          </label>
+          <input type="file" name="documents" id="docInput" multiple
+                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt,.csv"
+                 style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden"
+                 onchange="this.form.submit()">
+        </form>
+        <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
+          <div class="cx-stack" style="margin-top:10px">
+            <% docs.forEach(function(d){ %>
+              <a class="cx-file" href="/cases/<%= c.id %>/documents/<%= d.id %>" target="_blank" rel="noopener">
+                <span class="fi"><%= (d.mime||'').indexOf('pdf') >= 0 ? 'PDF' : 'DOC' %></span>
+                <div>
+                  <div class="fn"><%= d.filename %></div>
+                  <div class="fs"><%= d.size ? (Math.round(d.size/1024) + ' KB') : '' %></div>
+                </div>
+              </a>
+            <% }) %>
           </div>
-          <div class="file">
-            <span class="fi">PDF</span>
-            <div>
-              <div class="fn">Invoice_1042.pdf</div>
-              <div class="fs">240 KB</div>
-            </div>
-          </div>
-        </div>
+        <% } %>
       </div>
 
     </div>
   </div>
-
 </div>
 
-</body>
-</html>
+<script>
+(function () {
+  var CASE_ID = <%= Number(c.id) %>;
+
+  // Copy invite link
+  var copyBtn = document.getElementById('copyBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var box = document.getElementById('inviteBox');
+      if (!box) return;
+      var text = box.textContent.trim();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 1500);
+        });
+      } else {
+        // Fallback
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch (e) {}
+        document.body.removeChild(ta);
+        setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 1500);
+      }
+    });
+  }
+
+  // Mediator — uses existing JSON endpoint POST /cases/:id/mediator
+  var mediatorBtn = document.getElementById('mediatorBtn');
+  var mediatorLbl = document.getElementById('mediatorLbl');
+  if (mediatorBtn && !mediatorBtn.disabled) {
+    mediatorBtn.addEventListener('click', function () {
+      mediatorBtn.disabled = true;
+      if (mediatorLbl) mediatorLbl.textContent = 'Requesting…';
+      fetch('/cases/' + CASE_ID + '/mediator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        credentials: 'same-origin',
+        body: ''
+      })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function () {
+          if (mediatorLbl) mediatorLbl.textContent = '✓ Human mediator requested';
+          mediatorBtn.textContent = 'Mediator requested';
+        })
+        .catch(function () {
+          mediatorBtn.disabled = false;
+          if (mediatorLbl) mediatorLbl.textContent = 'Could not send request — try again.';
+        });
+    });
+  }
+
+  // Figures — posts to existing POST /cases/:id/bid with ideal, fair, reservation
+  var figuresForm = document.getElementById('figuresForm');
+  var saveBtn = document.getElementById('saveBtn');
+  var saveHint = document.getElementById('saveHint');
+  var resetBtn = document.getElementById('resetBtn');
+  var idealEl = document.getElementById('figIdeal');
+  var fairEl  = document.getElementById('figFair');
+  var resEl   = document.getElementById('figRes');
+
+  var savedIdeal = idealEl ? idealEl.value : '';
+  var savedFair  = fairEl  ? fairEl.value  : '';
+  var savedRes   = resEl   ? resEl.value   : '';
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      if (idealEl) idealEl.value = savedIdeal;
+      if (fairEl)  fairEl.value  = savedFair;
+      if (resEl)   resEl.value   = savedRes;
+      if (saveHint) saveHint.textContent = '';
+    });
+  }
+
+  if (figuresForm) {
+    figuresForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!idealEl || !fairEl || !resEl) return;
+
+      var ideal = String(idealEl.value).trim();
+      var fair  = String(fairEl.value).trim();
+      var res   = String(resEl.value).trim();
+
+      if (!ideal || !fair || !res) {
+        if (saveHint) saveHint.textContent = 'Enter all three figures.';
+        return;
+      }
+
+      if (saveBtn) saveBtn.disabled = true;
+      if (saveHint) saveHint.textContent = 'Submitting…';
+
+      var body =
+        'ideal=' + encodeURIComponent(ideal) +
+        '&fair=' + encodeURIComponent(fair) +
+        '&reservation=' + encodeURIComponent(res);
+
+      fetch('/cases/' + CASE_ID + '/bid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        credentials: 'same-origin',
+        body: body
+      })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (s) {
+          if (s && s.error) {
+            if (saveHint) saveHint.textContent = s.error;
+            if (saveBtn) saveBtn.disabled = false;
+            return;
+          }
+          savedIdeal = ideal;
+          savedFair  = fair;
+          savedRes   = res;
+          if (saveHint) saveHint.textContent = 'Submitted.';
+          setTimeout(function () { window.location.reload(); }, 700);
+        })
+        .catch(function () {
+          if (saveBtn) saveBtn.disabled = false;
+          if (saveHint) saveHint.textContent = 'Could not submit — try again.';
+        });
+    });
+  }
+})();
+</script>
+
+<%- include('partials/foot') %>
