@@ -1,18 +1,18 @@
 <%#
-  MidBid dashboard (Option 2 layout). Self-contained EJS: own <head> + nav.
-  If your other pages pull head/nav from a shared partial, you can swap the
-  <head> block and the <header class="nav"> block for your <%- include(...) %>.
+  MidBid dashboard (Option 2 layout). Self-contained EJS with its own head and nav.
+  If your other pages pull head/nav from a shared partial, you can replace the
+  head block and the nav header with your own include partials.
 
-  DATA THIS VIEW EXPECTS from your /dashboard route (all have safe fallbacks,
-  so the page still renders if a name differs — it just shows placeholders):
-    user.username            -> nav name
-    cases  (array)           -> the case rows; each item may use:
-        .id / .case_id       -> shown as "MB-<id>", and links to /cases/<id>
-        .title / .name / .subject
-        .original_amount  (+ .currency)   or  .original_amount_display
-        .last_bid         (+ .currency)   or  .last_bid_display
-        .status / .status_label
-    openCount, settledCount  -> the "X open, Y settled" heading
+  Data this view expects from your /dashboard route (all have safe fallbacks,
+  so the page still renders if a name differs, it just shows placeholders):
+    user.username            : nav name
+    cases  (array)           : the case rows; each item may use
+        id or case_id        : shown as MB-id, links to /cases/id
+        title or name or subject
+        original_amount (with currency) or original_amount_display
+        last_bid (with currency) or last_bid_display
+        status or status_label
+    openCount, settledCount  : the "X open, Y settled" heading
     inFavourDisplay  (or inFavourTotal + baseCurrency)
     attentionCount
     recoveredDisplay (or recoveredTotal + baseCurrency)
@@ -26,6 +26,8 @@
   };
   var uname = (locals.user && locals.user.username) ? locals.user.username : 'Account';
   var rows  = locals.cases || locals.disputes || locals.rows || [];
+  if (rows && !Array.isArray(rows) && Array.isArray(rows.rows)) rows = rows.rows;
+  if (!Array.isArray(rows)) rows = [];
   var openN = (locals.openCount    != null) ? locals.openCount    : rows.length;
   var settN = (locals.settledCount != null) ? locals.settledCount : 0;
   var favour = locals.inFavourDisplay  || money(locals.inFavourTotal,  locals.baseCurrency) || '£0';
