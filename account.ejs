@@ -1,201 +1,84 @@
-<%# MidBid account/settings page. Self-contained (own <head> + nav).
-     If your other pages use shared head/nav partials, you can replace
-     the <head> block and the .nav block with your <%- include(...) %> lines.
-     Render it from server.js, e.g.  res.render('account', { user })  %>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>MidBid · Account</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<%- include('partials/head', { pageHead: {
+  eyebrow: 'Account',
+  title: (me && (me.company_name || me.name)) || 'Your account',
+  sub: (me && me.email) ? me.email : ''
+} }) %>
+
+<%# Account / settings. Renders through the shared head+foot partials so the nav
+    and logo match the rest of the site. Only working links are wired here —
+    editable profile + password change need db.js methods and are noted as next. %>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --navy-deep:#152553;
-    --navy:#22357a;
-    --navy-mid:#486ee0;
-    --blue:#3f6af6;
-    --blue-btn:#3f6af6;
-    --blue-btn-hover:#2f56d6;
-    --gold:#deac51;
-    --ink:#0a1020;          /* body text: near-black */
-    --soft:#3a4459;         /* secondary text: darker grey */
-    --label:#2a3345;        /* labels: darker + bolder */
-    --faint:#5b6577;
-    --line:#b9c2d6;         /* card border, defined on slate */
-    --input-line:#9aa6bf;   /* input / ghost border: clear + thicker */
-    --panel:#d4dae6;        /* page background: darker slate */
-    --card:#f4f6fb;         /* cards: near-white, lift off the page */
-  }
-  body{font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--panel);min-height:100vh}
-
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 36px;background:#eef1f8;color:var(--soft);border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:10px;font:600 1.15rem/1 Newsreader,serif;color:var(--ink)}
-  .brand .m{position:relative;width:28px;height:22px}
-  .brand .m::before,.brand .m::after{content:"";position:absolute;top:1px;width:20px;height:20px;border-radius:50%;mix-blend-mode:multiply}
-  .brand .m::before{left:0;background:var(--blue)}
-  .brand .m::after{right:0;background:var(--gold)}
-  .nav-r{display:flex;align-items:center;gap:20px;font-size:.88rem}
-  .nav-r a{color:var(--soft);text-decoration:none;font-weight:500}
-  .nav-r a:hover{color:var(--ink)}
-  .nav-r .me{color:var(--blue);font-weight:600}
-
-  .band{
-    color:#fff;padding:22px 36px 52px;
-    background:linear-gradient(115deg,var(--navy-deep) 0%,var(--navy) 45%,var(--navy-mid) 100%);
-  }
-  .band .eyebrow{font:600 .62rem/1 Inter;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
-  .band h1{font:500 1.75rem/1.15 Fraunces,serif;letter-spacing:-.02em}
-  .band .sub{margin-top:6px;font-size:.9rem;color:rgba(255,255,255,.9);max-width:40ch;line-height:1.4}
-
-  .wrap{max-width:880px;margin:-32px auto 44px;padding:0 20px;position:relative;z-index:1}
-
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .grid .span2{grid-column:1 / -1}
-
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:16px 18px;
-    box-shadow:0 4px 10px -3px rgba(15,25,55,.16),0 1px 2px rgba(15,25,55,.08);
-  }
-  .card h2{font:500 1rem/1.2 Newsreader,serif;margin:0 0 2px;color:var(--ink)}
-  .card .desc{font-size:.8rem;color:var(--soft);margin:0 0 12px;line-height:1.4}
-
-  .row{display:grid;grid-template-columns:100px 1fr;gap:6px 12px;align-items:center;margin-bottom:10px}
-  .row:last-of-type{margin-bottom:0}
-  .row label{font:700 .64rem/1 Inter;letter-spacing:.07em;text-transform:uppercase;color:var(--label)}
-  .row .val{font-size:.9rem;font-weight:500;color:var(--ink)}
-  .row .val.muted{color:var(--soft);font-weight:400}
-  input{
-    width:100%;border:1.5px solid var(--input-line);border-radius:8px;
-    padding:8px 10px;font:inherit;font-size:.9rem;
-    background:#ffffff;color:var(--ink)
-  }
-  input::placeholder{color:#94a0b6}
-  input:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(63,106,246,.18)}
-
-  .pill{display:inline-flex;font:700 .58rem/1 Inter;letter-spacing:.06em;text-transform:uppercase;
-    padding:.4em .65em;border-radius:999px;
-    background:rgba(63,106,246,.12);color:var(--blue);border:1px solid rgba(63,106,246,.35)}
-
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-  .btn{font:600 12.5px/1 Inter;padding:9px 14px;border-radius:8px;border:none;cursor:pointer;background:var(--blue-btn);color:#fff}
-  .btn:hover{background:var(--blue-btn-hover)}
-  .btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--input-line)}
-  .btn.ghost:hover{border-color:var(--ink);background:#fff}
-  a.btn{text-decoration:none;display:inline-block}
-
-  .hint{font-size:.75rem;color:var(--faint);margin-top:8px;line-height:1.4}
-
-  .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px;padding:10px;background:rgba(15,25,55,.05);border-radius:8px}
-  .meta .k{font:700 .58rem/1 Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin-bottom:3px}
-  .meta .v{font-size:.85rem;font-weight:500;color:var(--ink)}
-
-
-  @media(max-width:700px){
-    .grid{grid-template-columns:1fr}
-    .nav,.band{padding-left:18px;padding-right:18px}
-    .row{grid-template-columns:1fr;gap:4px}
-    .meta{grid-template-columns:1fr}
-  }
+  body{background:#d4dae6}
+  .acct-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:8px 0 40px}
+  @media(max-width:760px){.acct-grid{grid-template-columns:1fr}}
+  .acct-card{background:#f4f6fb;border:1px solid #cdd5e4;border-radius:14px;padding:22px 22px 24px;
+    box-shadow:0 1px 2px rgba(12,27,58,.05)}
+  .acct-card h2{font:600 1.05rem/1.2 "Fraunces",Georgia,serif;color:#0a1020;margin:0 0 14px}
+  .acct-dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:10px 16px}
+  .acct-dl dt{font:600 .72rem/1.3 "Hanken Grotesk",system-ui,sans-serif;letter-spacing:.06em;
+    text-transform:uppercase;color:#3a4763;align-self:center}
+  .acct-dl dd{margin:0;font:500 .95rem/1.3 "Hanken Grotesk",system-ui,sans-serif;color:#0a1020}
+  .acct-pill{display:inline-block;font:600 .74rem/1 "Hanken Grotesk",sans-serif;padding:5px 11px;
+    border-radius:999px;background:#e5eaf5;color:#16306B;border:1px solid #cdd5e4;text-transform:capitalize}
+  .acct-note{font:400 .9rem/1.5 "Hanken Grotesk",sans-serif;color:#3a4763;margin:0 0 16px}
+  .acct-links{display:flex;flex-direction:column;gap:10px}
+  .ghost{display:inline-block;font:600 .9rem/1 "Hanken Grotesk",sans-serif;text-decoration:none;
+    padding:11px 16px;border-radius:10px;background:#fff;border:1.5px solid #c2ccdd;color:#16306B;
+    cursor:pointer;text-align:left}
+  .ghost:hover{border-color:#16306B;background:#fbfcfe}
+  .acct-logout{margin:0}
+  .acct-logout button{width:100%}
 </style>
-</head>
-<body>
 
-  <div class="nav">
-    <div class="brand"><span class="m"></span> MidBid</div>
-    <div class="nav-r">
-      <a href="#">My cases</a>
-      <a class="me" href="#"><%= (locals.user && user.username) || 'Account' %></a>
-      <span>Log out</span>
+<div class="acct-grid">
+
+  <section class="acct-card">
+    <h2>Profile</h2>
+    <dl class="acct-dl">
+      <dt>Name</dt><dd><%= (me && me.name) ? me.name : '—' %></dd>
+      <% if (me && me.company_name) { %><dt>Company</dt><dd><%= me.company_name %></dd><% } %>
+      <dt>Email</dt><dd><%= (me && me.email) ? me.email : '—' %></dd>
+      <dt>Account</dt><dd><span class="acct-pill"><%= (me && me.account_type) ? me.account_type : 'individual' %></span></dd>
+      <% if (me && me.created_at) { %>
+        <dt>Member since</dt>
+        <dd><%= new Date(me.created_at).toLocaleDateString('en-GB', { year:'numeric', month:'long' }) %></dd>
+      <% } %>
+    </dl>
+  </section>
+
+  <section class="acct-card">
+    <h2>Security</h2>
+    <p class="acct-note">Password changes are handled by the MidBid team while the self-serve
+      reset is being built. Email us and we'll send you a secure reset link.</p>
+    <div class="acct-links">
+      <a class="ghost" href="mailto:<%= (typeof ADMIN_EMAIL !== 'undefined' && ADMIN_EMAIL) ? ADMIN_EMAIL : 'support@midbid.org' %>?subject=Password%20reset%20request">Request a password reset</a>
     </div>
-  </div>
+  </section>
 
-  <div class="band">
-    <div class="eyebrow">Your account</div>
-    <h1><%= (locals.user && user.username) || 'Your account' %></h1>
-    <p class="sub">Profile, security, and account type.</p>
-  </div>
-
-  <div class="wrap">
-    <div class="grid">
-
-      <!-- Profile -->
-      <div class="card">
-        <h2>Profile</h2>
-        <p class="desc">How you appear on cases.</p>
-        <div class="row">
-          <label>Name</label>
-          <input type="text" name="username" value="<%= (locals.user && user.username) || '' %>">
-        </div>
-        <div class="row">
-          <label>Email</label>
-          <div class="val muted"><%= (locals.user && user.email) || '' %></div>
-        </div>
-        <div class="row">
-          <label>Type</label>
-          <div><span class="pill"><%= (locals.user && user.account_type) || 'Individual' %></span></div>
-        </div>
-        <div class="meta">
-          <div><div class="k">Member since</div><div class="v"><%= (locals.user && user.member_since) || '—' %></div></div>
-          <div><div class="k">Last login</div><div class="v"><%= (locals.user && user.last_login) || '—' %></div></div>
-        </div>
-        <div class="actions">
-          <button class="btn">Save profile</button>
-        </div>
+  <section class="acct-card">
+    <h2>Business portal</h2>
+    <% if (me && me.account_type === 'business') { %>
+      <p class="acct-note">Your account has business access — bulk invites, spreadsheet import,
+        and one bid bar across every dispute.</p>
+      <div class="acct-links"><a class="ghost" href="/business">Open the business portal</a></div>
+    <% } else { %>
+      <p class="acct-note">Handling 25 disputes or more? The business portal adds spreadsheet
+        import, bulk invites, and one bid bar across the lot.</p>
+      <div class="acct-links">
+        <a class="ghost" href="mailto:<%= (typeof ADMIN_EMAIL !== 'undefined' && ADMIN_EMAIL) ? ADMIN_EMAIL : 'support@midbid.org' %>?subject=Business%20portal%20access%20request">Request business access</a>
       </div>
+    <% } %>
+  </section>
 
-      <!-- Security -->
-      <div class="card">
-        <h2>Security</h2>
-        <p class="desc">Change your password.</p>
-        <div class="row">
-          <label>Current</label>
-          <input type="password" placeholder="••••••••">
-        </div>
-        <div class="row">
-          <label>New</label>
-          <input type="password" placeholder="Min. 8 characters">
-        </div>
-        <div class="row">
-          <label>Confirm</label>
-          <input type="password" placeholder="Repeat">
-        </div>
-        <div class="actions">
-          <button class="btn">Update password</button>
-        </div>
-      </div>
-
-      <!-- Business -->
-      <div class="card">
-        <h2>Business portal</h2>
-        <p class="desc">Bulk cases, spreadsheet import, team invites.</p>
-        <div class="row">
-          <label>Company</label>
-          <input type="text" placeholder="Firm or organisation">
-        </div>
-        <div class="actions">
-          <button class="btn ghost">Request access</button>
-        </div>
-        <p class="hint">Admin reviews requests. You&rsquo;ll get an email when approved.</p>
-      </div>
-
-      <!-- Shortcuts -->
-      <div class="card">
-        <h2>Shortcuts</h2>
-        <p class="desc">Back to your work.</p>
-        <div class="actions" style="margin-top:4px">
-          <a class="btn ghost" href="#">My cases</a>
-          <a class="btn ghost" href="#">+ New case</a>
-          <a class="btn ghost" href="#">Log out</a>
-        </div>
-      </div>
-
+  <section class="acct-card">
+    <h2>Shortcuts</h2>
+    <div class="acct-links">
+      <a class="ghost" href="/dashboard">My cases</a>
+      <a class="ghost" href="/cases/new">Start a new case</a>
+      <form class="acct-logout" method="POST" action="/logout"><button class="ghost" type="submit">Log out</button></form>
     </div>
-  </div>
+  </section>
 
-</body>
-</html>
+</div>
+
+<%- include('partials/foot') %>

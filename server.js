@@ -23,7 +23,7 @@ const fs = require('node:fs');
   const publicDir = path.join(__dirname, 'public');
   fs.mkdirSync(partialsDir, { recursive: true });
   fs.mkdirSync(publicDir, { recursive: true });
-  const pages = ['admin-case','admin-cases','admin-users','admin','case',
+  const pages = ['account','admin-case','admin-cases','admin-users','admin','case',
     'dashboard','home','join','login','message','new-case','signup','signup-invite',
     'terms','fees','privacy','business'];
   for (const p of pages) {
@@ -510,6 +510,12 @@ app.get('/dashboard', requireLogin, wrap(async (req, res) => {
     return c;
   }));
   res.render('dashboard', { cases, filter: req.query.filter || 'all' });
+}));
+
+app.get('/account', requireLogin, wrap(async (req, res) => {
+  // me / isAdmin / currentPath / ADMIN_EMAIL all come from res.locals;
+  // account.ejs renders itself through the shared head/foot partials.
+  res.render('account');
 }));
 
 app.get('/cases/new', requireLogin, (req, res) => {
