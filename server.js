@@ -485,7 +485,9 @@ app.post('/login', wrap(async (req, res) => {
   res.redirect(nextUrl);
 }));
 
-app.post('/logout', (req, res) => req.session.destroy(() => res.redirect('/')));
+// Accept BOTH GET (plain <a href="/logout"> links in older views) and POST (form
+// buttons) so logging out works however it is triggered.
+app.all('/logout', (req, res) => req.session.destroy(() => res.redirect('/')));
 
 // ---- Dashboard / cases (user-facing) ----
 // The individual workspace: cases you raised as yourself, PLUS every case you
