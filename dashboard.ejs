@@ -1,7 +1,5 @@
 <%
-  // The same instruments as the business portal, asking an individual's questions.
-  // Money side for THIS viewer on a case: 'owed', 'owe', or null (unconfirmed).
-  // Reads the stored creator_owes (claimant-owes convention); null => no colour.
+  // ===== Data (same instruments as before) =====
   const sideOf = (c) => {
     if (c.creator_owes === null || c.creator_owes === undefined) return null;
     const isClaimant = c.claimant_id === me.id;
@@ -9,231 +7,251 @@
     return (isClaimant ? claimantOwes : !claimantOwes) ? 'owe' : 'owed';
   };
   const openC   = cases.filter(c => !['settled','declined','closed'].includes(c.status));
-  const mineC   = cases.filter(c => c.claimant_id === me.id);         // ones I raised
-  const owedC   = openC.filter(c => c.claimant_id === me.id);
+  const mineC   = cases.filter(c => c.claimant_id === me.id);
   const settled = cases.filter(c => c.status === 'settled');
   const sum = (arr, k) => arr.reduce((a, c) => a + (c[k] || 0), 0);
-
-  const owed = sum(owedC, 'amount');
-  const needs = cases.filter(c => c.stalled).length;
   const recovered = sum(settled.filter(c => c.claimant_id === me.id), 'settled_value');
 
-  const spans = settled
-    .filter(c => c.settled_at && c.created_at)
+  const spans = settled.filter(c => c.settled_at && c.created_at)
     .map(c => Math.max(0, Math.round((new Date(c.settled_at) - new Date(c.created_at)) / 86400000)));
-  const typical = spans.length ? Math.round(spans.reduce((a, b) => a + b, 0) / spans.length) : null;
+  const typical = spans.length ? Math.round(spans.reduce((a,b)=>a+b,0)/spans.length) : null;
 
-  // KPI totals only make sense within one currency; use the most common currency
-  // across the viewer's cases so a single case in another currency can't flip the symbol.
-  const _cc = {}; cases.forEach(function(c){ var k = c.currency || 'GBP'; _cc[k] = (_cc[k]||0)+1; });
-  const cur = Object.keys(_cc).sort(function(a,b){ return _cc[b]-_cc[a]; })[0] || 'GBP';
-  const STAGE_META = {
-    draft:      { label: 'Draft',       color: '#B4B2A9' },
-    awaiting:   { label: 'Awaiting',    color: '#F5B312' },
-    progress:   { label: 'In progress', color: '#2F6BFF' },
-    bidding:    { label: 'Bidding — rounds in play',  color: '#2F6BFF' },
-    settled:    { label: 'Settled',     color: '#15B877' }
-  };
-  const STAGES = ['draft','awaiting','bidding','settled'];
-  const countAt = (s) => cases.filter(c => c.stage === s).length;
+  const _cc = {}; cases.forEach(c => { const k = c.currency || 'GBP'; _cc[k] = (_cc[k]||0)+1; });
+  const cur = Object.keys(_cc).sort((a,b) => _cc[b]-_cc[a])[0] || 'GBP';
 
-  const filter = typeof f === 'undefined' ? (locals.filter || 'all') : f;
+  const monthAgo = Date.now() - 30*86400000;
+  const settledRecent = settled.filter(c => c.settled_at && new Date(c.settled_at).getTime() >= monthAgo);
+  const recoveredRecent = settledRecent.filter(c => c.claimant_id === me.id).reduce((a,c)=>a+(c.settled_value||0),0);
+
+  // Hero: the one open case that most wants attention right now.
+  const heroCase = openC.find(c => c.stalled) || openC.find(c => c.stage === 'bidding')
+    || openC.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
+  const heroAge = heroCase ? (heroCase.age != null ? heroCase.age
+    : Math.max(0, Math.round((Date.now() - new Date(heroCase.created_at))/86400000))) : 0;
+
+  // Recent activity, derived from the cases we already have — no extra query.
+  let activity = [];
+  settled.forEach(c => activity.push({ ic:'green', t:'Settlement signed — MB-'+c.id,
+    s: money(c.settled_value||0, c.currency)+' recovered', w: c.settled_at ? new Date(c.settled_at).getTime() : 0 }));
+  cases.filter(c => c.stalled).forEach(c => activity.push({ ic:'gold', t:'MB-'+c.id+' has gone quiet',
+    s: 'No reply for '+c.age+' days', w: Date.now() }));
+  openC.filter(c => c.myLastBid != null).forEach(c => activity.push({ ic:'blue', t:'Your figure is sealed — MB-'+c.id,
+    s: 'Waiting on the other side', w: c.created_at ? new Date(c.created_at).getTime() : 0 }));
+  activity.sort((a,b) => b.w - a.w);
+  activity = activity.slice(0, 4);
+
+  const _h = new Date().getHours();
+  const greet = _h < 12 ? 'Good morning' : (_h < 18 ? 'Good afternoon' : 'Good evening');
+  const firstName = (me.name || 'there').split(' ')[0];
 %>
 <%- include('partials/head', { pageHead: null }) %>
 
-<%# The case page's serif — head only ships Fraunces/Hanken/Spline, so add Newsreader here. %>
+<%# Newsreader for names — head only ships Fraunces/Hanken/Spline. %>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
 
 <style>
-/* ===== Individual dashboard — case-page "Chambers" skin.
-   Gold is confined to the facts ribbon; cobalt is the workhorse everywhere else.
-   Scoped with cd- so styles.css needs no changes. ===== */
-.cd-ribbon{background:linear-gradient(180deg,#fffdf7,#fbf5e9);border:1px solid #ecdfc4;border-radius:14px;
-  padding:19px 22px 16px;margin:8px 0 18px;box-shadow:0 18px 46px -40px rgba(120,90,30,.5)}
-.cd-rb-top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:15px}
-.cd-eyebrow{font-family:"Spline Sans Mono",monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
-  color:#a9853a;display:flex;align-items:center;gap:7px;margin-bottom:6px}
-.cd-dot{width:6px;height:6px;border-radius:50%;background:#cf9c34;flex:none}
-.cd-h{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.5rem;letter-spacing:-.01em;color:#16213f}
-.cd-acts{display:flex;gap:9px}
-.cd-btn{font-family:"Spline Sans Mono",monospace;font-size:.72rem;padding:9px 14px;border-radius:8px;
-  border:1px solid #c7cdda;background:#fff;color:#586079;text-decoration:none;cursor:pointer}
-.cd-btn:hover{border-color:#2b54e6;color:#2b54e6;text-decoration:none}
-.cd-btn.solid{background:#2b54e6;border-color:#2b54e6;color:#fff}
-.cd-btn.solid:hover{background:#1e4fd0;border-color:#1e4fd0;color:#fff}
-.cd-kpis{display:grid;grid-template-columns:repeat(4,1fr)}
-.cd-kpi{padding:2px 20px;text-decoration:none;color:inherit;display:block}
-.cd-kpi + .cd-kpi{border-left:1px solid #eadfc6}
-.cd-kpi:first-child{padding-left:0}
-a.cd-kpi{border-radius:8px;transition:background .16s}
-a.cd-kpi:hover{background:rgba(207,156,52,.10);text-decoration:none}
-.cd-k{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;
-  color:#a9853a;display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.cd-n{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.5rem;line-height:1;color:#16213f;font-variant-numeric:tabular-nums}
-.cd-n.cobalt{color:#2b54e6}
-.cd-n.green{color:#268a4f}
-.cd-n .cd-u{font-size:.9rem;color:#8a8f99}
-.cd-s{font-family:"Spline Sans Mono",monospace;font-size:.65rem;color:#8a8f99;margin-top:5px}
+/* ===== Individual dashboard — case-page "Chambers" palette.
+   Cobalt is the workhorse; gold is an accent only. Scoped under .mbdash. ===== */
+.mbdash{--navy:#16213f;--navy-mid:#22376f;--cobalt:#2b54e6;--gold:#cf9c34;--gold-soft:#e0b34a;
+  --gold-dark:#b5790f;--ink:#101a3a;--muted:#586079;--line:#e4e9f4;--success:#23a259;--success-d:#268a4f;
+  --warning:#e0972a;--warning-d:#a9640f;--paper:#fff;--radius:16px}
+.mbdash{color:var(--ink)}
+.mbdash *{box-sizing:border-box}
+body{background:#eef1f7}
 
-.cd-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
-.cd-chip{font-family:"Spline Sans Mono",monospace;font-size:.68rem;padding:7px 12px;border-radius:999px;
-  border:1px solid #c7cdda;background:#fff;color:#586079;cursor:pointer;text-decoration:none;transition:.15s}
-.cd-chip:hover{border-color:#16213f;color:#16213f;text-decoration:none}
-.cd-chip.on{background:#16213f;color:#fff;border-color:#16213f}
+.mbdash .db-pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:10px 0 22px}
+.mbdash .db-pagehead h1{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.7rem;letter-spacing:-.01em;color:var(--navy);margin:0}
+.mbdash .db-pagehead p{color:var(--muted);margin-top:4px;font-size:.92rem;font-family:"Spline Sans Mono",monospace}
+.mbdash .db-exp{font-family:"Spline Sans Mono",monospace;font-size:.72rem;padding:9px 14px;border-radius:10px;
+  border:1px solid #c7cdda;background:#fff;color:var(--muted);cursor:pointer}
+.mbdash .db-exp:hover{border-color:var(--cobalt);color:var(--cobalt)}
 
-.cd-sheet{background:#fff;border:1px solid #e4e9f4;border-radius:14px;overflow:hidden}
-.cd-scroll{overflow-x:auto}
-table.cdcases{width:100%;border-collapse:collapse;font-size:.9rem;min-width:720px}
-table.cdcases thead th{text-align:left;font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.1em;
-  text-transform:uppercase;color:#586079;font-weight:500;padding:12px 16px;background:#f5f7fc;border-bottom:1px solid #e4e9f4;white-space:nowrap}
-table.cdcases thead th.r{text-align:right}
-table.cdcases tbody td{padding:14px 16px;border-bottom:1px solid #eef1f7;vertical-align:middle}
-table.cdcases tbody td.r{text-align:right}
-table.cdcases tbody tr:last-child td{border-bottom:none}
-table.cdcases tbody tr:hover{background:#f7f9fe}
-table.cdcases tbody tr.done{background:rgba(35,162,89,.05)}
-tr.cd-b td:first-child{box-shadow:inset 4px 0 0 #2b54e6}
-tr.cd-a td:first-child{box-shadow:inset 4px 0 0 #e0972a}
-.cd-nm{font-family:"Newsreader",Georgia,serif;font-weight:500;font-size:1.02rem}
-.cd-nm a{color:#101a3a;text-decoration:none}
-.cd-nm a:hover{color:#2b54e6}
-.cd-ref{font-family:"Spline Sans Mono",monospace;font-size:.66rem;color:#2b54e6;margin-top:2px}
-.cd-subq{font-size:.78rem;color:#95a0b8;margin-top:2px}
-.cd-amt{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1rem;color:#16213f;font-variant-numeric:tabular-nums;white-space:nowrap}
-.cd-bid{font-family:"Spline Sans Mono",monospace;font-size:.82rem;color:#586079;font-variant-numeric:tabular-nums;white-space:nowrap}
-.cd-bid .val{color:#16213f;font-weight:500}
-.cd-bid .none{color:#95a0b8;font-style:italic;font-family:"Newsreader",Georgia,serif}
-.cd-pill{font-family:"Spline Sans Mono",monospace;font-size:.64rem;padding:.32em .72em;border-radius:999px;white-space:nowrap;display:inline-block}
-.cd-pill.draft{background:#eef1f6;color:#59637e}
-.cd-pill.awaiting{background:rgba(224,151,42,.13);color:#a9640f}
-.cd-pill.progress{background:#eaf0ff;color:#2b54e6}
-.cd-pill.bidding{background:#eaf0ff;color:#2b54e6}
-.cd-pill.settled{background:#e3f5ea;color:#268a4f}
-.cd-pill.declined{background:#fbeae2;color:#8a3d1a}
-.cd-pill.closed{background:#eef1f6;color:#59637e}
-.cd-go,.cd-ghost{font-family:"Spline Sans Mono",monospace;font-size:.7rem;padding:7px 14px;border-radius:8px;
-  text-decoration:none;white-space:nowrap;display:inline-block}
-.cd-go{border:1px solid #23a259;background:#23a259;color:#fff}
-.cd-go:hover{background:#1c8a4b;border-color:#1c8a4b;text-decoration:none}
-.cd-ghost{border:1px solid #c7cdda;background:#fff;color:#2b54e6}
-.cd-ghost:hover{border-color:#2b54e6;text-decoration:none}
-.cd-empty{padding:30px;text-align:center;color:#78849e}
-.cd-empty-wrap{background:#fff;border:1px solid #e4e9f4;border-radius:14px;padding:8px}
+.mbdash .db-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.mbdash .db-kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;transition:transform .15s,box-shadow .15s}
+.mbdash .db-kpi:hover{transform:translateY(-2px);box-shadow:0 12px 34px -22px rgba(16,26,58,.4)}
+.mbdash .db-kpi-l{font-family:"Spline Sans Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.mbdash .db-kpi-v{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.7rem;letter-spacing:-.01em;color:var(--navy);line-height:1;font-variant-numeric:tabular-nums}
+.mbdash .db-kpi-t{font-family:"Spline Sans Mono",monospace;font-size:.66rem;margin-top:7px;color:var(--muted)}
+.mbdash .db-kpi-t.up{color:var(--success-d)}
+.mbdash .db-kpi.a1{border-top:3px solid var(--cobalt)}.mbdash .db-kpi.a1 .db-kpi-v{color:var(--cobalt)}
+.mbdash .db-kpi.a2{border-top:3px solid var(--gold)}
+.mbdash .db-kpi.a3{border-top:3px solid var(--success)}.mbdash .db-kpi.a3 .db-kpi-v{color:var(--success-d)}
+.mbdash .db-kpi.a4{border-top:3px solid var(--navy)}
 
-.cd-biz{display:flex;align-items:center;gap:.7em;margin-top:18px;padding:.8em 1.1em;border:1px solid #e4e9f4;
-  border-radius:12px;background:#fff;font-size:.88rem;color:#5a6377}
-.cd-biz.earned{border-color:#ecdfc4;background:#fffdf7;color:#8a5a0b}
-.cd-biz.pending{background:#f7f9fd;color:#586079}
-.cd-biz svg{width:16px;height:16px;flex:none;color:#2b54e6}
-.cd-biz.earned svg{color:#b5790f}
-.cd-biz.pending svg{color:#586079}
-.cd-biz b{color:#16213f}
-.cd-biz.earned b{color:#6e4708}
-.cd-biz .sp{flex:1}
-.cd-biz form{margin:0}
-.cd-bizask{font-family:"Spline Sans Mono",monospace;font-size:.78rem;color:#2b54e6;background:none;border:none;
-  cursor:pointer;white-space:nowrap;padding:0}
-.cd-bizask:hover{text-decoration:underline}
-.cd-biz.earned .cd-bizask{color:#b5790f}
+.mbdash .db-hero{background:var(--paper);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-bottom:24px;box-shadow:0 16px 40px -30px rgba(16,26,58,.5)}
+.mbdash .db-hero-top{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);color:#fff;padding:26px 30px 22px;position:relative;overflow:hidden}
+.mbdash .db-hero-top::after{content:"";position:absolute;right:-40px;top:-50px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(224,179,74,.16),transparent 70%);pointer-events:none}
+.mbdash .db-srow{display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative;z-index:2;flex-wrap:wrap}
+.mbdash .db-spill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-family:"Spline Sans Mono",monospace;font-size:.68rem;letter-spacing:.02em}
+.mbdash .db-spill.wait{background:rgba(224,151,42,.2);color:#f4c675;border:1px solid rgba(224,151,42,.35)}
+.mbdash .db-spill.bid{background:rgba(47,107,255,.2);color:#a9c4ff;border:1px solid rgba(47,107,255,.4)}
+.mbdash .db-spill.draft{background:rgba(255,255,255,.12);color:#d7deec;border:1px solid rgba(255,255,255,.2)}
+.mbdash .db-spill .d{width:7px;height:7px;border-radius:50%;background:currentColor}
+.mbdash .db-cid{font-family:"Spline Sans Mono",monospace;font-size:.72rem;color:rgba(255,255,255,.5)}
+.mbdash .db-htitle{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.35rem;letter-spacing:-.01em;margin:0 0 4px;position:relative;z-index:2}
+.mbdash .db-hmeta{font-size:.9rem;color:rgba(255,255,255,.68);position:relative;z-index:2}
+.mbdash .db-hero-body{padding:24px 30px 28px}
+.mbdash .db-seal{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#f7f9fe;margin-bottom:20px}
+.mbdash .db-seal-l{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.mbdash .db-seal-v{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.3rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.mbdash .db-seal-hint{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--muted);max-width:340px}
+.mbdash .db-seal-hint svg{width:16px;height:16px;flex:none;color:var(--gold-dark)}
+.mbdash .db-seal-hint strong{color:var(--ink);font-weight:600}
+.mbdash .db-hactions{display:flex;gap:12px;flex-wrap:wrap}
+.mbdash .db-btn{font-family:inherit;font-size:.9rem;font-weight:500;padding:11px 20px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:1.5px solid transparent}
+.mbdash .db-btn-primary{background:var(--cobalt);color:#fff}.mbdash .db-btn-primary:hover{background:#1e4fd0;text-decoration:none}
+.mbdash .db-btn-secondary{background:#fff;color:var(--navy);border-color:#c7cdda}.mbdash .db-btn-secondary:hover{border-color:var(--cobalt);color:var(--cobalt);text-decoration:none}
 
-@media(max-width:640px){
-  .cd-kpis{grid-template-columns:1fr 1fr}
-  .cd-kpi+.cd-kpi{border-left:none}
-  .cd-kpi:nth-child(n+3){border-top:1px solid #eadfc6;padding-top:12px;margin-top:10px}
-  table.cdcases thead th:nth-child(3),table.cdcases tbody td:nth-child(3){display:none}
-}
+.mbdash .db-empty{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:40px 24px;text-align:center;color:var(--muted);margin-bottom:24px}
+.mbdash .db-empty h2{font-family:"Fraunces",Georgia,serif;font-weight:500;color:var(--navy);font-size:1.3rem;margin:0 0 8px}
+
+.mbdash .db-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:20px}
+.mbdash .db-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px}
+.mbdash .db-card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.mbdash .db-card-h h3{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.05rem;color:var(--navy);margin:0}
+.mbdash .db-card-h a{font-family:"Spline Sans Mono",monospace;font-size:.72rem;color:var(--cobalt);text-decoration:none}
+.mbdash .db-card-h a:hover{text-decoration:underline}
+.mbdash .db-act{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.mbdash .db-act:last-child{border-bottom:none;padding-bottom:0}
+.mbdash .db-act:first-child{padding-top:0}
+.mbdash .db-act-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.mbdash .db-act-ic svg{width:16px;height:16px}
+.mbdash .db-act-ic.gold{background:rgba(207,156,52,.14);color:var(--gold-dark)}
+.mbdash .db-act-ic.green{background:rgba(35,162,89,.13);color:var(--success-d)}
+.mbdash .db-act-ic.blue{background:rgba(43,84,230,.11);color:var(--cobalt)}
+.mbdash .db-act-t{font-size:.9rem;font-weight:500;color:var(--ink)}
+.mbdash .db-act-s{font-family:"Spline Sans Mono",monospace;font-size:.72rem;color:var(--muted);margin-top:2px}
+.mbdash .db-act-empty{color:var(--muted);font-size:.9rem;padding:6px 0}
+.mbdash .db-tip{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.mbdash .db-tip:last-child{border-bottom:none;padding-bottom:0}
+.mbdash .db-tip:first-child{padding-top:0}
+.mbdash .db-tip-n{width:28px;height:28px;border-radius:8px;background:var(--navy);color:var(--gold-soft);display:grid;place-items:center;font-family:"Spline Sans Mono",monospace;font-weight:600;font-size:.8rem;flex:none}
+.mbdash .db-tip-x{font-size:.88rem;color:var(--muted);line-height:1.5}
+.mbdash .db-tip-x strong{color:var(--ink);font-weight:600}
+
+.mbdash .db-biz{display:flex;align-items:center;gap:.7em;margin-top:20px;padding:.85em 1.1em;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:.88rem;color:var(--muted)}
+.mbdash .db-biz.earned{border-color:#ecdfc4;background:#fffdf7;color:var(--gold-dark)}
+.mbdash .db-biz.pending{background:#f7f9fd}
+.mbdash .db-biz svg{width:16px;height:16px;flex:none;color:var(--cobalt)}
+.mbdash .db-biz.earned svg{color:var(--gold-dark)}
+.mbdash .db-biz b{color:var(--navy)}
+.mbdash .db-biz .sp{flex:1}
+.mbdash .db-biz form{margin:0}
+.mbdash .db-bizask{font-family:"Spline Sans Mono",monospace;font-size:.78rem;color:var(--cobalt);background:none;border:none;cursor:pointer;white-space:nowrap;padding:0}
+.mbdash .db-biz.earned .db-bizask{color:var(--gold-dark)}
+
+@media(max-width:900px){.mbdash .db-kpis{grid-template-columns:repeat(2,1fr)}.mbdash .db-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.mbdash .db-kpis{grid-template-columns:1fr 1fr}.mbdash .db-hactions{flex-direction:column}.mbdash .db-btn{width:100%;justify-content:center}}
 </style>
 
-<div class="cd-ribbon">
-  <div class="cd-rb-top">
+<div class="mbdash">
+
+  <div class="db-pagehead">
     <div>
-      <div class="cd-eyebrow"><span class="cd-dot"></span>Your cases</div>
-      <div class="cd-h"><%= cases.length ? (openC.length + ' open, ' + settled.length + ' settled') : 'No cases yet' %></div>
+      <h1><%= greet %>, <%= firstName %></h1>
+      <p><%= openC.length %> active <%= openC.length === 1 ? 'case' : 'cases' %><%= settled.length ? ' \u00b7 ' + settled.length + ' settled' : '' %></p>
     </div>
-    <% if (cases.length) { %>
-    <div class="cd-acts">
-      <button type="button" class="cd-btn" onclick="downloadMine()">&#8595; Export</button>
-      <a class="cd-btn solid" href="/cases/new">New case</a>
-    </div>
-    <% } %>
+    <% if (mineC.length) { %><button type="button" class="db-exp" onclick="downloadMine()">&#8595; Export my cases</button><% } %>
   </div>
-  <% if (cases.length) { %>
-  <div class="cd-kpis">
-    <div class="cd-kpi"><div class="cd-k"><span class="cd-dot"></span>In your favour</div><div class="cd-n cobalt"><%= money(owed, cur) %></div><div class="cd-s">across <%= owedC.length %> open</div></div>
-    <a class="cd-kpi" href="/dashboard?filter=<%= filter === 'attn' ? 'all' : 'attn' %>"><div class="cd-k"><span class="cd-dot"></span>Attention required</div><div class="cd-n"><%= needs %></div><div class="cd-s"><%= needs ? 'waiting on you' : 'nothing waiting' %></div></a>
-    <div class="cd-kpi"><div class="cd-k"><span class="cd-dot"></span>Recovered</div><div class="cd-n green"><%= money(recovered, cur) %></div><div class="cd-s">settled to date</div></div>
-    <% if (typical !== null) { %><div class="cd-kpi"><div class="cd-k"><span class="cd-dot"></span>Typical settle</div><div class="cd-n"><%= typical %><span class="cd-u"> days</span></div><div class="cd-s">open to agreed</div></div><% } %>
+
+  <div class="db-kpis">
+    <div class="db-kpi a1"><div class="db-kpi-l">Active cases</div><div class="db-kpi-v"><%= openC.length %></div><div class="db-kpi-t">in progress</div></div>
+    <div class="db-kpi a2"><div class="db-kpi-l">Settled</div><div class="db-kpi-v"><%= settled.length %></div><div class="db-kpi-t <%= settledRecent.length ? 'up' : '' %>"><%= settledRecent.length ? '\u2191 '+settledRecent.length+' this month' : 'to date' %></div></div>
+    <div class="db-kpi a3"><div class="db-kpi-l">Recovered</div><div class="db-kpi-v"><%= money(recovered, cur) %></div><div class="db-kpi-t <%= recoveredRecent ? 'up' : '' %>"><%= recoveredRecent ? '\u2191 '+money(recoveredRecent, cur)+' this month' : 'settled to date' %></div></div>
+    <div class="db-kpi a4"><div class="db-kpi-l">Avg. days</div><div class="db-kpi-v"><%= typical !== null ? typical : '\u2014' %></div><div class="db-kpi-t">to settle</div></div>
+  </div>
+
+  <% if (heroCase) {
+       let pillCls = 'draft', pillTxt = 'Draft \u2014 not invited yet';
+       if (heroCase.stalled) { pillCls = 'wait'; pillTxt = 'Gone quiet \u2014 '+heroCase.age+' days'; }
+       else if (heroCase.stage === 'awaiting') { pillCls = 'wait'; pillTxt = 'Awaiting the other party'; }
+       else if (heroCase.stage === 'bidding') { pillCls = 'bid'; pillTxt = 'Round in play \u00b7 figure sealed'; }
+  %>
+  <div class="db-hero">
+    <div class="db-hero-top">
+      <div class="db-srow">
+        <span class="db-spill <%= pillCls %>"><span class="d"></span><%= pillTxt %></span>
+        <span class="db-cid">Case #MB-<%= heroCase.id %></span>
+      </div>
+      <h2 class="db-htitle"><%= heroCase.title %></h2>
+      <p class="db-hmeta">vs. <%= heroCase.other_email || 'the other party' %> \u00b7 opened <%= heroAge %> day<%= heroAge === 1 ? '' : 's' %> ago \u00b7 <%= money(heroCase.amount, heroCase.currency) %> in dispute</p>
+    </div>
+    <div class="db-hero-body">
+      <div class="db-seal">
+        <div>
+          <div class="db-seal-l">Your figure this round</div>
+          <div class="db-seal-v"><%= heroCase.myLastBid != null ? money(heroCase.myLastBid, heroCase.currency) : 'Not set yet' %></div>
+        </div>
+        <div class="db-seal-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+          <span>Sealed for this round. <strong>Nothing is revealed</strong> until both sides' figures meet.</span>
+        </div>
+      </div>
+      <div class="db-hactions">
+        <a class="db-btn db-btn-primary" href="/cases/<%= heroCase.id %>">Open case</a>
+        <a class="db-btn db-btn-secondary" href="/cases/<%= heroCase.id %>">Adjust next round</a>
+        <a class="db-btn db-btn-secondary" href="/cases/<%= heroCase.id %>">Private notes</a>
+      </div>
+    </div>
+  </div>
+  <% } else if (cases.length === 0) { %>
+  <div class="db-empty">
+    <h2>No cases yet</h2>
+    <p>Start a dispute to invite the other party — nothing you enter is ever revealed unless your figures meet.</p>
+    <a class="db-btn db-btn-primary" href="/cases/new" style="margin-top:16px">Start a new case</a>
   </div>
   <% } %>
-</div>
 
-<% if (cases.length === 0) { %>
-  <div class="cd-empty-wrap">
-    <div class="cd-empty">
-      <p>No cases yet. Start one to invite the other party.</p>
-      <a class="cd-btn solid" href="/cases/new" style="margin-top:14px;display:inline-block">Start a new case</a>
+  <div class="db-grid">
+    <div class="db-card">
+      <div class="db-card-h"><h3>Recent activity</h3><a href="/dashboard">All cases</a></div>
+      <% if (activity.length) { activity.forEach(function(a){ %>
+        <div class="db-act">
+          <div class="db-act-ic <%= a.ic %>">
+            <% if (a.ic === 'green') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
+            <% } else if (a.ic === 'gold') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <% } else { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><% } %>
+          </div>
+          <div>
+            <div class="db-act-t"><%= a.t %></div>
+            <div class="db-act-s"><%= a.s %></div>
+          </div>
+        </div>
+      <% }); } else { %>
+        <div class="db-act-empty">Nothing yet — activity shows up here as your cases move.</div>
+      <% } %>
+    </div>
+
+    <div class="db-card">
+      <div class="db-card-h"><h3>How blind bidding works</h3></div>
+      <div class="db-tip"><div class="db-tip-n">1</div><div class="db-tip-x"><strong>Your walk-away stays private.</strong> Only the settled number ever crosses, and only if you meet.</div></div>
+      <div class="db-tip"><div class="db-tip-n">2</div><div class="db-tip-x"><strong>One figure per round.</strong> Once sealed it stays sealed — no probing the other side.</div></div>
+      <div class="db-tip"><div class="db-tip-n">3</div><div class="db-tip-x"><strong>No settlement, no fee.</strong> You only pay the service charge if the figures meet.</div></div>
     </div>
   </div>
-<% } else { %>
 
-<div class="cd-tools">
-  <% var stageChips = [['all','All']].concat(STAGES.map(function(st){return [st, STAGE_META[st].label];})); %>
-  <% stageChips.forEach(function(sc){ %>
-    <a class="cd-chip <%= filter === sc[0] ? 'on' : '' %>" href="/dashboard?filter=<%= sc[0] %>"><%= sc[1] %></a>
-  <% }); %>
+  <% if (me.account_type !== 'business') { %>
+    <% if (me.business_requested) { %>
+      <div class="db-biz pending">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span class="sp">Your <b>business portal</b> request is with us — we'll be in touch about a demo.</span>
+      </div>
+    <% } else { %>
+      <div class="db-biz <%= cases.length >= 25 ? 'earned' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
+        <span class="sp">
+          <% if (cases.length >= 25) { %>You're handling <b><%= cases.length %> disputes</b>. The <b>business portal</b> is built for exactly this — spreadsheet import, one bid bar across the lot, bulk invites.
+          <% } else { %>Handling <b>25 disputes or more</b>? There's a <b>business portal</b> for that — spreadsheet import, one bid bar across the lot, bulk invites.<% } %>
+        </span>
+        <form method="POST" action="/business/request"><button type="submit" class="db-bizask">Ask for a demo &rarr;</button></form>
+      </div>
+    <% } %>
+  <% } %>
+
 </div>
-
-<%
-  const visible = cases.filter(function (c) {
-    if (filter === 'all') return true;
-    if (filter === 'attn') return c.stalled;
-    return c.stage === filter;
-  });
-%>
-<div class="cd-sheet"><div class="cd-scroll">
-  <table class="cdcases">
-    <thead><tr><th>Case</th><th>Original amount</th><th>Last bid</th><th>Status</th><th class="r">Next step</th></tr></thead>
-    <tbody>
-    <% visible.forEach(function (c) {
-         const mine = c.claimant_id === me.id;
-         const side = sideOf(c);   // 'owed' | 'owe' | null
-         const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
-         let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
-         if (c.stage === 'draft') pillText = 'Draft — not invited';
-         if (c.stage === 'awaiting') pillText = 'Awaiting other party';
-         if (c.status === 'settled') pillText = 'Settled at ' + money(c.settled_value, c.currency);
-         if (c.status === 'declined') pillText = 'Declined';
-         if (c.status === 'closed') pillText = 'Closed';
-    %>
-      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= side === 'owed' ? 'cd-b' : (side === 'owe' ? 'cd-a' : '') %>">
-        <td>
-          <div class="cd-nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
-          <div class="cd-ref">MB-<%= c.id %></div>
-          <% if (c.stalled) { %><div class="cd-subq">Quiet for <%= c.age %> days</div><% } %>
-        </td>
-        <td class="cd-amt"><%= money(c.amount, c.currency) %></td>
-        <td class="cd-bid">
-          <% if (c.myLastBid != null) { %><span class="val"><%= money(c.myLastBid, c.currency) %></span>
-          <% } else { %><span class="none">no bid yet</span><% } %>
-        </td>
-        <td><span class="cd-pill <%= pillClass %>"><%= pillText %></span></td>
-        <td class="r">
-          <% if (c.status === 'settled') { %>
-            <% if (!mine) { %><a class="cd-go" href="/cases/<%= c.id %>">Pay</a>
-            <% } else { %><a class="cd-ghost" href="/cases/<%= c.id %>">View</a><% } %>
-          <% } else { %><a class="cd-ghost" href="/cases/<%= c.id %>">Open</a><% } %>
-        </td>
-      </tr>
-    <% }) %>
-    </tbody>
-  </table>
-</div></div>
-<% if (!visible.length) { %><p class="cd-empty">No cases match this view.</p><% } %>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// Only cases you raised yourself can move workspace — ones you were invited into
-// belong to you as a person, wherever they came from.
 var MINE = <%- JSON.stringify(mineC.map(function (c) { return {
   'MidBid case ID': c.id, 'Debtor Company': c.title, 'Debtor Email': c.other_email || '',
   'Amount in dispute': c.amount, 'Currency': c.currency, 'MidBid status': c.stage,
@@ -248,29 +266,5 @@ function downloadMine(){
   XLSX.writeFile(wb,'midbid-my-cases.xlsx');
 }
 </script>
-
-<% } %>
-<% if (me.account_type !== 'business') { %>
-  <% if (me.business_requested) { %>
-    <div class="cd-biz pending">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <span class="sp">Your <b>business portal</b> request is with us — we'll be in touch about a demo.</span>
-    </div>
-  <% } else { %>
-    <div class="cd-biz <%= cases.length >= 25 ? 'earned' : '' %>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
-      <span class="sp">
-        <% if (cases.length >= 25) { %>
-          You're handling <b><%= cases.length %> disputes</b>. The <b>business portal</b> is built for exactly this — import them from a spreadsheet, set one bid bar across the lot, invite in bulk.
-        <% } else { %>
-          Handling <b>25 disputes or more</b>? There's a <b>business portal</b> for that — spreadsheet import, one bid bar across the lot, bulk invites.
-        <% } %>
-      </span>
-      <form method="POST" action="/business/request">
-        <button type="submit" class="cd-bizask">Ask for a demo &rarr;</button>
-      </form>
-    </div>
-  <% } %>
-<% } %>
 
 <%- include('partials/foot') %>
