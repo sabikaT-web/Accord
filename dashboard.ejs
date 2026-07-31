@@ -37,286 +37,198 @@
   const STAGES = ['draft','awaiting','bidding','settled'];
   const countAt = (s) => cases.filter(c => c.stage === s).length;
 
-  // Eight-week trends from the timestamps already on each case — real, not mocked.
-  const WEEKS = 8, WEEK = 7 * 86400000, now = Date.now();
-  const edges = [];
-  for (let k = WEEKS - 1; k >= 0; k--) edges.push(now - k * WEEK);
-  const madeBy = (c, t) => new Date(c.created_at).getTime() <= t;
-  const doneBy = (c, t) => c.settled_at && new Date(c.settled_at).getTime() <= t;
-  const sOwed = edges.map(t => cases.filter(c => c.claimant_id === me.id && madeBy(c, t) && !doneBy(c, t) && !['closed','declined'].includes(c.status)).reduce((a, c) => a + c.amount, 0));
-  const sRec  = edges.map(t => cases.filter(c => c.claimant_id === me.id && doneBy(c, t)).reduce((a, c) => a + (c.settled_value || 0), 0));
-  const sNeed = edges.map(t => cases.filter(c => madeBy(c, t) && c.stalled).length);
-  const delta = (arr) => arr[arr.length - 1] - arr[Math.max(0, arr.length - 5)];
-
   const filter = typeof f === 'undefined' ? (locals.filter || 'all') : f;
 %>
-<%- include('partials/head', { pageHead: {
-  eyebrow: 'Your cases',
-  title: cases.length ? (openC.length + ' open, ' + settled.length + ' settled') : 'No cases yet',
-  sub: "Open a new dispute, or continue one you're already part of."
-} }) %>
+<%- include('partials/head', { pageHead: null }) %>
+
+<%# The case page's serif — head only ships Fraunces/Hanken/Spline, so add Newsreader here. %>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
 
 <style>
-/* Scoped to the individual dashboard so styles.css needs no changes. */
-.ikpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:-44px 0 22px;position:relative;z-index:5}
-.ikpi{background:#fff;border:1px solid #DCE3EF;border-radius:14px;padding:16px 16px 12px;text-decoration:none;color:inherit;display:block}
-a.ikpi{transition:border-color .15s,transform .15s}
-a.ikpi:hover{border-color:#2F6BFF;transform:translateY(-2px);text-decoration:none}
-.ikpi-label{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#586079;font-weight:700}
-.ikpi-num{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.8rem;line-height:1.1;margin-top:.35rem}
-.ikpi-num .u{font-size:1rem;color:#586079}
-.ikpi-delta{font-size:.75rem;font-weight:600;margin-top:.2rem}
-.ikpi-delta .sub{color:#586079;font-weight:500}
-.ikpi-delta.up{color:#1c5e3f}.ikpi-delta.flat{color:#586079}
+/* ===== Individual dashboard — case-page "Chambers" skin.
+   Gold is confined to the facts ribbon; cobalt is the workhorse everywhere else.
+   Scoped with cd- so styles.css needs no changes. ===== */
+.cd-ribbon{background:linear-gradient(180deg,#fffdf7,#fbf5e9);border:1px solid #ecdfc4;border-radius:14px;
+  padding:19px 22px 16px;margin:8px 0 18px;box-shadow:0 18px 46px -40px rgba(120,90,30,.5)}
+.cd-rb-top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:15px}
+.cd-eyebrow{font-family:"Spline Sans Mono",monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+  color:#a9853a;display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.cd-dot{width:6px;height:6px;border-radius:50%;background:#cf9c34;flex:none}
+.cd-h{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.5rem;letter-spacing:-.01em;color:#16213f}
+.cd-acts{display:flex;gap:9px}
+.cd-btn{font-family:"Spline Sans Mono",monospace;font-size:.72rem;padding:9px 14px;border-radius:8px;
+  border:1px solid #c7cdda;background:#fff;color:#586079;text-decoration:none;cursor:pointer}
+.cd-btn:hover{border-color:#2b54e6;color:#2b54e6;text-decoration:none}
+.cd-btn.solid{background:#2b54e6;border-color:#2b54e6;color:#fff}
+.cd-btn.solid:hover{background:#1e4fd0;border-color:#1e4fd0;color:#fff}
+.cd-kpis{display:grid;grid-template-columns:repeat(4,1fr)}
+.cd-kpi{padding:2px 20px;text-decoration:none;color:inherit;display:block}
+.cd-kpi + .cd-kpi{border-left:1px solid #eadfc6}
+.cd-kpi:first-child{padding-left:0}
+a.cd-kpi{border-radius:8px;transition:background .16s}
+a.cd-kpi:hover{background:rgba(207,156,52,.10);text-decoration:none}
+.cd-k{font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;
+  color:#a9853a;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.cd-n{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.5rem;line-height:1;color:#16213f;font-variant-numeric:tabular-nums}
+.cd-n.cobalt{color:#2b54e6}
+.cd-n.green{color:#268a4f}
+.cd-n .cd-u{font-size:.9rem;color:#8a8f99}
+.cd-s{font-family:"Spline Sans Mono",monospace;font-size:.65rem;color:#8a8f99;margin-top:5px}
 
-.icard{background:#fff;border:1px solid #DCE3EF;border-radius:14px;padding:22px;margin-bottom:18px}
-.i-title{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.2rem}
-.i-muted{color:#6b7590;font-size:.9rem}
-.ipath{display:flex;align-items:stretch;flex-wrap:wrap}
-.ipathstep{flex:1;min-width:112px;background:#EEF2F8;color:#1E2A45;padding:12px 14px 12px 30px;margin-left:-14px;display:flex;flex-direction:column;justify-content:center;text-decoration:none;transition:background .15s;clip-path:polygon(16px 50%,0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%)}
-.ipathstep:first-child{margin-left:0;padding-left:18px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%)}
-.ipathstep:last-child{clip-path:polygon(16px 50%,0 0,100% 0,100% 100%,0 100%)}
-.ipathstep:hover{background:#E2E9F5;text-decoration:none}
-.ipathstep.on{background:#16306B;color:#fff}
-.ips-name{font-size:.78rem;font-weight:600;display:flex;align-items:center;white-space:nowrap}
-.ips-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;flex:none}
-.ips-count{font-family:"Spline Sans Mono",monospace;font-weight:700;font-size:1.1rem;margin-top:.1rem}
+.cd-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
+.cd-chip{font-family:"Spline Sans Mono",monospace;font-size:.68rem;padding:7px 12px;border-radius:999px;
+  border:1px solid #c7cdda;background:#fff;color:#586079;cursor:pointer;text-decoration:none;transition:.15s}
+.cd-chip:hover{border-color:#16213f;color:#16213f;text-decoration:none}
+.cd-chip.on{background:#16213f;color:#fff;border-color:#16213f}
 
-.itbl{background:#fff;border:1px solid #DCE3EF;border-radius:14px;overflow:hidden}
-.itbl-scroll{overflow-x:auto}
-table.icases{width:100%;border-collapse:collapse;font-size:.9rem;min-width:720px}
-table.icases thead th{text-align:left;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:#586079;font-weight:700;padding:11px 14px;border-bottom:1px solid #DCE3EF;background:#EEF3FB;white-space:nowrap;color:#42506e}
-table.icases tbody td{padding:12px 14px;border-bottom:1px solid #DCE3EF;vertical-align:middle}
-table.icases tbody tr:last-child td{border-bottom:none}
-table.icases tbody tr.done{background:rgba(21,184,119,.06)}
-table.icases tbody tr.attn{box-shadow:inset 3px 0 0 #F5B312}
-.icp .nm{font-weight:600}
-.icp .nm a{color:#1E2A45;text-decoration:none}
-.icp .nm a:hover{color:#2F6BFF}
-.icp .sub{font-size:.8rem;color:#586079}
-.iamt{font-family:"Spline Sans Mono",monospace;font-weight:500;white-space:nowrap}
-.ibid{font-family:"Spline Sans Mono",monospace;font-size:.8rem;white-space:nowrap}
-.ibid .hi{color:#2F6BFF}.ibid .lo{color:#B5790F}
-.ibid .none{color:#586079;font-style:italic;font-family:inherit}
-.ipill{font-size:.72rem;font-weight:700;padding:.26em .68em;border-radius:999px;border:1px solid #DCE3EF;color:#42506e;white-space:nowrap;display:inline-block;background:#fff}
-.ipill.draft{background:#EAEFF7}
-.ipill.awaiting{background:rgba(245,179,18,.14);border-color:#FAD56A;color:#B5790F}
-.ipill.progress-old{background:rgba(47,107,255,.10);border-color:#2F6BFF;color:#2F6BFF}
-.ipill.bidding{background:rgba(47,107,255,.16);border-color:#2F6BFF;color:#16306B}
-.ipill.settled{background:rgba(21,184,119,.16);border-color:#15B877;color:#1c5e3f}
-.ipill.declined{background:#fbeae2;border-color:#e6b39a;color:#8a3d1a}
-.ipill.closed{background:#EAEFF7;color:#586079}
-.ibtn{display:inline-flex;align-items:center;gap:.5em;font:inherit;font-weight:600;font-size:.86rem;padding:.42em .9em;border-radius:999px;border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap}
-.ibtn-primary{background:#16306B;color:#F4F2EB}.ibtn-primary:hover{background:#2F6BFF;text-decoration:none}
-.ibtn-ghost{background:transparent;border-color:#DCE3EF;color:#1E2A45}.ibtn-ghost:hover{border-color:#2F6BFF;color:#2F6BFF;text-decoration:none}
-.ibtn-go{background:#15B877;color:#fff}
-.itoolbar{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.itoolbar .sp{flex:1}
-@media (max-width:820px){.ikpis{grid-template-columns:repeat(2,1fr);margin-top:-30px}}
+.cd-sheet{background:#fff;border:1px solid #e4e9f4;border-radius:14px;overflow:hidden}
+.cd-scroll{overflow-x:auto}
+table.cdcases{width:100%;border-collapse:collapse;font-size:.9rem;min-width:720px}
+table.cdcases thead th{text-align:left;font-family:"Spline Sans Mono",monospace;font-size:.6rem;letter-spacing:.1em;
+  text-transform:uppercase;color:#586079;font-weight:500;padding:12px 16px;background:#f5f7fc;border-bottom:1px solid #e4e9f4;white-space:nowrap}
+table.cdcases thead th.r{text-align:right}
+table.cdcases tbody td{padding:14px 16px;border-bottom:1px solid #eef1f7;vertical-align:middle}
+table.cdcases tbody td.r{text-align:right}
+table.cdcases tbody tr:last-child td{border-bottom:none}
+table.cdcases tbody tr:hover{background:#f7f9fe}
+table.cdcases tbody tr.done{background:rgba(35,162,89,.05)}
+tr.cd-b td:first-child{box-shadow:inset 4px 0 0 #2b54e6}
+tr.cd-a td:first-child{box-shadow:inset 4px 0 0 #e0972a}
+.cd-nm{font-family:"Newsreader",Georgia,serif;font-weight:500;font-size:1.02rem}
+.cd-nm a{color:#101a3a;text-decoration:none}
+.cd-nm a:hover{color:#2b54e6}
+.cd-ref{font-family:"Spline Sans Mono",monospace;font-size:.66rem;color:#2b54e6;margin-top:2px}
+.cd-subq{font-size:.78rem;color:#95a0b8;margin-top:2px}
+.cd-amt{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1rem;color:#16213f;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cd-bid{font-family:"Spline Sans Mono",monospace;font-size:.82rem;color:#586079;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cd-bid .val{color:#16213f;font-weight:500}
+.cd-bid .none{color:#95a0b8;font-style:italic;font-family:"Newsreader",Georgia,serif}
+.cd-pill{font-family:"Spline Sans Mono",monospace;font-size:.64rem;padding:.32em .72em;border-radius:999px;white-space:nowrap;display:inline-block}
+.cd-pill.draft{background:#eef1f6;color:#59637e}
+.cd-pill.awaiting{background:rgba(224,151,42,.13);color:#a9640f}
+.cd-pill.progress{background:#eaf0ff;color:#2b54e6}
+.cd-pill.bidding{background:#eaf0ff;color:#2b54e6}
+.cd-pill.settled{background:#e3f5ea;color:#268a4f}
+.cd-pill.declined{background:#fbeae2;color:#8a3d1a}
+.cd-pill.closed{background:#eef1f6;color:#59637e}
+.cd-go,.cd-ghost{font-family:"Spline Sans Mono",monospace;font-size:.7rem;padding:7px 14px;border-radius:8px;
+  text-decoration:none;white-space:nowrap;display:inline-block}
+.cd-go{border:1px solid #23a259;background:#23a259;color:#fff}
+.cd-go:hover{background:#1c8a4b;border-color:#1c8a4b;text-decoration:none}
+.cd-ghost{border:1px solid #c7cdda;background:#fff;color:#2b54e6}
+.cd-ghost:hover{border-color:#2b54e6;text-decoration:none}
+.cd-empty{padding:30px;text-align:center;color:#78849e}
+.cd-empty-wrap{background:#fff;border:1px solid #e4e9f4;border-radius:14px;padding:8px}
 
-
-/* ===== Colour — same identities as the business portal, sized for a few cases.
-   Deep variants for the numbers; see the note in business.ejs for the ratios. */
-.ikpis .ikpi{border-left:5px solid var(--line)}
-.ikpis .ikpi:nth-child(1){border-left-color:#2F6BFF;background:linear-gradient(180deg,rgba(47,107,255,.08),#fff 62%)}
-.ikpis .ikpi:nth-child(1) .ikpi-num{color:#2F6BFF}
-.ikpis .ikpi:nth-child(2){border-left-color:#F5B312;background:linear-gradient(180deg,rgba(245,179,18,.13),#fff 62%)}
-.ikpis .ikpi:nth-child(3){border-left-color:#15B877;background:linear-gradient(180deg,rgba(21,184,119,.10),#fff 62%)}
-.ikpis .ikpi:nth-child(3) .ikpi-num{color:#1c5e3f}
-.ikpis .ikpi:nth-child(4){border-left-color:#16306B;background:linear-gradient(180deg,rgba(22,48,107,.08),#fff 62%)}
-.ikpis .ikpi:nth-child(4) .ikpi-num{color:#16306B}
-
-.ipathstep{--st:#B4B2A9;--sto:#1E2A45;background:color-mix(in srgb,var(--st) 14%,#F3F6FB)}
-.ipathstep:nth-child(2){--st:#F5B312;--sto:#2E2000}
-.ipathstep:nth-child(3){--st:#2A61EE;--sto:#FFFFFF}
-.ipathstep:nth-child(4){--st:#15B877;--sto:#062A1B}
-.ipathstep:hover{background:color-mix(in srgb,var(--st) 26%,#F3F6FB)}
-.ipathstep.on{background:var(--st);color:var(--sto)}
-.ipathstep.on:hover{background:var(--st)}
-.ipathstep.on .ips-count{color:var(--sto)}
-.ipathstep .ips-count{color:#16306B}
-
-/* The business portal has to be discoverable, or nobody can ask for it. Quiet by
-   default; it only sharpens once someone actually has a ledger-sized problem. */
-.bizhint{display:flex;align-items:center;gap:.7em;margin-top:18px;padding:.75em 1em;
-  border:1px solid var(--line);border-radius:12px;background:#fff;font-size:.85rem;color:#586079}
-.bizhint.earned{border-color:#F5B312;background:rgba(245,179,18,.09);color:#8A5A0B}
-.bizhint svg{width:16px;height:16px;flex:none;color:#2F6BFF}
-.bizhint.earned svg{color:#B5790F}
-.bizhint b{color:#16306B}
-.bizhint.earned b{color:#6E4708}
-.bizhint .sp{flex:1}
-.bizask{font:inherit;font-size:.85rem;font-weight:700;color:#2F6BFF;background:none;border:none;
+.cd-biz{display:flex;align-items:center;gap:.7em;margin-top:18px;padding:.8em 1.1em;border:1px solid #e4e9f4;
+  border-radius:12px;background:#fff;font-size:.88rem;color:#5a6377}
+.cd-biz.earned{border-color:#ecdfc4;background:#fffdf7;color:#8a5a0b}
+.cd-biz.pending{background:#f7f9fd;color:#586079}
+.cd-biz svg{width:16px;height:16px;flex:none;color:#2b54e6}
+.cd-biz.earned svg{color:#b5790f}
+.cd-biz.pending svg{color:#586079}
+.cd-biz b{color:#16213f}
+.cd-biz.earned b{color:#6e4708}
+.cd-biz .sp{flex:1}
+.cd-biz form{margin:0}
+.cd-bizask{font-family:"Spline Sans Mono",monospace;font-size:.78rem;color:#2b54e6;background:none;border:none;
   cursor:pointer;white-space:nowrap;padding:0}
-.bizask:hover{text-decoration:underline}
-.bizhint.earned .bizask{color:#B5790F}
-.bizhint a{color:#2F6BFF;font-weight:700;white-space:nowrap;text-decoration:none}
-.bizhint.earned a{color:#B5790F}
-.bizhint.pending{border-color:var(--line);background:#F7F9FD;color:#586079}
-.bizhint.pending svg{color:#586079}
-  tr.rt-b td:first-child{box-shadow:inset 5px 0 0 #2F6BFF}
-  tr.rt-b{background:linear-gradient(90deg,rgba(47,107,255,.06),transparent 40%)}
-  tr.rt-a td:first-child{box-shadow:inset 5px 0 0 #F5B312}
-  tr.rt-a{background:linear-gradient(90deg,rgba(245,179,18,.09),transparent 40%)}
-  /* slim summary strip — individual portal, content-first */
-  .isum{display:flex;flex-wrap:wrap;gap:10px;margin:-30px 0 20px;position:relative;z-index:5}
-  .isum-item{flex:1;min-width:140px;background:#fff;border:1px solid #DCE3EF;border-radius:12px;
-    padding:13px 16px;display:flex;flex-direction:column;gap:3px;text-decoration:none;color:inherit;
-    border-left:4px solid #DCE3EF}
-  .isum-item:nth-child(1){border-left-color:#2F6BFF;background:linear-gradient(180deg,rgba(47,107,255,.07),#fff 70%)}
-  .isum-item:nth-child(2){border-left-color:#F5B312;background:linear-gradient(180deg,rgba(245,179,18,.10),#fff 70%)}
-  .isum-item:nth-child(3){border-left-color:#15B877;background:linear-gradient(180deg,rgba(21,184,119,.08),#fff 70%)}
-  .isum-item:nth-child(4){border-left-color:#16306B;background:linear-gradient(180deg,rgba(22,48,107,.06),#fff 70%)}
-  a.isum-item{transition:border-color .15s}a.isum-item:hover{border-color:#2F6BFF}
-  .isum-item.attn{border-color:rgba(245,179,18,.5);background:linear-gradient(180deg,rgba(245,179,18,.08),#fff 70%)}
-  .isum-num{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.7rem;line-height:1}
-  .isum-num .isum-u{font-size:.85rem;color:#586079;margin-left:1px}
-  .isum-lab{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:#42506e;font-weight:700}
-  @media (max-width:640px){.isum-item{min-width:calc(50% - 5px)}}
+.cd-bizask:hover{text-decoration:underline}
+.cd-biz.earned .cd-bizask{color:#b5790f}
 
-/* ============ LEGAL-FINTECH SKIN ============ */
-.lf-top{background:linear-gradient(120deg,#0F2350,#16306B 60%,#1B3A82);border-radius:18px 18px 0 0;
-  padding:22px 26px 30px;color:#fff;position:relative;overflow:hidden;margin-top:8px}
-.lf-top::after{content:"";position:absolute;right:-60px;top:-70px;width:240px;height:240px;border-radius:50%;
-  background:radial-gradient(circle,rgba(231,169,59,.18),transparent 70%)}
-.lf-welcome{position:relative;z-index:2}
-.lf-welcome h1{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:1.6rem;letter-spacing:-.01em;color:#fff;margin:0}
-.lf-welcome p{color:#AEC0E6;font-size:.9rem;margin:3px 0 0}
-.lf-shell{background:#F5F7FB;border:1px solid #E4E9F2;border-top:0;border-radius:0 0 18px 18px;padding:0 26px 26px}
-.lf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:-20px;position:relative;z-index:3}
-.lf-kpi{background:#fff;border:1px solid #E4E9F2;border-radius:14px;padding:15px 16px;box-shadow:0 8px 24px -14px rgba(15,35,80,.4);text-decoration:none;color:inherit;display:block}
-a.lf-kpi{transition:transform .15s,box-shadow .15s}a.lf-kpi:hover{transform:translateY(-2px);box-shadow:0 12px 30px -14px rgba(15,35,80,.5)}
-.lf-kpi .k{font-size:.65rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:#78849E}
-.lf-kpi .n{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.72rem;line-height:1.05;margin-top:5px;font-variant-numeric:tabular-nums}
-.lf-kpi .d{font-size:.73rem;font-weight:600;margin-top:3px;color:#78849E}
-.lf-kpi.k1{border-top:3px solid #2F6BFF}.lf-kpi.k1 .n{color:#2F6BFF}
-.lf-kpi.k2{border-top:3px solid #E7A93B}.lf-kpi.k2 .n{color:#B5790F}
-.lf-kpi.k3{border-top:3px solid #12A56A}.lf-kpi.k3 .n{color:#0C7D50}
-.lf-kpi.k4{border-top:3px solid #0F2350}.lf-kpi.k4 .n{color:#0F2350}
-.lf-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:22px 0 14px}
-.lf-chip{font-size:.78rem;font-weight:600;padding:.42em .95em;border-radius:8px;border:1px solid #E4E9F2;background:#fff;color:#59637E;cursor:pointer;text-decoration:none;transition:.15s}
-.lf-chip:hover{border-color:#0F2350;color:#0F2350;text-decoration:none}
-.lf-chip.on{background:#0F2350;color:#fff;border-color:#0F2350}
-.lf-tools .sp{flex:1}
-.lf-tbl{background:#fff;border:1px solid #E4E9F2;border-radius:14px;overflow:hidden}
-.lf-tbl-scroll{overflow-x:auto}
-table.lfcases{width:100%;border-collapse:collapse;font-size:.88rem;min-width:720px}
-table.lfcases thead th{text-align:left;font-family:"Spline Sans Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;padding:12px 14px;color:#59637E;background:#F0F3F9;border-bottom:1px solid #E4E9F2;font-weight:600;white-space:nowrap}
-table.lfcases tbody td{padding:13px 14px;border-bottom:1px solid #EDF0F6;vertical-align:middle}
-table.lfcases tbody tr:last-child td{border-bottom:none}
-table.lfcases tbody tr.done{background:rgba(18,165,106,.05)}
-.lf-nm{font-weight:600;color:#0F2350}
-.lf-nm a{color:#0F2350;text-decoration:none}.lf-nm a:hover{color:#2F6BFF}
-.lf-ref{font-family:"Spline Sans Mono",monospace;font-size:.7rem;color:#8A93A8;margin-top:1px}
-.lf-sub{font-size:.78rem;color:#78849E;margin-top:1px}
-.lf-amt{font-family:"Fraunces",Georgia,serif;font-weight:600;font-variant-numeric:tabular-nums;color:#141C30}
-.lf-bid{font-family:"Spline Sans Mono",monospace;font-size:.84rem;font-variant-numeric:tabular-nums}
-.lf-bid .val{color:#0F2350;font-weight:600}
-.lf-bid .none{color:#98A1B4;font-style:italic;font-family:inherit}
-.lf-pill{font-size:.68rem;font-weight:700;padding:.26em .72em;border-radius:999px;letter-spacing:.02em;white-space:nowrap;display:inline-block}
-.lf-pill.draft{background:#EEF1F6;color:#59637E}
-.lf-pill.awaiting{background:rgba(231,169,59,.16);color:#9A6B0C}
-.lf-pill.bidding{background:rgba(47,107,255,.12);color:#1E4FD0}
-.lf-pill.settled{background:rgba(18,165,106,.15);color:#0C7D50}
-.lf-pill.declined{background:#FBEAE2;color:#8A3D1A}
-.lf-pill.closed{background:#EEF1F6;color:#59637E}
-.lf-next{color:#78849E;font-size:.82rem}
-tr.lf-b td:first-child{box-shadow:inset 4px 0 0 #2F6BFF}
-tr.lf-a td:first-child{box-shadow:inset 4px 0 0 #E7A93B}
-tr.lf-b{background:linear-gradient(90deg,rgba(47,107,255,.05),transparent 42%)}
-tr.lf-a{background:linear-gradient(90deg,rgba(231,169,59,.08),transparent 42%)}
-.lf-btn{display:inline-flex;align-items:center;gap:.4em;font:inherit;font-weight:600;font-size:.84rem;padding:.42em .95em;border-radius:999px;border:1px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap}
-.lf-btn.ghost{background:#fff;border-color:#E4E9F2;color:#0F2350}.lf-btn.ghost:hover{border-color:#2F6BFF;color:#2F6BFF}
-.lf-btn.go{background:#12A56A;color:#fff}.lf-btn.go:hover{background:#0C7D50}
-.lf-btn.primary{background:#2F6BFF;color:#fff}.lf-btn.primary:hover{background:#1E4FD0}
-.lf-empty{padding:30px;text-align:center;color:#78849E}
-@media(max-width:720px){.lf-kpis{grid-template-columns:repeat(2,1fr)}}
-
+@media(max-width:640px){
+  .cd-kpis{grid-template-columns:1fr 1fr}
+  .cd-kpi+.cd-kpi{border-left:none}
+  .cd-kpi:nth-child(n+3){border-top:1px solid #eadfc6;padding-top:12px;margin-top:10px}
+  table.cdcases thead th:nth-child(3),table.cdcases tbody td:nth-child(3){display:none}
+}
 </style>
 
-<div class="lf-top">
-  <div class="lf-welcome">
-    <h1>Your cases</h1>
-    <p><%= cases.length ? (openC.length + ' open · ' + settled.length + ' settled') : 'No cases yet' %></p>
+<div class="cd-ribbon">
+  <div class="cd-rb-top">
+    <div>
+      <div class="cd-eyebrow"><span class="cd-dot"></span>Your cases</div>
+      <div class="cd-h"><%= cases.length ? (openC.length + ' open, ' + settled.length + ' settled') : 'No cases yet' %></div>
+    </div>
+    <% if (cases.length) { %>
+    <div class="cd-acts">
+      <button type="button" class="cd-btn" onclick="downloadMine()">&#8595; Export</button>
+      <a class="cd-btn solid" href="/cases/new">New case</a>
+    </div>
+    <% } %>
   </div>
+  <% if (cases.length) { %>
+  <div class="cd-kpis">
+    <div class="cd-kpi"><div class="cd-k"><span class="cd-dot"></span>In your favour</div><div class="cd-n cobalt"><%= money(owed, cur) %></div><div class="cd-s">across <%= owedC.length %> open</div></div>
+    <a class="cd-kpi" href="/dashboard?filter=<%= filter === 'attn' ? 'all' : 'attn' %>"><div class="cd-k"><span class="cd-dot"></span>Attention required</div><div class="cd-n"><%= needs %></div><div class="cd-s"><%= needs ? 'waiting on you' : 'nothing waiting' %></div></a>
+    <div class="cd-kpi"><div class="cd-k"><span class="cd-dot"></span>Recovered</div><div class="cd-n green"><%= money(recovered, cur) %></div><div class="cd-s">settled to date</div></div>
+    <% if (typical !== null) { %><div class="cd-kpi"><div class="cd-k"><span class="cd-dot"></span>Typical settle</div><div class="cd-n"><%= typical %><span class="cd-u"> days</span></div><div class="cd-s">open to agreed</div></div><% } %>
+  </div>
+  <% } %>
 </div>
 
 <% if (cases.length === 0) { %>
-  <div class="lf-shell" style="padding-top:22px">
-    <div class="lf-empty">
+  <div class="cd-empty-wrap">
+    <div class="cd-empty">
       <p>No cases yet. Start one to invite the other party.</p>
-      <a class="lf-btn primary" href="/cases/new" style="margin-top:14px">+ Start a new case</a>
+      <a class="cd-btn solid" href="/cases/new" style="margin-top:14px;display:inline-block">Start a new case</a>
     </div>
   </div>
 <% } else { %>
 
-<div class="lf-shell">
-  <!-- KPI cards overlapping the dark band -->
-  <div class="lf-kpis">
-    <div class="lf-kpi k1"><div class="k">In your favour</div><div class="n"><%= money(owed, cur) %></div><div class="d">across <%= owedC.length %> open</div></div>
-    <a class="lf-kpi k2" href="/dashboard?filter=<%= filter === 'attn' ? 'all' : 'attn' %>"><div class="k">Need attention</div><div class="n"><%= needs %></div><div class="d"><%= needs ? 'quiet or in-band' : 'nothing waiting' %></div></a>
-    <div class="lf-kpi k3"><div class="k">Recovered</div><div class="n"><%= money(recovered, cur) %></div><div class="d">settled to date</div></div>
-    <% if (typical !== null) { %><div class="lf-kpi k4"><div class="k">Typical settle</div><div class="n"><%= typical %><span style="font-size:1rem;color:#78849E"> days</span></div><div class="d">open to agreed</div></div><% } %>
-  </div>
-
-  <!-- filter chips + new-case -->
-  <div class="lf-tools">
-    <% var stageChips = [['all','All']].concat(STAGES.map(function(st){return [st, STAGE_META[st].label];})); %>
-    <% stageChips.forEach(function(sc){ %>
-      <a class="lf-chip <%= filter === sc[0] ? 'on' : '' %>" href="/dashboard?filter=<%= sc[0] %>"><%= sc[1] %></a>
-    <% }); %>
-    <div class="sp"></div>
-    <button type="button" class="lf-chip" onclick="downloadMine()">&#8595; Export</button>
-    <a class="lf-btn primary" href="/cases/new">+ New case</a>
-  </div>
-
-  <%
-    const visible = cases.filter(function (c) {
-      if (filter === 'all') return true;
-      if (filter === 'attn') return c.stalled;
-      return c.stage === filter;
-    });
-  %>
-  <div class="lf-tbl"><div class="lf-tbl-scroll">
-    <table class="lfcases">
-      <thead><tr><th>Case</th><th>Original amount</th><th>Last bid</th><th>Status</th><th style="text-align:right">Next step</th></tr></thead>
-      <tbody>
-      <% visible.forEach(function (c) {
-           const mine = c.claimant_id === me.id;
-           const side = sideOf(c);   // 'owed' | 'owe' | null
-           const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
-           let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
-           if (c.stage === 'draft') pillText = 'Draft — not invited';
-           if (c.stage === 'awaiting') pillText = 'Awaiting other party';
-           if (c.status === 'settled') pillText = 'Settled at ' + money(c.settled_value, c.currency);
-           if (c.status === 'declined') pillText = 'Declined';
-           if (c.status === 'closed') pillText = 'Closed';
-      %>
-        <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= side === 'owed' ? 'lf-b' : (side === 'owe' ? 'lf-a' : '') %>">
-          <td>
-            <div class="lf-nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
-            <div class="lf-ref">MB-<%= c.id %></div>
-            <% if (c.stalled) { %><div class="lf-sub">Quiet for <%= c.age %> days</div><% } %>
-          </td>
-          <td class="lf-amt"><%= money(c.amount, c.currency) %></td>
-          <td class="lf-bid">
-            <% if (c.myLastBid != null) { %><span class="val"><%= money(c.myLastBid, c.currency) %></span>
-            <% } else { %><span class="none">no bid yet</span><% } %>
-          </td>
-          <td><span class="lf-pill <%= pillClass %>"><%= pillText %></span></td>
-          <td style="text-align:right">
-            <% if (c.status === 'settled') { %>
-              <% if (!mine) { %><a class="lf-btn go" href="/cases/<%= c.id %>">Pay</a>
-              <% } else { %><a class="lf-btn ghost" href="/cases/<%= c.id %>">View</a><% } %>
-            <% } else { %><a class="lf-btn ghost" href="/cases/<%= c.id %>">Open</a><% } %>
-          </td>
-        </tr>
-      <% }) %>
-      </tbody>
-    </table>
-  </div></div>
-  <% if (!visible.length) { %><p class="lf-empty">No cases match this view.</p><% } %>
+<div class="cd-tools">
+  <% var stageChips = [['all','All']].concat(STAGES.map(function(st){return [st, STAGE_META[st].label];})); %>
+  <% stageChips.forEach(function(sc){ %>
+    <a class="cd-chip <%= filter === sc[0] ? 'on' : '' %>" href="/dashboard?filter=<%= sc[0] %>"><%= sc[1] %></a>
+  <% }); %>
 </div>
+
+<%
+  const visible = cases.filter(function (c) {
+    if (filter === 'all') return true;
+    if (filter === 'attn') return c.stalled;
+    return c.stage === filter;
+  });
+%>
+<div class="cd-sheet"><div class="cd-scroll">
+  <table class="cdcases">
+    <thead><tr><th>Case</th><th>Original amount</th><th>Last bid</th><th>Status</th><th class="r">Next step</th></tr></thead>
+    <tbody>
+    <% visible.forEach(function (c) {
+         const mine = c.claimant_id === me.id;
+         const side = sideOf(c);   // 'owed' | 'owe' | null
+         const pillClass = c.status === 'declined' ? 'declined' : (c.status === 'closed' ? 'closed' : c.stage);
+         let pillText = STAGE_META[c.stage] ? STAGE_META[c.stage].label : c.status;
+         if (c.stage === 'draft') pillText = 'Draft — not invited';
+         if (c.stage === 'awaiting') pillText = 'Awaiting other party';
+         if (c.status === 'settled') pillText = 'Settled at ' + money(c.settled_value, c.currency);
+         if (c.status === 'declined') pillText = 'Declined';
+         if (c.status === 'closed') pillText = 'Closed';
+    %>
+      <tr class="<%= (c.status === 'settled' || c.status === 'closed') ? 'done' : '' %> <%= side === 'owed' ? 'cd-b' : (side === 'owe' ? 'cd-a' : '') %>">
+        <td>
+          <div class="cd-nm"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
+          <div class="cd-ref">MB-<%= c.id %></div>
+          <% if (c.stalled) { %><div class="cd-subq">Quiet for <%= c.age %> days</div><% } %>
+        </td>
+        <td class="cd-amt"><%= money(c.amount, c.currency) %></td>
+        <td class="cd-bid">
+          <% if (c.myLastBid != null) { %><span class="val"><%= money(c.myLastBid, c.currency) %></span>
+          <% } else { %><span class="none">no bid yet</span><% } %>
+        </td>
+        <td><span class="cd-pill <%= pillClass %>"><%= pillText %></span></td>
+        <td class="r">
+          <% if (c.status === 'settled') { %>
+            <% if (!mine) { %><a class="cd-go" href="/cases/<%= c.id %>">Pay</a>
+            <% } else { %><a class="cd-ghost" href="/cases/<%= c.id %>">View</a><% } %>
+          <% } else { %><a class="cd-ghost" href="/cases/<%= c.id %>">Open</a><% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div></div>
+<% if (!visible.length) { %><p class="cd-empty">No cases match this view.</p><% } %>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -340,12 +252,12 @@ function downloadMine(){
 <% } %>
 <% if (me.account_type !== 'business') { %>
   <% if (me.business_requested) { %>
-    <div class="bizhint pending">
+    <div class="cd-biz pending">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       <span class="sp">Your <b>business portal</b> request is with us — we'll be in touch about a demo.</span>
     </div>
   <% } else { %>
-    <div class="bizhint <%= cases.length >= 25 ? 'earned' : '' %>">
+    <div class="cd-biz <%= cases.length >= 25 ? 'earned' : '' %>">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
       <span class="sp">
         <% if (cases.length >= 25) { %>
@@ -354,11 +266,8 @@ function downloadMine(){
           Handling <b>25 disputes or more</b>? There's a <b>business portal</b> for that — spreadsheet import, one bid bar across the lot, bulk invites.
         <% } %>
       </span>
-      <%# A real request, not a mailto: draft. mailto only opens the visitor's mail app
-          and relies on them hitting send — on a machine with no mail client set up it
-          does nothing at all, and the request never reaches you. %>
-      <form method="POST" action="/business/request" style="margin:0">
-        <button type="submit" class="bizask">Ask for a demo &rarr;</button>
+      <form method="POST" action="/business/request">
+        <button type="submit" class="cd-bizask">Ask for a demo &rarr;</button>
       </form>
     </div>
   <% } %>
