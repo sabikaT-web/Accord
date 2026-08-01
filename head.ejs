@@ -60,7 +60,7 @@
           <a href="/dashboard">My cases</a>
         <% } %>
         <% if (typeof isAdmin !== 'undefined' && isAdmin) { %><a href="/admin" class="admin-link">Admin</a><% } %>
-        <a href="/account" class="acct-link"><%= me.company_name || me.name %></a>
+        <a href="/account" class="acct-link">My account</a>
         <form method="POST" action="/logout"><button class="linkbtn" type="submit">Log out</button></form>
       <% } else { %>
         <a href="/login">Log in</a>
