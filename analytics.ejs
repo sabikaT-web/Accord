@@ -1,0 +1,120 @@
+<%
+  // Business ANALYTICS. Privacy-safe aggregates only — never any private figure.
+  // Expects: cases, me, money().
+  const openCases = cases.filter(c => !['settled','declined','closed'].includes(c.status));
+  const settled   = cases.filter(c => c.status === 'settled');
+  const noDeal    = cases.filter(c => ['closed','declined'].includes(c.status));
+  const awaitingN = cases.filter(c => c.stage === 'awaiting').length;
+  const biddingN  = cases.filter(c => c.stage === 'bidding').length;
+  const sum = (a, k) => a.reduce((x, c) => x + (c[k] || 0), 0);
+  const valueSettled = sum(settled, 'settled_value');
+  const inPlay = sum(openCases, 'amount');
+  const _cc = {}; cases.forEach(c => { const k = c.currency || 'GBP'; _cc[k] = (_cc[k]||0)+1; });
+  const cur = Object.keys(_cc).sort((a,b) => _cc[b]-_cc[a])[0] || 'GBP';
+  const decided = settled.length + noDeal.length;
+  const settleRate = decided ? Math.round(settled.length / decided * 100) : 0;
+  const asClaimant = cases.filter(c => c.claimant_id === me.id).length;
+  const asRespondent = cases.filter(c => c.respondent_id === me.id).length;
+  // avg days to settle (only where both timestamps exist)
+  const days = settled.map(c => (c.settled_at && c.created_at) ? (new Date(c.settled_at) - new Date(c.created_at)) / 86400000 : null).filter(x => x != null && x >= 0);
+  const avgDays = days.length ? (days.reduce((a,b) => a+b, 0) / days.length).toFixed(1) : null;
+  // funnel
+  const fInvited = cases.length;
+  const fBidding = cases.filter(c => c.stage === 'bidding' || c.status === 'settled').length;
+  const fSettled = settled.length;
+  const pct = (n, d) => d ? Math.round(n / d * 100) : 0;
+  const stageMax = Math.max(1, awaitingN, biddingN, settled.length, noDeal.length);
+  const roleMax  = Math.max(1, asClaimant, asRespondent);
+%>
+<%- include('partials/head') %>
+
+<style>
+main > .wrap{max-width:1240px}
+body{background:#eef1f7}
+.anx{--cobalt:#2b54e6;--cobsoft:#eaf0ff;--navy:#16213f;--ink:#101a3a;--muted:#586079;
+  --line:#e4e9f4;--green:#23a259;--greend:#268a4f;--greensoft:#e3f5ea;--amber:#e0972a;
+  color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif}
+.anx *{box-sizing:border-box}
+.anx .oh{margin:20px 0 18px}
+.anx .oh-eye{font:700 .6rem/1 "Spline Sans Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a93a8;margin-bottom:8px}
+.anx .oh-t{font:500 1.7rem/1.1 "Fraunces",Georgia,serif;color:var(--navy);margin:0;letter-spacing:-.01em}
+.anx .oh-s{margin:8px 0 0;color:var(--muted);font-size:.9rem}
+.anx .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.anx .kpi{background:#fff;border:1px solid var(--line);border-top:3px solid var(--line);border-radius:14px;padding:15px 16px}
+.anx .kpi.b{border-top-color:var(--cobalt)}.anx .kpi.g{border-top-color:var(--green)}.anx .kpi.n{border-top-color:#c7cdda}
+.anx .kl{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a93a8;margin-bottom:9px}
+.anx .kv{font:600 1.65rem/1 "Fraunces",Georgia,serif;letter-spacing:-.01em;color:var(--navy);font-variant-numeric:tabular-nums}
+.anx .kpi.b .kv{color:var(--cobalt)}.anx .kpi.g .kv{color:var(--greend)}
+.anx .ks{font-size:.74rem;color:var(--muted);margin-top:6px}
+.anx .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.anx .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.anx .panel h2{font:500 1.05rem/1.2 "Fraunces",Georgia,serif;color:var(--navy);margin:0 0 16px}
+.anx .brow{margin-bottom:14px}.anx .brow:last-child{margin-bottom:0}
+.anx .bl{display:flex;justify-content:space-between;align-items:baseline;font-size:.84rem;color:var(--muted);margin-bottom:7px}
+.anx .bl b{color:var(--navy);font-weight:600;font-variant-numeric:tabular-nums}
+.anx .bt{height:11px;border-radius:999px;background:#eef1f7;overflow:hidden}
+.anx .bt span{display:block;height:100%;border-radius:999px}
+.anx .f-cobalt{background:linear-gradient(90deg,#5f80ee,var(--cobalt))}
+.anx .f-green{background:linear-gradient(90deg,#3fc07f,var(--green))}
+.anx .f-amber{background:linear-gradient(90deg,#f2b64d,var(--amber))}
+.anx .f-grey{background:#c7cdda}
+.anx .insight{grid-column:1 / -1;background:linear-gradient(160deg,#16213f,#22346e);border-radius:16px;padding:20px 22px;color:#fff;display:flex;gap:14px;align-items:flex-start}
+.anx .insight svg{width:22px;height:22px;flex:none;color:#8fe3b6;margin-top:2px}
+.anx .insight h3{font:500 1.05rem/1.2 "Fraunces",Georgia,serif;margin:0 0 5px}
+.anx .insight p{font-size:.86rem;color:rgba(255,255,255,.8);line-height:1.55;margin:0}
+@media(max-width:900px){.anx .kpis{grid-template-columns:repeat(2,1fr)}.anx .grid{grid-template-columns:1fr}}
+</style>
+
+<div class="anx">
+  <div class="oh">
+    <div class="oh-eye">Business</div>
+    <h1 class="oh-t">Analytics &amp; insights</h1>
+    <p class="oh-s">Privacy-safe aggregates. No private figure is ever used — only settled amounts, which both sides agreed to.</p>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi b"><div class="kl">Settlement rate</div><div class="kv"><%= settleRate %>%</div><div class="ks"><%= settled.length %> of <%= decided %> decided</div></div>
+    <div class="kpi n"><div class="kl">Avg. days to settle</div><div class="kv"><%= avgDays != null ? avgDays : '—' %></div><div class="ks"><%= avgDays != null ? 'from case opened' : 'no settlements yet' %></div></div>
+    <div class="kpi g"><div class="kl">Value settled</div><div class="kv"><%= money(valueSettled, cur) %></div><div class="ks">to date</div></div>
+    <div class="kpi n"><div class="kl">In play</div><div class="kv"><%= money(inPlay, cur) %></div><div class="ks">across <%= openCases.length %> open</div></div>
+  </div>
+
+  <div class="grid">
+
+    <div class="panel">
+      <h2>Settlement funnel</h2>
+      <div class="brow"><div class="bl"><span>Cases opened</span><b><%= fInvited %></b></div><div class="bt"><span class="f-cobalt" style="width:100%"></span></div></div>
+      <div class="brow"><div class="bl"><span>Reached bidding</span><b><%= fBidding %></b></div><div class="bt"><span class="f-cobalt" style="width:<%= pct(fBidding, fInvited) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>Settled</span><b><%= fSettled %></b></div><div class="bt"><span class="f-green" style="width:<%= pct(fSettled, fInvited) %>%"></span></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Outcomes</h2>
+      <div class="brow"><div class="bl"><span>Settled</span><b><%= settled.length %></b></div><div class="bt"><span class="f-green" style="width:<%= pct(settled.length, Math.max(1, decided)) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>No deal</span><b><%= noDeal.length %></b></div><div class="bt"><span class="f-grey" style="width:<%= pct(noDeal.length, Math.max(1, decided)) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>Still open</span><b><%= openCases.length %></b></div><div class="bt"><span class="f-cobalt" style="width:<%= pct(openCases.length, Math.max(1, cases.length)) %>%"></span></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>By stage</h2>
+      <div class="brow"><div class="bl"><span>Awaiting other party</span><b><%= awaitingN %></b></div><div class="bt"><span class="f-amber" style="width:<%= pct(awaitingN, stageMax) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>In bidding</span><b><%= biddingN %></b></div><div class="bt"><span class="f-cobalt" style="width:<%= pct(biddingN, stageMax) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>Settled</span><b><%= settled.length %></b></div><div class="bt"><span class="f-green" style="width:<%= pct(settled.length, stageMax) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>No deal</span><b><%= noDeal.length %></b></div><div class="bt"><span class="f-grey" style="width:<%= pct(noDeal.length, stageMax) %>%"></span></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Your role</h2>
+      <div class="brow"><div class="bl"><span>As claimant</span><b><%= asClaimant %></b></div><div class="bt"><span class="f-cobalt" style="width:<%= pct(asClaimant, roleMax) %>%"></span></div></div>
+      <div class="brow"><div class="bl"><span>As respondent</span><b><%= asRespondent %></b></div><div class="bt"><span class="f-cobalt" style="width:<%= pct(asRespondent, roleMax) %>%"></span></div></div>
+    </div>
+
+    <div class="insight">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      <div><h3>Nothing here comes from a private figure</h3><p>These numbers are built only from case counts, stages, and <em>settled</em> amounts — figures both sides agreed to. No one&rsquo;s sealed walk-away is ever counted or shown.</p></div>
+    </div>
+
+  </div>
+</div>
+
+<%- include('partials/foot') %>

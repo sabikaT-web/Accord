@@ -25,7 +25,7 @@ const fs = require('node:fs');
   fs.mkdirSync(publicDir, { recursive: true });
   const pages = ['account','admin-case','admin-cases','admin-users','admin','case',
     'dashboard','home','join','login','message','new-case','signup','signup-invite',
-    'terms','fees','privacy','business','overview'];
+    'terms','fees','privacy','business','overview','cases','analytics'];
   for (const p of pages) {
     const src = path.join(__dirname, p + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
@@ -520,13 +520,11 @@ app.get('/account', requireLogin, wrap(async (req, res) => {
   res.render('account');
 }));
 
-// ---- Business overview ----
-// Same case set as the individual dashboard for now (cases you raised + were
-// invited into). When wiring true org-wide business accounts, swap
-// casesForIndividual for the business source in ./business. Renders overview.ejs
-// through the shared head/foot partials. Reachable at /overview.
-app.get('/overview', requireLogin, wrap(async (req, res) => {
-  const me = req.session.userId;
+// ---- Business section: overview / cases / analytics ----
+// All three read the same case set as the individual dashboard for now (cases you
+// raised + were invited into). For true org-wide business accounts, swap
+// casesForIndividual for the business source in ./business.
+async function loadCasesFor(me) {
   let cases = (await casesForIndividual(me)).map(decorate).map((c) => Object.assign(c, {
     highest: c.claimant_id === me ? c.claim_value : c.resp_value,
     lowest:  c.status === 'settled' ? c.settled_value : null,
@@ -537,7 +535,22 @@ app.get('/overview', requireLogin, wrap(async (req, res) => {
     c.myLastBid = last ? last.walk : null;
     return c;
   }));
+  return cases;
+}
+
+app.get('/overview', requireLogin, wrap(async (req, res) => {
+  const cases = await loadCasesFor(req.session.userId);
   res.render('overview', { cases, filter: req.query.filter || 'all' });
+}));
+
+app.get('/cases', requireLogin, wrap(async (req, res) => {
+  const cases = await loadCasesFor(req.session.userId);
+  res.render('cases', { cases, filter: req.query.filter || 'all' });
+}));
+
+app.get('/analytics', requireLogin, wrap(async (req, res) => {
+  const cases = await loadCasesFor(req.session.userId);
+  res.render('analytics', { cases });
 }));
 
 app.get('/cases/new', requireLogin, (req, res) => {
