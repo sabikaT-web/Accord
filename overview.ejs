@@ -1,0 +1,205 @@
+<%
+  // Business OVERVIEW. Same shape as the prototype, MidBid palette, blind-safe.
+  // Expects the same data the dashboard gets: cases (the org's), me, money() helper.
+  // NOTE: needs a route that renders 'overview' + 'overview' added to ensureLayout's pages[].
+  const openCases = cases.filter(c => !['settled','declined','closed'].includes(c.status));
+  const settled   = cases.filter(c => c.status === 'settled');
+  const closed    = cases.filter(c => ['declined','closed'].includes(c.status));
+  const biddingN  = cases.filter(c => c.stage === 'bidding').length;
+  const awaitingN = cases.filter(c => c.stage === 'awaiting').length;
+  const sum = (a, k) => a.reduce((x, c) => x + (c[k] || 0), 0);
+  const valueSettled = sum(settled, 'settled_value');
+  const inPlay = sum(openCases, 'amount');
+  const _cc = {}; cases.forEach(c => { const k = c.currency || 'GBP'; _cc[k] = (_cc[k]||0)+1; });
+  const cur = Object.keys(_cc).sort((a,b) => _cc[b]-_cc[a])[0] || 'GBP';
+  const priority = openCases.slice().sort((a,b) => (b.amount||0)-(a.amount||0)).slice(0, 6);
+  const activity = cases.slice().sort((a,b) => (b.id||0)-(a.id||0)).slice(0, 5).map(function (c) {
+    if (c.status === 'settled') return {tone:'green', t:'Settled — ' + c.title, s:'Locked at the midpoint' + (c.settled_value != null ? ' · ' + money(c.settled_value, c.currency) : '')};
+    if (c.stage === 'bidding')  return {tone:'cobalt', t:'Bidding open — ' + c.title, s:'Both sides submitting sealed figures'};
+    if (c.stage === 'awaiting') return {tone:'amber', t:'Invitation sent — ' + c.title, s:'Waiting for the other side to join'};
+    return {tone:'muted', t:c.title, s:'MB-' + c.id};
+  });
+%>
+<%- include('partials/head') %>
+
+<style>
+main > .wrap{max-width:1240px}
+body{background:#eef1f7}
+
+.ovx{--cobalt:#2b54e6;--cobsoft:#eaf0ff;--navy:#16213f;--ink:#101a3a;--muted:#586079;
+  --line:#e4e9f4;--green:#23a259;--greend:#268a4f;--greensoft:#e3f5ea;--amber:#e0972a;
+  color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif}
+.ovx *{box-sizing:border-box}
+
+/* header */
+.ovx .oh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin:20px 0 18px}
+.ovx .oh-eye{font:700 .6rem/1 "Spline Sans Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a93a8;margin-bottom:8px}
+.ovx .oh-t{font:500 1.7rem/1.1 "Fraunces",Georgia,serif;color:var(--navy);margin:0;letter-spacing:-.01em}
+.ovx .oh-s{margin:8px 0 0;color:var(--muted);font-size:.9rem;max-width:56ch;line-height:1.5}
+.ovx .newc{font:600 .74rem/1 "Hanken Grotesk",sans-serif;padding:10px 16px;border-radius:10px;background:var(--cobalt);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cobalt);flex:none}
+.ovx .newc:hover{background:#1e4fd0}.ovx .newc svg{width:15px;height:15px}
+
+/* KPI row */
+.ovx .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.ovx .kpi{background:#fff;border:1px solid var(--line);border-top:3px solid var(--line);border-radius:14px;padding:15px 16px}
+.ovx .kpi.b{border-top-color:var(--cobalt)}.ovx .kpi.g{border-top-color:var(--green)}.ovx .kpi.n{border-top-color:#c7cdda}
+.ovx .kl{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a93a8;margin-bottom:9px}
+.ovx .kv{font:600 1.65rem/1 "Fraunces",Georgia,serif;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--navy)}
+.ovx .kpi.b .kv{color:var(--cobalt)}.ovx .kpi.g .kv{color:var(--greend)}
+.ovx .ks{font-size:.74rem;color:var(--muted);margin-top:6px}
+
+/* main grid */
+.ovx .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start}
+.ovx .col{display:flex;flex-direction:column;gap:16px}
+.ovx .panel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ovx .panel-h{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.ovx .panel-h h2{font:500 1.05rem/1.2 "Fraunces",Georgia,serif;color:var(--navy);margin:0}
+.ovx .panel-h a{font:600 .72rem/1 "Hanken Grotesk",sans-serif;color:var(--cobalt);text-decoration:none}.ovx .panel-h a:hover{text-decoration:underline}
+.ovx .panel-b{padding:6px 18px 16px}
+
+/* priority list */
+.ovx .prow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #f0f3f8}
+.ovx .prow:first-child{border-top:none}
+.ovx .spine{width:5px;height:40px;border-radius:999px;flex:none}
+.ovx .spine.awaiting{background:var(--amber)}.ovx .spine.bidding{background:var(--cobalt)}.ovx .spine.draft{background:#c7cdda}
+.ovx .pinfo{flex:1;min-width:0}
+.ovx .ptitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ovx .ptitle .nm{font:500 1rem/1.2 "Fraunces",Georgia,serif;color:var(--navy)}
+.ovx .tag{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
+.ovx .tag.awaiting{background:rgba(224,151,42,.14);color:#a9640f}.ovx .tag.bidding{background:var(--cobsoft);color:var(--cobalt)}.ovx .tag.draft{background:#eef1f6;color:var(--muted)}
+.ovx .pmeta{font:500 .78rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:5px}
+.ovx .pright{text-align:right;flex:none}
+.ovx .pright .a{font:500 .82rem/1.2 "Hanken Grotesk",sans-serif;color:var(--ink)}
+.ovx .pbtn{font:600 .68rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;border:1px solid #c7cdda;background:#fff;color:var(--cobalt);text-decoration:none;flex:none}
+.ovx .pbtn:hover{border-color:var(--cobalt)}
+.ovx .empty{padding:26px 0;text-align:center;color:var(--muted);font-size:.9rem}
+.ovx .empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
+
+/* activity */
+.ovx .act{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f0f3f8}
+.ovx .act:first-child{border-top:none}
+.ovx .adot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.ovx .adot svg{width:17px;height:17px}
+.ovx .adot.green{background:var(--greensoft);color:var(--greend)}
+.ovx .adot.cobalt{background:var(--cobsoft);color:var(--cobalt)}
+.ovx .adot.amber{background:rgba(224,151,42,.14);color:#a9640f}
+.ovx .adot.muted{background:#eef1f6;color:var(--muted)}
+.ovx .at{font-size:.9rem;color:var(--ink)}
+.ovx .as{font:400 .76rem/1.3 "Spline Sans Mono",monospace;color:#8a93a8;margin-top:3px}
+
+/* right rail rows */
+.ovx .srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0f3f8}
+.ovx .srow:first-child{border-top:none}
+.ovx .srow .sk{font-size:.86rem;color:var(--muted)}
+.ovx .srow .sv{font:600 .92rem/1 "Hanken Grotesk",sans-serif;color:var(--navy);font-variant-numeric:tabular-nums}
+.ovx .srow .sv.green{color:var(--greend)}
+
+/* CTA */
+.ovx .cta{background:linear-gradient(160deg,#16213f,#22346e);border-radius:16px;padding:20px 22px;color:#fff}
+.ovx .cta h3{font:500 1.1rem/1.2 "Fraunces",Georgia,serif;margin:0 0 6px}
+.ovx .cta p{font-size:.86rem;color:rgba(255,255,255,.78);line-height:1.5;margin:0 0 14px}
+.ovx .cta a{display:block;text-align:center;font:600 .78rem/1 "Hanken Grotesk",sans-serif;padding:11px;border-radius:10px;background:#fff;color:var(--navy);text-decoration:none}
+.ovx .cta a:hover{background:#eef1f7}
+
+@media(max-width:1000px){.ovx .kpis{grid-template-columns:repeat(2,1fr)}.ovx .grid{grid-template-columns:1fr}}
+</style>
+
+<div class="ovx">
+
+  <div class="oh">
+    <div>
+      <div class="oh-eye">Business</div>
+      <h1 class="oh-t">Overview</h1>
+      <p class="oh-s">Your settlement pipeline. Nothing about the other side&rsquo;s figure is shown until both figures meet.</p>
+    </div>
+    <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi b"><div class="kl">Active cases</div><div class="kv"><%= openCases.length %></div><div class="ks"><%= awaitingN %> awaiting · <%= biddingN %> bidding</div></div>
+    <div class="kpi n"><div class="kl">In bidding</div><div class="kv"><%= biddingN %></div><div class="ks">rounds in play</div></div>
+    <div class="kpi n"><div class="kl">In play</div><div class="kv"><%= money(inPlay, cur) %></div><div class="ks">across open cases</div></div>
+    <div class="kpi g"><div class="kl">Settled</div><div class="kv"><%= settled.length %></div><div class="ks"><%= closed.length %> closed without deal</div></div>
+    <div class="kpi g"><div class="kl">Value settled</div><div class="kv"><%= money(valueSettled, cur) %></div><div class="ks">to date</div></div>
+  </div>
+
+  <div class="grid">
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-h"><h2>Priority cases</h2><a href="/dashboard">View all &rarr;</a></div>
+        <div class="panel-b">
+          <% if (priority.length === 0) { %>
+            <div class="empty">No open cases. <a href="/cases/new">Open a dispute &rarr;</a></div>
+          <% } %>
+          <% priority.forEach(function(c){
+               const st = (c.stage === 'bidding') ? 'bidding' : (c.stage === 'draft' ? 'draft' : 'awaiting');
+               const lbl = st === 'bidding' ? 'In bidding' : (st === 'draft' ? 'Draft' : 'Awaiting other party');
+               const rt  = st === 'bidding' ? 'Figures in play' : (st === 'draft' ? 'Not yet sent' : 'Invitation sent'); %>
+            <div class="prow">
+              <span class="spine <%= st %>"></span>
+              <div class="pinfo">
+                <div class="ptitle"><span class="nm"><%= c.title %></span><span class="tag <%= st %>"><%= lbl %></span></div>
+                <div class="pmeta">MB-<%= c.id %> &middot; <%= money(c.amount, c.currency) %> in dispute</div>
+              </div>
+              <div class="pright"><div class="a"><%= rt %></div></div>
+              <a class="pbtn" href="/cases/<%= c.id %>">Open</a>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>Recent activity</h2></div>
+        <div class="panel-b">
+          <% if (activity.length === 0) { %>
+            <div class="empty">Activity will appear here as cases progress.</div>
+          <% } %>
+          <% activity.forEach(function(a){ %>
+            <div class="act">
+              <span class="adot <%= a.tone %>">
+                <% if (a.tone === 'green') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4 10-10"/></svg>
+                <% } else if (a.tone === 'cobalt') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+                <% } else if (a.tone === 'amber') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                <% } else { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><% } %>
+              </span>
+              <div><p class="at"><%= a.t %></p><p class="as"><%= a.s %></p></div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <div class="panel-h"><h2>By stage</h2></div>
+        <div class="panel-b">
+          <div class="srow"><span class="sk">Awaiting other party</span><span class="sv"><%= awaitingN %></span></div>
+          <div class="srow"><span class="sk">In bidding</span><span class="sv"><%= biddingN %></span></div>
+          <div class="srow"><span class="sk">Settled</span><span class="sv green"><%= settled.length %></span></div>
+          <div class="srow"><span class="sk">Closed without deal</span><span class="sv"><%= closed.length %></span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>At a glance</h2></div>
+        <div class="panel-b">
+          <div class="srow"><span class="sk">Total cases</span><span class="sv"><%= cases.length %></span></div>
+          <div class="srow"><span class="sk">Open</span><span class="sv"><%= openCases.length %></span></div>
+          <div class="srow"><span class="sk">In play</span><span class="sv"><%= money(inPlay, cur) %></span></div>
+          <div class="srow"><span class="sk">Recovered</span><span class="sv green"><%= money(valueSettled, cur) %></span></div>
+        </div>
+      </div>
+
+      <div class="cta">
+        <h3>Got a whole ledger?</h3>
+        <p>Import disputes in bulk, set one bid bar across the lot, and let MidBid chase the quiet ones.</p>
+        <a href="/cases/new">Open a case</a>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<%- include('partials/foot') %>
