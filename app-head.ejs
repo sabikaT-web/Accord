@@ -1,10 +1,8 @@
 <%
-  // Shared APP SHELL (left sidebar) for all inside pages. Include at the top:
-  //   <%- include('partials/app-head', { active: 'overview', title: 'Overview' }) %>
-  // ...page <style> + <div class="content"> … </div> + scripts...
-  //   <%- include('partials/app-foot') %>
-  // `active` = which nav item to highlight (overview | analytics | account).
-  // Uses res.locals `me`. Lives in the partials folder next to head.ejs/foot.ejs.
+  // Shared APP SHELL (left sidebar) for all inside pages. Include this at the top of
+  // a page, add the page style and a .content block, then include app-foot at the
+  // end. Pass active (overview | analytics | account) and title. Uses res.locals me.
+  // This file lives at the repo root; the boot step copies it into views/partials.
   const _u = (me && (me.company_name || me.username || me.name)) || 'Account';
   const _ini = _u.replace(/[^A-Za-z ]/g,'').split(' ').filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || 'M';
   const _act = (typeof active !== 'undefined') ? active : '';
