@@ -1,0 +1,79 @@
+<%
+  // WELCOME / onboarding — shown to a signed-in user with zero cases (the /welcome
+  // route redirects to /overview once they have any). Sidebar shell + beige theme.
+%>
+<%- include('partials/app-head', { active: '', title: 'Welcome' }) %>
+<style>
+  .eyebrow{font:700 .62rem/1 "Spline Sans Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .lead{font-size:.95rem;color:var(--muted);max-width:56ch;line-height:1.55;margin-top:8px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+  .step{display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px 22px 22px;text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s,border-color .15s}
+  .step:hover{transform:translateY(-3px);box-shadow:0 18px 34px -20px rgba(60,45,15,.4);border-color:#d8cba6}
+  .ic{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;margin-bottom:15px}
+  .ic svg{width:25px;height:25px}
+  .ic-b{background:var(--cobsoft);color:var(--cobalt)}
+  .ic-g{background:var(--greensoft);color:var(--greend)}
+  .sn{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .st{font:500 1.2rem/1.2 "Fraunces",Georgia,serif;color:var(--navy);margin-bottom:7px}
+  .sd{font-size:.87rem;color:var(--muted);line-height:1.5}
+  .step .go{margin-top:18px;font:600 .74rem/1 "Spline Sans Mono",monospace;color:var(--cobalt)}
+  .helps{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:26px}
+  .help{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+  .help .hh{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+  .help .hi{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+  .help .hi svg{width:20px;height:20px}
+  .help.blue .hi{background:var(--cobsoft);color:var(--cobalt)}
+  .help.green .hi{background:var(--greensoft);color:var(--greend)}
+  .help h3{font:500 1rem/1.2 "Fraunces",Georgia,serif;color:var(--navy);margin:0}
+  .help p{font-size:.86rem;color:var(--muted);line-height:1.55;margin:0}
+  .cta-row{margin-top:26px}
+  .cta-btn{display:inline-flex;align-items:center;gap:8px;font:600 .82rem/1 "Hanken Grotesk",sans-serif;padding:12px 20px;border-radius:11px;background:var(--cobalt);color:#fff;text-decoration:none;border:1px solid var(--cobalt)}
+  .cta-btn:hover{background:#1e4fd0}.cta-btn svg{width:16px;height:16px}
+  @media(max-width:760px){.steps,.helps{grid-template-columns:1fr}}
+</style>
+
+<div class="content">
+  <div class="phead"><div>
+    <div class="eyebrow">Getting started</div>
+    <h1>Welcome to MidBid</h1>
+    <p class="lead">Settle a dispute without lawyers, court, or months of back-and-forth. Both sides bid privately — when your figures meet, the midpoint settles it. Here&rsquo;s how it goes.</p>
+  </div></div>
+
+  <div class="steps">
+    <a class="step" href="/cases/new">
+      <span class="ic ic-b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8M8 17h6"/></svg></span>
+      <span class="sn">Step 1</span><span class="st">Name the dispute</span>
+      <span class="sd">Who&rsquo;s involved, what it&rsquo;s about, and the amount in play. Invite the other side by email.</span>
+      <span class="go">Start &rarr;</span>
+    </a>
+    <a class="step" href="/cases/new">
+      <span class="ic ic-b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
+      <span class="sn">Step 2</span><span class="st">Set your private figure</span>
+      <span class="sd">Your walk-away number, sealed. The other side never sees it — only whether you&rsquo;ve met.</span>
+      <span class="go">Continue &rarr;</span>
+    </a>
+    <a class="step" href="/cases/new">
+      <span class="ic ic-g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg></span>
+      <span class="sn">Step 3</span><span class="st">Settle when they meet</span>
+      <span class="sd">If both figures cross, it settles at the midpoint, binding on both sides. No settlement, no fee.</span>
+      <span class="go">Get started &rarr;</span>
+    </a>
+  </div>
+
+  <div class="helps">
+    <div class="help blue">
+      <div class="hh"><span class="hi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></span><h3>Your figures stay private</h3></div>
+      <p>The other side never sees your number. When your figures meet, the midpoint locks and a settlement is created.</p>
+    </div>
+    <div class="help green">
+      <div class="hh"><span class="hi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.6 2.6L16 9"/></svg></span><h3>No settlement, no fee</h3></div>
+      <p>You only pay the small service charge if a deal is reached. If the figures never meet, MidBid costs you nothing.</p>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <a class="cta-btn" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open your first case</a>
+  </div>
+</div>
+
+<%- include('partials/app-foot') %>

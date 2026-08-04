@@ -25,7 +25,7 @@ const fs = require('node:fs');
   fs.mkdirSync(publicDir, { recursive: true });
   const pages = ['account','admin-case','admin-cases','admin-users','admin','case',
     'dashboard','home','join','login','message','new-case','signup','signup-invite',
-    'terms','fees','privacy','business','overview','cases','analytics'];
+    'terms','fees','privacy','business','overview','cases','analytics','welcome'];
   for (const p of pages) {
     const src = path.join(__dirname, p + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
@@ -432,7 +432,7 @@ app.get('/healthz', (req, res) => res.json({ ok: true }));
 app.get('/', (req, res) => {
   if (req.session.userId) {
     const acct = res.locals.me && res.locals.me.account_type;
-    return res.redirect(acct === 'business' ? '/business' : '/dashboard');
+    return res.redirect(acct === 'business' ? '/business' : '/overview');
   }
   res.render('home');
 });
@@ -454,7 +454,7 @@ app.post('/signup', wrap(async (req, res) => {
   const name = (req.body.name || '').trim();
   const email = (req.body.email || '').trim().toLowerCase();
   const pw = req.body.password || '';
-  const nextUrl = req.body.next || '/dashboard';
+  const nextUrl = req.body.next || '/overview';
   if (!name || !email || pw.length < 6) return res.render('signup', { error: 'Enter a name, email, and a password of at least 6 characters.', next: req.body.next || '' });
   if (await db.userByEmail(email)) return res.render('signup', { error: 'An account with that email already exists. Try logging in.', next: req.body.next || '' });
   const hash = bcrypt.hashSync(pw, 10);
@@ -476,7 +476,7 @@ app.get('/login', (req, res) => res.render('login', { error: null, next: req.que
 app.post('/login', wrap(async (req, res) => {
   const email = (req.body.email || '').trim().toLowerCase();
   const pw = req.body.password || '';
-  const nextUrl = req.body.next || '/dashboard';
+  const nextUrl = req.body.next || '/overview';
   const user = await db.userByEmail(email);
   if (!user || !bcrypt.compareSync(pw, user.pw_hash)) return res.render('login', { error: 'Email or password is incorrect.', next: req.body.next || '' });
   if (user.suspended) return res.render('login', { error: 'This account has been suspended. Contact support.', next: req.body.next || '' });
@@ -493,26 +493,8 @@ app.all('/logout', (req, res) => req.session.destroy(() => res.redirect('/')));
 // The individual workspace: cases you raised as yourself, PLUS every case you
 // were invited into. Business-raised cases never appear here — and a case you
 // were invited into always does, whoever invited you.
-app.get('/dashboard', requireLogin, wrap(async (req, res) => {
-  const me = req.session.userId;
-  // On this dashboard you may be the claimant on one case and the respondent on
-  // another, so the masking has to be per case, per viewer. You see YOUR committed
-  // figure and nothing else — the other side's number only ever appears as the
-  // agreed amount, once it has settled.
-  let cases = (await casesForIndividual(me)).map(decorate).map((c) => Object.assign(c, {
-    highest: c.claimant_id === me ? c.claim_value : c.resp_value,   // your own original figure
-    lowest:  c.status === 'settled' ? c.settled_value : null,       // the deal, if there is one
-  }));
-  // Attach each case's OWN last bid for this viewer (the walk-away from the latest
-  // round they bid). Only ever the viewer's own side — never the other party's.
-  cases = await Promise.all(cases.map(async (c) => {
-    const party = c.claimant_id === me ? 'claim' : (c.respondent_id === me ? 'resp' : null);
-    const last = party ? await db.lastBid(c.id, party) : null;
-    c.myLastBid = last ? last.walk : null;   // null when they haven't bid yet
-    return c;
-  }));
-  res.render('dashboard', { cases, filter: req.query.filter || 'all' });
-}));
+// Retired: the old top-bar dashboard. Everyone now lands on /overview (sidebar layout).
+app.get('/dashboard', requireLogin, (req, res) => res.redirect('/overview'));
 
 app.get('/account', requireLogin, wrap(async (req, res) => {
   // me / isAdmin / currentPath / ADMIN_EMAIL all come from res.locals;
@@ -538,8 +520,16 @@ async function loadCasesFor(me) {
   return cases;
 }
 
+// Brand-new user with no cases lands on the welcome/onboarding page.
+app.get('/welcome', requireLogin, wrap(async (req, res) => {
+  const cases = await loadCasesFor(req.session.userId);
+  if (cases.length) return res.redirect('/overview');
+  res.render('welcome');
+}));
+
 app.get('/overview', requireLogin, wrap(async (req, res) => {
   const cases = await loadCasesFor(req.session.userId);
+  if (!cases.length) return res.redirect('/welcome');
   res.render('overview', { cases, filter: req.query.filter || 'all' });
 }));
 
@@ -774,7 +764,7 @@ app.post('/cases/:id/payout/onboard', requireLogin, wrap(async (req, res) => {
 app.get('/cases/:id/payout/return', requireLogin, wrap(async (req, res) => {
   const id = Number(req.params.id);
   const c = await db.caseById(id);
-  if (!c) return res.redirect('/dashboard');
+  if (!c) return res.redirect('/overview');
   const role = roleOf(c, req.session.userId);
   if (role === 'claim' && c.payee_connect_id && PAYMENTS_ENABLED) {
     try {
