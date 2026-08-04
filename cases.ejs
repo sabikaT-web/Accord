@@ -1,78 +1,53 @@
 <%
-  // Business CASES / ledger. Full table + status tabs. MidBid palette, blind-safe.
-  // Expects the same data as the dashboard: cases, me, money().
+  // CASES / ledger — shared sidebar shell + beige theme. Data: cases, me, money().
   const isNoDeal  = (c) => ['closed','declined'].includes(c.status);
   const activeN   = cases.filter(c => !['settled','declined','closed'].includes(c.status)).length;
   const settledN  = cases.filter(c => c.status === 'settled').length;
   const nodealN   = cases.filter(isNoDeal).length;
   const mineC     = cases.filter(c => c.claimant_id === me.id);
 %>
-<%- include('partials/head') %>
-
+<%- include('partials/app-head', { active: '', title: 'Cases' }) %>
 <style>
-main > .wrap{max-width:1240px}
-body{background:#eef1f7}
-.csx{--cobalt:#2b54e6;--cobsoft:#eaf0ff;--navy:#16213f;--ink:#101a3a;--muted:#586079;
-  --line:#e4e9f4;--green:#23a259;--greend:#268a4f;--greensoft:#e3f5ea;--amber:#e0972a;
-  color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif}
-.csx *{box-sizing:border-box}
-.csx .oh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin:20px 0 16px}
-.csx .oh-eye{font:700 .6rem/1 "Spline Sans Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a93a8;margin-bottom:8px}
-.csx .oh-t{font:500 1.7rem/1.1 "Fraunces",Georgia,serif;color:var(--navy);margin:0;letter-spacing:-.01em}
-.csx .oh-s{margin:8px 0 0;color:var(--muted);font-size:.9rem}
-.csx .oh-r{display:flex;gap:8px;flex:none}
-.csx .exp{font:600 .72rem/1 "Spline Sans Mono",monospace;padding:10px 15px;border-radius:10px;border:1px solid #c7cdda;background:#fff;color:var(--muted);cursor:pointer}
-.csx .exp:hover{border-color:var(--cobalt);color:var(--cobalt)}
-.csx .newc{font:600 .72rem/1 "Hanken Grotesk",sans-serif;padding:10px 16px;border-radius:10px;background:var(--cobalt);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cobalt)}
-.csx .newc:hover{background:#1e4fd0}.csx .newc svg{width:15px;height:15px}
-.csx .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
-.csx .tab{font:600 .82rem/1 "Hanken Grotesk",sans-serif;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
-.csx .tab:hover{color:var(--navy)}
-.csx .tab.on{color:var(--navy);border-bottom-color:var(--cobalt)}
-.csx .tab .n{font:700 .64rem/1 "Spline Sans Mono",monospace;background:#eef1f7;color:var(--muted);padding:2px 7px;border-radius:999px}
-.csx .tab.on .n{background:var(--cobsoft);color:var(--cobalt)}
-.csx .sheet{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.csx .scroll{overflow-x:auto}
-.csx table{width:100%;border-collapse:collapse;font-size:.9rem}
-.csx thead th{text-align:left;font:500 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:11px 16px;border-bottom:1px solid var(--line);background:#f7f9fe;white-space:nowrap}
-.csx thead th.r{text-align:right}
-.csx tbody td{padding:14px 16px;border-bottom:1px solid #f0f3f8;vertical-align:middle;white-space:nowrap}
-.csx tbody td.r{text-align:right}
-.csx tbody tr:last-child td{border-bottom:none}
-.csx tbody tr:hover{background:#f7f9fe}
-.csx .cn{font:500 1rem/1.2 "Newsreader",Georgia,serif;color:var(--ink)}
-.csx .cn a{color:var(--ink);text-decoration:none}.csx .cn a:hover{color:var(--cobalt)}
-.csx .cp{font:400 .74rem/1 "Spline Sans Mono",monospace;color:#8a93a8;margin-top:4px}
-.csx .amt{font:500 .95rem/1 "Fraunces",Georgia,serif;color:var(--navy);font-variant-numeric:tabular-nums}
-.csx .role{font:600 .64rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
-.csx .fig{font:500 .86rem/1 "Spline Sans Mono",monospace;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px}
-.csx .fig svg{width:12px;height:12px;color:#9aa3b6}
-.csx .fig .ns{color:#95a0b8;font-style:italic;font-family:"Newsreader",Georgia,serif}
-.csx .pill{font:600 .62rem/1 "Spline Sans Mono",monospace;padding:5px 10px;border-radius:999px;white-space:nowrap}
-.csx .pill.bidding{background:var(--cobsoft);color:var(--cobalt)}
-.csx .pill.awaiting,.csx .pill.draft{background:rgba(224,151,42,.14);color:#a9640f}
-.csx .pill.settled{background:var(--greensoft);color:var(--greend)}
-.csx .pill.closed{background:#eef1f6;color:var(--muted)}
-.csx .btn{font:600 .7rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;text-decoration:none;border:1px solid transparent}
-.csx .btn.go{background:var(--green);color:#fff}.csx .btn.go:hover{background:#1c8a4b}
-.csx .btn.ghost{background:#fff;border-color:#c7cdda;color:var(--cobalt)}.csx .btn.ghost:hover{border-color:var(--cobalt)}
-.csx .btn.link{color:var(--muted);padding:7px 6px}.csx .btn.link:hover{color:var(--cobalt)}
-.csx .foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
-.csx .empty{padding:34px 16px;text-align:center;color:var(--muted)}.csx .empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+  .tab{font:600 .82rem/1 "Hanken Grotesk",sans-serif;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
+  .tab:hover{color:var(--navy)}.tab.on{color:var(--navy);border-bottom-color:var(--cobalt)}
+  .tab .n{font:700 .64rem/1 "Spline Sans Mono",monospace;background:#f1e8cf;color:var(--muted);padding:2px 7px;border-radius:999px}
+  .tab.on .n{background:var(--cobsoft);color:var(--cobalt)}
+  .sheet{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  thead th{text-align:left;font:500 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:11px 16px;border-bottom:1px solid var(--line);background:#faf3e0;white-space:nowrap}
+  thead th.r{text-align:right}
+  tbody td{padding:14px 16px;border-bottom:1px solid #f1e8cf;vertical-align:middle;white-space:nowrap}
+  tbody td.r{text-align:right}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#fbf4e2}
+  .cn{font:500 1rem/1.2 "Newsreader",Georgia,serif;color:var(--ink)}
+  .cn a{color:var(--ink);text-decoration:none}.cn a:hover{color:var(--cobalt)}
+  .cp{font:400 .74rem/1 "Spline Sans Mono",monospace;color:var(--faint);margin-top:4px}
+  .amt{font:500 .95rem/1 "Fraunces",Georgia,serif;color:var(--navy);font-variant-numeric:tabular-nums}
+  .role{font:600 .64rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+  .fig{font:500 .86rem/1 "Spline Sans Mono",monospace;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px}
+  .fig svg{width:12px;height:12px;color:var(--faint)}.fig .ns{color:#b3a684;font-style:italic;font-family:"Newsreader",Georgia,serif}
+  .pill{font:600 .62rem/1 "Spline Sans Mono",monospace;padding:5px 10px;border-radius:999px;white-space:nowrap}
+  .pill.bidding{background:var(--cobsoft);color:var(--cobalt)}.pill.awaiting,.pill.draft{background:var(--ambersoft);color:#96640f}.pill.settled{background:var(--greensoft);color:var(--greend)}.pill.closed{background:#f0e8d2;color:var(--muted)}
+  .btn{font:600 .7rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;text-decoration:none;border:1px solid transparent}
+  .btn.go{background:var(--green);color:#fff}.btn.go:hover{background:#268a4f}
+  .btn.ghost{background:var(--paper);border-color:#d8cba6;color:var(--cobalt)}.btn.ghost:hover{border-color:var(--cobalt)}
+  .btn.link{color:var(--muted);padding:7px 6px}.btn.link:hover{color:var(--cobalt)}
+  .foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+  .empty{padding:34px 16px;text-align:center;color:var(--muted)}.empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
 </style>
 
-<div class="csx">
-  <div class="oh">
-    <div>
-      <div class="oh-eye">Business</div>
-      <h1 class="oh-t">Cases</h1>
-      <p class="oh-s">Your blind-bidding pipeline. Your figures stay private — only a settled amount is ever shared.</p>
-    </div>
-    <div class="oh-r">
-      <% if (mineC.length) { %><button type="button" class="exp" onclick="downloadMine()">&#8595; Export</button><% } %>
-      <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New case</a>
-    </div>
-  </div>
+<div class="topbar">
+  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" placeholder="Search cases or counterparties…"></div>
+  <div class="tb-sp"></div>
+  <% if (mineC.length) { %><button type="button" class="exp" onclick="downloadMine()">&#8595; Export</button><% } %>
+  <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
+</div>
+
+<div class="content">
+  <div class="phead"><div><h1>Cases</h1><p>Your blind-bidding pipeline. Your figures stay private — only a settled amount is ever shared.</p></div></div>
 
   <div class="tabs">
     <button type="button" class="tab on" data-tab="active">Active <span class="n"><%= activeN %></span></button>
@@ -84,19 +59,9 @@ body{background:#eef1f7}
   <div class="sheet">
     <div class="scroll">
       <table>
-        <thead>
-          <tr>
-            <th>Case / counterparty</th>
-            <th>Disputed amount</th>
-            <th>Your figure</th>
-            <th>Status</th>
-            <th class="r">Action</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Case / counterparty</th><th>Disputed amount</th><th>Your figure</th><th>Status</th><th class="r">Action</th></tr></thead>
         <tbody>
-          <% if (cases.length === 0) { %>
-            <tr><td colspan="5"><div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div></td></tr>
-          <% } %>
+          <% if (cases.length === 0) { %><tr><td colspan="5"><div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div></td></tr><% } %>
           <% cases.forEach(function(c){
                const mine = c.claimant_id === me.id;
                const settled = c.status === 'settled';
@@ -121,35 +86,17 @@ body{background:#eef1f7}
 
 <script>
 (function(){
-  var tabs = document.querySelectorAll('.csx .tab');
-  var rows = document.querySelectorAll('.csx tbody tr[data-cat]');
-  var cnt  = document.getElementById('cnt');
-  function apply(f){
-    var n = 0;
-    rows.forEach(function(r){ var show = (f === 'all' || r.dataset.cat === f); r.style.display = show ? '' : 'none'; if (show) n++; });
-    if (cnt) cnt.textContent = n;
-  }
-  tabs.forEach(function(t){ t.addEventListener('click', function(){
-    tabs.forEach(function(x){ x.classList.remove('on'); }); t.classList.add('on'); apply(t.dataset.tab);
-  }); });
+  var tabs=document.querySelectorAll('.tab'),rows=document.querySelectorAll('tbody tr[data-cat]'),cnt=document.getElementById('cnt');
+  function apply(f){var n=0;rows.forEach(function(r){var s=(f==='all'||r.dataset.cat===f);r.style.display=s?'':'none';if(s)n++;});if(cnt)cnt.textContent=n;}
+  tabs.forEach(function(t){t.addEventListener('click',function(){tabs.forEach(function(x){x.classList.remove('on');});t.classList.add('on');apply(t.dataset.tab);});});
   apply('active');
 })();
 </script>
-
 <% if (mineC.length) { %>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-var MINE = <%- JSON.stringify(mineC.map(function (c) { return {
-  'MidBid case ID': c.id, 'Debtor Company': c.title, 'Debtor Email': c.other_email || '',
-  'Amount in dispute': c.amount, 'Currency': c.currency, 'MidBid status': c.stage,
-  'Settled amount': c.settled_value == null ? '' : c.settled_value
-}; })) %>;
-function downloadMine(){
-  if(!MINE.length){alert('You have no cases of your own to download.');return;}
-  var ws=XLSX.utils.json_to_sheet(MINE), wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'My cases'); XLSX.writeFile(wb,'midbid-cases.xlsx');
-}
+var MINE = <%- JSON.stringify(mineC.map(function (c) { return {'MidBid case ID': c.id,'Debtor Company': c.title,'Debtor Email': c.other_email || '','Amount in dispute': c.amount,'Currency': c.currency,'MidBid status': c.stage,'Settled amount': c.settled_value == null ? '' : c.settled_value}; })) %>;
+function downloadMine(){if(!MINE.length){alert('You have no cases of your own to download.');return;}var ws=XLSX.utils.json_to_sheet(MINE),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'My cases');XLSX.writeFile(wb,'midbid-cases.xlsx');}
 </script>
 <% } %>
-
-<%- include('partials/foot') %>
+<%- include('partials/app-foot') %>

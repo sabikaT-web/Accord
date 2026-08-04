@@ -1,84 +1,71 @@
-<%- include('partials/head', { pageHead: {
-  eyebrow: 'Account',
-  title: (me && (me.company_name || me.name)) || 'Your account',
-  sub: (me && me.email) ? me.email : ''
-} }) %>
-
-<%# Account / settings. Renders through the shared head+foot partials so the nav
-    and logo match the rest of the site. Only working links are wired here —
-    editable profile + password change need db.js methods and are noted as next. %>
+<%
+  // MY ACCOUNT — shared sidebar shell + beige. Only working links wired; editable
+  // profile + password change still need db.js methods.
+  const _adm = (typeof ADMIN_EMAIL !== 'undefined' && ADMIN_EMAIL) ? ADMIN_EMAIL : 'support@midbid.org';
+%>
+<%- include('partials/app-head', { active: 'account', title: 'My account' }) %>
 <style>
-  body{background:#d4dae6}
-  .acct-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:8px 0 40px}
+  .acct-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
   @media(max-width:760px){.acct-grid{grid-template-columns:1fr}}
-  .acct-card{background:#f4f6fb;border:1px solid #cdd5e4;border-radius:14px;padding:22px 22px 24px;
-    box-shadow:0 1px 2px rgba(12,27,58,.05)}
-  .acct-card h2{font:600 1.05rem/1.2 "Fraunces",Georgia,serif;color:#0a1020;margin:0 0 14px}
-  .acct-dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:10px 16px}
-  .acct-dl dt{font:600 .72rem/1.3 "Hanken Grotesk",system-ui,sans-serif;letter-spacing:.06em;
-    text-transform:uppercase;color:#3a4763;align-self:center}
-  .acct-dl dd{margin:0;font:500 .95rem/1.3 "Hanken Grotesk",system-ui,sans-serif;color:#0a1020}
-  .acct-pill{display:inline-block;font:600 .74rem/1 "Hanken Grotesk",sans-serif;padding:5px 11px;
-    border-radius:999px;background:#e5eaf5;color:#16306B;border:1px solid #cdd5e4;text-transform:capitalize}
-  .acct-note{font:400 .9rem/1.5 "Hanken Grotesk",sans-serif;color:#3a4763;margin:0 0 16px}
+  .acct-card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .acct-card h2{font:500 1.05rem/1.2 "Fraunces",Georgia,serif;color:var(--navy);margin:0 0 14px}
+  .acct-dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:11px 16px}
+  .acct-dl dt{font:700 .62rem/1.3 "Spline Sans Mono",monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);align-self:center}
+  .acct-dl dd{margin:0;font:500 .95rem/1.3 "Hanken Grotesk",sans-serif;color:var(--ink)}
+  .acct-pill{display:inline-block;font:600 .72rem/1 "Spline Sans Mono",monospace;padding:5px 11px;border-radius:999px;background:var(--cobsoft);color:var(--cobalt);text-transform:capitalize}
+  .acct-note{font:400 .9rem/1.5 "Hanken Grotesk",sans-serif;color:var(--muted);margin:0 0 16px}
   .acct-links{display:flex;flex-direction:column;gap:10px}
-  .ghost{display:inline-block;font:600 .9rem/1 "Hanken Grotesk",sans-serif;text-decoration:none;
-    padding:11px 16px;border-radius:10px;background:#fff;border:1.5px solid #c2ccdd;color:#16306B;
-    cursor:pointer;text-align:left}
-  .ghost:hover{border-color:#16306B;background:#fbfcfe}
-  .acct-logout{margin:0}
-  .acct-logout button{width:100%}
+  .ghost{display:inline-block;font:600 .88rem/1 "Hanken Grotesk",sans-serif;text-decoration:none;padding:11px 16px;border-radius:10px;background:#fff;border:1px solid #d8cba6;color:var(--cobalt);cursor:pointer;text-align:left}
+  .ghost:hover{border-color:var(--cobalt)}
+  .acct-logout{margin:0}.acct-logout button{width:100%}
 </style>
 
-<div class="acct-grid">
-
-  <section class="acct-card">
-    <h2>Profile</h2>
-    <dl class="acct-dl">
-      <dt>Name</dt><dd><%= (me && me.name) ? me.name : '—' %></dd>
-      <% if (me && me.company_name) { %><dt>Company</dt><dd><%= me.company_name %></dd><% } %>
-      <dt>Email</dt><dd><%= (me && me.email) ? me.email : '—' %></dd>
-      <dt>Account</dt><dd><span class="acct-pill"><%= (me && me.account_type) ? me.account_type : 'individual' %></span></dd>
-      <% if (me && me.created_at) { %>
-        <dt>Member since</dt>
-        <dd><%= new Date(me.created_at).toLocaleDateString('en-GB', { year:'numeric', month:'long' }) %></dd>
-      <% } %>
-    </dl>
-  </section>
-
-  <section class="acct-card">
-    <h2>Security</h2>
-    <p class="acct-note">Password changes are handled by the MidBid team while the self-serve
-      reset is being built. Email us and we'll send you a secure reset link.</p>
-    <div class="acct-links">
-      <a class="ghost" href="mailto:<%= (typeof ADMIN_EMAIL !== 'undefined' && ADMIN_EMAIL) ? ADMIN_EMAIL : 'support@midbid.org' %>?subject=Password%20reset%20request">Request a password reset</a>
-    </div>
-  </section>
-
-  <section class="acct-card">
-    <h2>Business portal</h2>
-    <% if (me && me.account_type === 'business') { %>
-      <p class="acct-note">Your account has business access — bulk invites, spreadsheet import,
-        and one bid bar across every dispute.</p>
-      <div class="acct-links"><a class="ghost" href="/business">Open the business portal</a></div>
-    <% } else { %>
-      <p class="acct-note">Handling 25 disputes or more? The business portal adds spreadsheet
-        import, bulk invites, and one bid bar across the lot.</p>
-      <div class="acct-links">
-        <a class="ghost" href="mailto:<%= (typeof ADMIN_EMAIL !== 'undefined' && ADMIN_EMAIL) ? ADMIN_EMAIL : 'support@midbid.org' %>?subject=Business%20portal%20access%20request">Request business access</a>
-      </div>
-    <% } %>
-  </section>
-
-  <section class="acct-card">
-    <h2>Shortcuts</h2>
-    <div class="acct-links">
-      <a class="ghost" href="/dashboard">My cases</a>
-      <a class="ghost" href="/cases/new">Start a new case</a>
-      <form class="acct-logout" method="POST" action="/logout"><button class="ghost" type="submit">Log out</button></form>
-    </div>
-  </section>
-
+<div class="topbar">
+  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" placeholder="Search…"></div>
+  <div class="tb-sp"></div>
+  <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
 </div>
 
-<%- include('partials/foot') %>
+<div class="content">
+  <div class="phead"><div><h1>My account</h1><p><%= (me && me.email) ? me.email : 'Profile, security, and account type.' %></p></div></div>
+
+  <div class="acct-grid">
+    <section class="acct-card">
+      <h2>Profile</h2>
+      <dl class="acct-dl">
+        <dt>Name</dt><dd><%= (me && me.name) ? me.name : '—' %></dd>
+        <% if (me && me.company_name) { %><dt>Company</dt><dd><%= me.company_name %></dd><% } %>
+        <dt>Email</dt><dd><%= (me && me.email) ? me.email : '—' %></dd>
+        <dt>Account</dt><dd><span class="acct-pill"><%= (me && me.account_type) ? me.account_type : 'individual' %></span></dd>
+        <% if (me && me.created_at) { %><dt>Member since</dt><dd><%= new Date(me.created_at).toLocaleDateString('en-GB', { year:'numeric', month:'long' }) %></dd><% } %>
+      </dl>
+    </section>
+
+    <section class="acct-card">
+      <h2>Security</h2>
+      <p class="acct-note">Password changes are handled by the MidBid team while the self-serve reset is being built. Email us and we&rsquo;ll send a secure reset link.</p>
+      <div class="acct-links"><a class="ghost" href="mailto:<%= _adm %>?subject=Password%20reset%20request">Request a password reset</a></div>
+    </section>
+
+    <section class="acct-card">
+      <h2>Business portal</h2>
+      <% if (me && me.account_type === 'business') { %>
+        <p class="acct-note">Your account has business access — bulk invites, spreadsheet import, and one bid bar across every dispute.</p>
+        <div class="acct-links"><a class="ghost" href="/overview">Open the overview</a></div>
+      <% } else { %>
+        <p class="acct-note">Handling 25 disputes or more? The business portal adds spreadsheet import, bulk invites, and one bid bar across the lot.</p>
+        <div class="acct-links"><a class="ghost" href="mailto:<%= _adm %>?subject=Business%20portal%20access%20request">Request business access</a></div>
+      <% } %>
+    </section>
+
+    <section class="acct-card">
+      <h2>Shortcuts</h2>
+      <div class="acct-links">
+        <a class="ghost" href="/overview">Overview</a>
+        <a class="ghost" href="/cases/new">Start a new case</a>
+        <form class="acct-logout" method="POST" action="/logout"><button class="ghost" type="submit">Log out</button></form>
+      </div>
+    </section>
+  </div>
+</div>
+<%- include('partials/app-foot') %>
