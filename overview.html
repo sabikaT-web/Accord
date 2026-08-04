@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MidBid — Overview Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --card: #111827;
+      --border: #1f2937;
+      --teal: #2F6BFF;
+      --green: #15B877;
+      --ochre: #F5B312;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    .display { font-family: 'Fraunces', Georgia, serif; }
+    .sidebar-item { transition: all 0.15s ease; }
+    .sidebar-item:hover, .sidebar-item.active { background: rgba(47,107,255,0.12); color: #60a5fa; }
+    .glow-green { box-shadow: 0 0 20px rgba(21,184,119,0.25); border-color: rgba(21,184,119,0.4); }
+    .proximity-far { background: #374151; }
+    .proximity-close { background: linear-gradient(90deg, #F5B312, #F59E0B); }
+    .proximity-meet { background: linear-gradient(90deg, #15B877, #10B981); box-shadow: 0 0 12px rgba(21,184,119,0.5); }
+    .card { background: var(--card); border: 1px solid var(--border); }
+    .kpi-value { font-family: 'Fraunces', serif; }
+    /* subtle grid bg */
+    .bg-grid {
+      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+  </style>
+</head>
+<body class="bg-grid min-h-screen flex">
+  <!-- Sidebar -->
+  <aside class="w-16 lg:w-56 flex-shrink-0 border-r border-gray-800 bg-[#0c1220] flex flex-col">
+    <div class="h-16 flex items-center justify-center lg:justify-start lg:px-5 border-b border-gray-800">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center font-bold text-white text-lg">M</div>
+      <span class="hidden lg:block ml-3 font-semibold tracking-tight text-white">MidBid</span>
+    </div>
+    <nav class="flex-1 py-4 space-y-1 px-2">
+      <a href="overview.html" class="sidebar-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-400">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span class="hidden lg:inline">Overview</span>
+      </a>
+      <a href="cases.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400">
+        <i data-lucide="briefcase" class="w-5 h-5"></i>
+        <span class="hidden lg:inline">Cases</span>
+      </a>
+      <a href="case-detail.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400">
+        <i data-lucide="scale" class="w-5 h-5"></i>
+        <span class="hidden lg:inline">Case Detail</span>
+      </a>
+      <a href="analytics.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        <span class="hidden lg:inline">Analytics</span>
+      </a>
+      <div class="pt-4 mt-4 border-t border-gray-800">
+        <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span class="hidden lg:inline">Settings</span>
+        </a>
+      </div>
+    </nav>
+    <div class="p-3 border-t border-gray-800">
+      <div class="flex items-center gap-3 px-2">
+        <div class="w-8 h-8 rounded-full bg-teal-600/30 flex items-center justify-center text-teal-400 text-sm font-semibold">RK</div>
+        <div class="hidden lg:block">
+          <div class="text-sm font-medium text-white">Rhea K.</div>
+          <div class="text-xs text-gray-500">Business</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <!-- Top bar -->
+    <header class="h-16 border-b border-gray-800 bg-[#0c1220]/80 backdrop-blur flex items-center px-4 lg:px-6 gap-4">
+      <div class="flex-1 max-w-xl relative">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+        <input type="text" placeholder="Search cases or ask MidBid AI..." 
+               class="w-full bg-gray-900/80 border border-gray-700 rounded-full pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50">
+      </div>
+      <button class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white text-sm font-medium rounded-full transition">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        Ask AI
+      </button>
+      <button class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800">
+        <i data-lucide="bell" class="w-5 h-5"></i>
+      </button>
+      <button class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm rounded-lg text-gray-300">
+        <i data-lucide="upload" class="w-4 h-4"></i>
+        Import
+      </button>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-auto p-4 lg:p-6">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-2xl font-semibold text-white display">Overview</h1>
+          <p class="text-sm text-gray-400 mt-1">Your private settlement pipeline · Nothing leaks until figures meet</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Open New Case
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+        <div class="card rounded-xl p-4">
+          <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Active Cases</div>
+          <div class="kpi-value text-3xl font-medium text-white">12</div>
+          <div class="text-xs text-green-400 mt-1 flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3 h-3"></i> +3 this week
+          </div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Settled (30d)</div>
+          <div class="kpi-value text-3xl font-medium text-white">27</div>
+          <div class="text-xs text-green-400 mt-1">68% success rate</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Value Settled</div>
+          <div class="kpi-value text-3xl font-medium text-white">£1.84M</div>
+          <div class="text-xs text-gray-400 mt-1">Last 90 days</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg. Rounds</div>
+          <div class="kpi-value text-3xl font-medium text-white">2.4</div>
+          <div class="text-xs text-gray-400 mt-1">to settlement</div>
+        </div>
+        <div class="card rounded-xl p-4 glow-green">
+          <div class="text-xs text-green-400/80 uppercase tracking-wider mb-1">Currently Close</div>
+          <div class="kpi-value text-3xl font-medium text-green-400">3</div>
+          <div class="text-xs text-green-400/70 mt-1">within 10% · glowing</div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Left: Priority cases + scale -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Priority Cases -->
+          <div class="card rounded-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+              <h2 class="font-semibold text-white">Priority Cases</h2>
+              <a href="cases.html" class="text-sm text-teal-400 hover:text-teal-300">View all →</a>
+            </div>
+            <div class="divide-y divide-gray-800">
+              <!-- Case row 1 -->
+              <div class="px-5 py-4 flex items-center gap-4 hover:bg-gray-900/50 transition group">
+                <div class="w-2 h-10 rounded-full proximity-meet"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-white truncate">Retention & Final Account — Apex Builders</span>
+                    <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-500/15 text-green-400 border border-green-500/20">CLOSE</span>
+                  </div>
+                  <div class="text-sm text-gray-400 mt-0.5">Disputed £142,500 · Round 3 of 4 · Construction</div>
+                </div>
+                <div class="text-right hidden sm:block">
+                  <div class="text-sm font-medium text-white">Your figure set</div>
+                  <div class="text-xs text-green-400">Glowing · 2 days left</div>
+                </div>
+                <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs rounded-lg transition">Open</button>
+              </div>
+              <!-- Case row 2 -->
+              <div class="px-5 py-4 flex items-center gap-4 hover:bg-gray-900/50 transition group">
+                <div class="w-2 h-10 rounded-full proximity-close"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-white truncate">Demurrage Claim — Baltic Shipping</span>
+                    <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">ROUND 2</span>
+                  </div>
+                  <div class="text-sm text-gray-400 mt-0.5">Disputed £67,800 · Logistics</div>
+                </div>
+                <div class="text-right hidden sm:block">
+                  <div class="text-sm font-medium text-white">Getting close</div>
+                  <div class="text-xs text-amber-400">Adjust figure?</div>
+                </div>
+                <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs rounded-lg transition">Open</button>
+              </div>
+              <!-- Case row 3 -->
+              <div class="px-5 py-4 flex items-center gap-4 hover:bg-gray-900/50 transition group">
+                <div class="w-2 h-10 rounded-full proximity-far"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-white truncate">Unpaid Invoice — Nova Design Studio</span>
+                    <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/20">ROUND 1</span>
+                  </div>
+                  <div class="text-sm text-gray-400 mt-0.5">Disputed £18,400 · Professional Services</div>
+                </div>
+                <div class="text-right hidden sm:block">
+                  <div class="text-sm font-medium text-white">Far apart</div>
+                  <div class="text-xs text-gray-500">No signal yet</div>
+                </div>
+                <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs rounded-lg transition">Open</button>
+              </div>
+              <!-- Case row 4 -->
+              <div class="px-5 py-4 flex items-center gap-4 hover:bg-gray-900/50 transition group">
+                <div class="w-2 h-10 rounded-full bg-green-500"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-white truncate">Deposit Return — Riverside Flats</span>
+                    <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-500/15 text-green-400 border border-green-500/20">SETTLED</span>
+                  </div>
+                  <div class="text-sm text-gray-400 mt-0.5">Settled at £4,250 · Property · 6 days ago</div>
+                </div>
+                <div class="text-right hidden sm:block">
+                  <div class="text-sm font-medium text-green-400">£4,250</div>
+                  <div class="text-xs text-gray-500">Binding agreement</div>
+                </div>
+                <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs rounded-lg transition">View</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="card rounded-xl p-5">
+            <h2 class="font-semibold text-white mb-4">Recent Activity</h2>
+            <div class="space-y-4">
+              <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                </div>
+                <div>
+                  <p class="text-sm text-white"><span class="font-medium">Figures met</span> on Apex Builders retention claim</p>
+                  <p class="text-xs text-gray-500">Settlement locked at midpoint · 2 hours ago</p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div>
+                  <p class="text-sm text-white">Baltic Shipping case entered <span class="text-amber-400 font-medium">“Getting close”</span></p>
+                  <p class="text-xs text-gray-500">Colour signal updated · 5 hours ago</p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="user-plus" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div>
+                  <p class="text-sm text-white">Counterparty accepted invite on Nova Design invoice</p>
+                  <p class="text-xs text-gray-500">Round 1 bidding open · Yesterday</p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="file-text" class="w-4 h-4 text-teal-400"></i>
+                </div>
+                <div>
+                  <p class="text-sm text-white">Binding settlement document signed — Riverside Flats</p>
+                  <p class="text-xs text-gray-500">Funds release initiated · 6 days ago</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div class="space-y-6">
+          <!-- Live Scale Demo Card -->
+          <div class="card rounded-xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold text-white">Your Settlement Scale</h2>
+              <span class="text-xs text-gray-500">Private</span>
+            </div>
+            <p class="text-xs text-gray-400 mb-4">Only you see your figure. Colour is the only shared signal.</p>
+            
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">Apex Builders</span>
+                  <span class="text-green-400 font-medium">They meet</span>
+                </div>
+                <div class="h-2 rounded-full bg-gray-800 overflow-hidden">
+                  <div class="h-full w-full proximity-meet rounded-full"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">Baltic Shipping</span>
+                  <span class="text-amber-400 font-medium">Getting close</span>
+                </div>
+                <div class="h-2 rounded-full bg-gray-800 overflow-hidden">
+                  <div class="h-full w-3/4 proximity-close rounded-full"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">Nova Design</span>
+                  <span class="text-gray-500">Far apart</span>
+                </div>
+                <div class="h-2 rounded-full bg-gray-800 overflow-hidden">
+                  <div class="h-full w-1/4 proximity-far rounded-full"></div>
+                </div>
+              </div>
+            </div>
+            <a href="case-detail.html" class="mt-4 block text-center text-sm text-teal-400 hover:text-teal-300 py-2">Open active case →</a>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="card rounded-xl p-5">
+            <h2 class="font-semibold text-white mb-4">This Month</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-400">Cases opened</span>
+                <span class="text-sm font-medium text-white">8</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-400">Invites accepted</span>
+                <span class="text-sm font-medium text-white">6</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-400">Rounds submitted</span>
+                <span class="text-sm font-medium text-white">19</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-400">Settlements</span>
+                <span class="text-sm font-medium text-green-400">5</span>
+              </div>
+              <div class="flex justify-between items-center pt-2 border-t border-gray-800">
+                <span class="text-sm text-gray-400">Fees paid (success only)</span>
+                <span class="text-sm font-medium text-white">£1,240</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="rounded-xl p-5 bg-gradient-to-br from-teal-900/40 to-blue-900/30 border border-teal-500/20">
+            <h3 class="font-semibold text-white mb-1">Got a whole ledger?</h3>
+            <p class="text-sm text-gray-300 mb-4">Import disputes in bulk, set one bid bar, and let MidBid chase the quiet ones.</p>
+            <button class="w-full py-2.5 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">
+              Open Business Portal
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

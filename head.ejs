@@ -54,13 +54,7 @@
 
     <div class="bar-right">
       <% if (me) { %>
-        <% if (me.account_type === 'business') { %>
-          <a href="/business">Disputes</a>
-        <% } else { %>
-          <a href="/dashboard">My cases</a>
-        <% } %>
         <a href="/overview">Overview</a>
-        <a href="/cases">Cases</a>
         <a href="/analytics">Analytics</a>
         <% if (typeof isAdmin !== 'undefined' && isAdmin) { %><a href="/admin" class="admin-link">Admin</a><% } %>
         <a href="/account" class="acct-link">My account</a>

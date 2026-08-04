@@ -1,19 +1,23 @@
 <%
-  // Business OVERVIEW. Same shape as the prototype, MidBid palette, blind-safe.
-  // Expects the same data the dashboard gets: cases (the org's), me, money() helper.
-  // NOTE: needs a route that renders 'overview' + 'overview' added to ensureLayout's pages[].
+  // Business OVERVIEW — matches the prototype layout, on a warm beige/mustard theme.
+  // Blind-safe (spines/progress reflect the case's own STAGE, never closeness to the
+  // other side's figure). Expects: cases, me, money().
   const openCases = cases.filter(c => !['settled','declined','closed'].includes(c.status));
   const settled   = cases.filter(c => c.status === 'settled');
-  const closed    = cases.filter(c => ['declined','closed'].includes(c.status));
-  const biddingN  = cases.filter(c => c.stage === 'bidding').length;
+  const noDeal    = cases.filter(c => ['closed','declined'].includes(c.status));
   const awaitingN = cases.filter(c => c.stage === 'awaiting').length;
+  const biddingN  = cases.filter(c => c.stage === 'bidding').length;
+  const mineC     = cases.filter(c => c.claimant_id === me.id);
   const sum = (a, k) => a.reduce((x, c) => x + (c[k] || 0), 0);
   const valueSettled = sum(settled, 'settled_value');
   const inPlay = sum(openCases, 'amount');
   const _cc = {}; cases.forEach(c => { const k = c.currency || 'GBP'; _cc[k] = (_cc[k]||0)+1; });
   const cur = Object.keys(_cc).sort((a,b) => _cc[b]-_cc[a])[0] || 'GBP';
-  const priority = openCases.slice().sort((a,b) => (b.amount||0)-(a.amount||0)).slice(0, 6);
-  const activity = cases.slice().sort((a,b) => (b.id||0)-(a.id||0)).slice(0, 5).map(function (c) {
+  const decided = settled.length + noDeal.length;
+  const settleRate = decided ? Math.round(settled.length / decided * 100) : 0;
+  const priority = openCases.slice().sort((a,b) => (b.amount||0)-(a.amount||0)).concat(settled).slice(0, 5);
+  const openTop  = openCases.slice().sort((a,b) => (b.amount||0)-(a.amount||0)).slice(0, 4);
+  const activity = cases.slice().sort((a,b) => (b.id||0)-(a.id||0)).slice(0, 4).map(function (c) {
     if (c.status === 'settled') return {tone:'green', t:'Settled — ' + c.title, s:'Locked at the midpoint' + (c.settled_value != null ? ' · ' + money(c.settled_value, c.currency) : '')};
     if (c.stage === 'bidding')  return {tone:'cobalt', t:'Bidding open — ' + c.title, s:'Both sides submitting sealed figures'};
     if (c.stage === 'awaiting') return {tone:'amber', t:'Invitation sent — ' + c.title, s:'Waiting for the other side to join'};
@@ -24,82 +28,97 @@
 
 <style>
 main > .wrap{max-width:1240px}
-body{background:#eef1f7}
+body{background:radial-gradient(1100px 460px at 50% -8%, #f9efc9 0%, #f3e8cd 55%, #eee1c0 100%);background-attachment:fixed}
 
-.ovx{--cobalt:#2b54e6;--cobsoft:#eaf0ff;--navy:#16213f;--ink:#101a3a;--muted:#586079;
-  --line:#e4e9f4;--green:#23a259;--greend:#268a4f;--greensoft:#e3f5ea;--amber:#e0972a;
+.ovx{--paper:#fffdf6;--ink:#1f2540;--navy:#16213f;--muted:#6d6650;--line:#e9dcbc;
+  --cobalt:#2b54e6;--cobsoft:#edeffb;--green:#2f9e5f;--greend:#2a8a53;--greensoft:#e6f3e9;
+  --amber:#cf8a1f;--ambersoft:#f6ebcf;--gold:#c69632;
   color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif}
 .ovx *{box-sizing:border-box}
 
-/* header */
 .ovx .oh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin:20px 0 18px}
-.ovx .oh-eye{font:700 .6rem/1 "Spline Sans Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a93a8;margin-bottom:8px}
-.ovx .oh-t{font:500 1.7rem/1.1 "Fraunces",Georgia,serif;color:var(--navy);margin:0;letter-spacing:-.01em}
+.ovx .oh-eye{font:700 .6rem/1 "Spline Sans Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.ovx .oh-t{font:500 1.75rem/1.1 "Fraunces",Georgia,serif;color:var(--navy);margin:0;letter-spacing:-.01em}
 .ovx .oh-s{margin:8px 0 0;color:var(--muted);font-size:.9rem;max-width:56ch;line-height:1.5}
-.ovx .newc{font:600 .74rem/1 "Hanken Grotesk",sans-serif;padding:10px 16px;border-radius:10px;background:var(--cobalt);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cobalt);flex:none}
+.ovx .oh-r{display:flex;gap:8px;flex:none}
+.ovx .exp{font:600 .72rem/1 "Spline Sans Mono",monospace;padding:10px 15px;border-radius:10px;border:1px solid #d8cba6;background:var(--paper);color:var(--muted);cursor:pointer}
+.ovx .exp:hover{border-color:var(--gold);color:#946e18}
+.ovx .newc{font:600 .74rem/1 "Hanken Grotesk",sans-serif;padding:10px 16px;border-radius:10px;background:var(--cobalt);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cobalt)}
 .ovx .newc:hover{background:#1e4fd0}.ovx .newc svg{width:15px;height:15px}
 
 /* KPI row */
-.ovx .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
-.ovx .kpi{background:#fff;border:1px solid var(--line);border-top:3px solid var(--line);border-radius:14px;padding:15px 16px}
-.ovx .kpi.b{border-top-color:var(--cobalt)}.ovx .kpi.g{border-top-color:var(--green)}.ovx .kpi.n{border-top-color:#c7cdda}
-.ovx .kl{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a93a8;margin-bottom:9px}
-.ovx .kv{font:600 1.65rem/1 "Fraunces",Georgia,serif;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--navy)}
-.ovx .kpi.b .kv{color:var(--cobalt)}.ovx .kpi.g .kv{color:var(--greend)}
+.ovx .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.ovx .kpi{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:14px;padding:15px 16px}
+.ovx .kpi.b{border-top-color:var(--cobalt)}.ovx .kpi.g{border-top-color:var(--green)}.ovx .kpi.m{border-top-color:var(--gold)}.ovx .kpi.n{border-top-color:#d8cba6}
+.ovx .kl{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#9a8f72;margin-bottom:9px}
+.ovx .kv{font:600 1.65rem/1 "Fraunces",Georgia,serif;letter-spacing:-.01em;color:var(--navy);font-variant-numeric:tabular-nums}
+.ovx .kpi.b .kv{color:var(--cobalt)}.ovx .kpi.g .kv{color:var(--greend)}.ovx .kpi.m .kv{color:#a6791b}
 .ovx .ks{font-size:.74rem;color:var(--muted);margin-top:6px}
 
 /* main grid */
 .ovx .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start}
 .ovx .col{display:flex;flex-direction:column;gap:16px}
-.ovx .panel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ovx .panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .ovx .panel-h{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
 .ovx .panel-h h2{font:500 1.05rem/1.2 "Fraunces",Georgia,serif;color:var(--navy);margin:0}
 .ovx .panel-h a{font:600 .72rem/1 "Hanken Grotesk",sans-serif;color:var(--cobalt);text-decoration:none}.ovx .panel-h a:hover{text-decoration:underline}
-.ovx .panel-b{padding:6px 18px 16px}
+.ovx .panel-b{padding:4px 18px 14px}
 
 /* priority list */
-.ovx .prow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #f0f3f8}
+.ovx .prow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #f1e8cf}
 .ovx .prow:first-child{border-top:none}
-.ovx .spine{width:5px;height:40px;border-radius:999px;flex:none}
-.ovx .spine.awaiting{background:var(--amber)}.ovx .spine.bidding{background:var(--cobalt)}.ovx .spine.draft{background:#c7cdda}
+.ovx .spine{width:5px;height:42px;border-radius:999px;flex:none}
+.ovx .spine.awaiting{background:var(--amber)}.ovx .spine.bidding{background:var(--cobalt)}.ovx .spine.draft{background:#d8cba6}.ovx .spine.green{background:var(--green)}
 .ovx .pinfo{flex:1;min-width:0}
 .ovx .ptitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ovx .ptitle .nm{font:500 1rem/1.2 "Fraunces",Georgia,serif;color:var(--navy)}
 .ovx .tag{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
-.ovx .tag.awaiting{background:rgba(224,151,42,.14);color:#a9640f}.ovx .tag.bidding{background:var(--cobsoft);color:var(--cobalt)}.ovx .tag.draft{background:#eef1f6;color:var(--muted)}
-.ovx .pmeta{font:500 .78rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:5px}
-.ovx .pright{text-align:right;flex:none}
+.ovx .tag.awaiting{background:var(--ambersoft);color:#96640f}.ovx .tag.bidding{background:var(--cobsoft);color:var(--cobalt)}.ovx .tag.draft{background:#f0e8d2;color:var(--muted)}.ovx .tag.settled{background:var(--greensoft);color:var(--greend)}
+.ovx .pmeta{font:500 .78rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:6px}
+.ovx .pright{text-align:right;flex:none;display:none}
 .ovx .pright .a{font:500 .82rem/1.2 "Hanken Grotesk",sans-serif;color:var(--ink)}
-.ovx .pbtn{font:600 .68rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;border:1px solid #c7cdda;background:#fff;color:var(--cobalt);text-decoration:none;flex:none}
+.ovx .pright .b{font:400 .72rem/1.2 "Spline Sans Mono",monospace;color:#9a8f72;margin-top:3px}
+.ovx .pbtn{font:600 .68rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;border:1px solid #d8cba6;background:var(--paper);color:var(--cobalt);text-decoration:none;flex:none}
 .ovx .pbtn:hover{border-color:var(--cobalt)}
-.ovx .empty{padding:26px 0;text-align:center;color:var(--muted);font-size:.9rem}
-.ovx .empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
+.ovx .pbtn.go{background:var(--green);border-color:var(--green);color:#fff}.ovx .pbtn.go:hover{background:#268a4f}
+.ovx .empty{padding:26px 0;text-align:center;color:var(--muted);font-size:.9rem}.ovx .empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
+@media(min-width:640px){.ovx .pright{display:block}}
 
 /* activity */
-.ovx .act{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f0f3f8}
+.ovx .act{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f1e8cf}
 .ovx .act:first-child{border-top:none}
 .ovx .adot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
 .ovx .adot svg{width:17px;height:17px}
 .ovx .adot.green{background:var(--greensoft);color:var(--greend)}
 .ovx .adot.cobalt{background:var(--cobsoft);color:var(--cobalt)}
-.ovx .adot.amber{background:rgba(224,151,42,.14);color:#a9640f}
-.ovx .adot.muted{background:#eef1f6;color:var(--muted)}
+.ovx .adot.amber{background:var(--ambersoft);color:#96640f}
+.ovx .adot.muted{background:#f0e8d2;color:var(--muted)}
 .ovx .at{font-size:.9rem;color:var(--ink)}
-.ovx .as{font:400 .76rem/1.3 "Spline Sans Mono",monospace;color:#8a93a8;margin-top:3px}
+.ovx .as{font:400 .76rem/1.3 "Spline Sans Mono",monospace;color:#9a8f72;margin-top:3px}
 
-/* right rail rows */
-.ovx .srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0f3f8}
+/* right rail: per-case progress (stage, blind-safe) */
+.ovx .prog{margin-bottom:14px}.ovx .prog:last-child{margin-bottom:0}
+.ovx .pl{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px}
+.ovx .pl .lab{color:var(--muted);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ovx .pl .st.c-cobalt{color:var(--cobalt);font-weight:600}.ovx .pl .st.c-amber{color:#96640f;font-weight:600}
+.ovx .bt{height:8px;border-radius:999px;background:#f1e8cf;overflow:hidden}
+.ovx .bt span{display:block;height:100%;border-radius:999px}
+.ovx .f-cobalt{background:linear-gradient(90deg,#5f80ee,var(--cobalt))}
+.ovx .f-amber{background:linear-gradient(90deg,#e6b25a,var(--amber))}
+
+/* right rail: at a glance */
+.ovx .srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f1e8cf}
 .ovx .srow:first-child{border-top:none}
 .ovx .srow .sk{font-size:.86rem;color:var(--muted)}
 .ovx .srow .sv{font:600 .92rem/1 "Hanken Grotesk",sans-serif;color:var(--navy);font-variant-numeric:tabular-nums}
 .ovx .srow .sv.green{color:var(--greend)}
 
 /* CTA */
-.ovx .cta{background:linear-gradient(160deg,#16213f,#22346e);border-radius:16px;padding:20px 22px;color:#fff}
+.ovx .cta{background:linear-gradient(160deg,#2a2410,#4a3d17);border-radius:16px;padding:20px 22px;color:#fdf6e3}
 .ovx .cta h3{font:500 1.1rem/1.2 "Fraunces",Georgia,serif;margin:0 0 6px}
-.ovx .cta p{font-size:.86rem;color:rgba(255,255,255,.78);line-height:1.5;margin:0 0 14px}
-.ovx .cta a{display:block;text-align:center;font:600 .78rem/1 "Hanken Grotesk",sans-serif;padding:11px;border-radius:10px;background:#fff;color:var(--navy);text-decoration:none}
-.ovx .cta a:hover{background:#eef1f7}
+.ovx .cta p{font-size:.86rem;color:rgba(253,246,227,.8);line-height:1.5;margin:0 0 14px}
+.ovx .cta a{display:block;text-align:center;font:600 .78rem/1 "Hanken Grotesk",sans-serif;padding:11px;border-radius:10px;background:var(--gold);color:#2a2410;text-decoration:none}
+.ovx .cta a:hover{background:#d8a83f}
 
 @media(max-width:1000px){.ovx .kpis{grid-template-columns:repeat(2,1fr)}.ovx .grid{grid-template-columns:1fr}}
 </style>
@@ -110,40 +129,48 @@ body{background:#eef1f7}
     <div>
       <div class="oh-eye">Business</div>
       <h1 class="oh-t">Overview</h1>
-      <p class="oh-s">Your settlement pipeline. Nothing about the other side&rsquo;s figure is shown until both figures meet.</p>
+      <p class="oh-s">Your private settlement pipeline. Nothing about the other side&rsquo;s figure is shown until both figures meet.</p>
     </div>
-    <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
+    <div class="oh-r">
+      <% if (mineC.length) { %><button type="button" class="exp" onclick="downloadMine()">&#8595; Export</button><% } %>
+      <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
+    </div>
   </div>
 
   <div class="kpis">
     <div class="kpi b"><div class="kl">Active cases</div><div class="kv"><%= openCases.length %></div><div class="ks"><%= awaitingN %> awaiting · <%= biddingN %> bidding</div></div>
-    <div class="kpi n"><div class="kl">In bidding</div><div class="kv"><%= biddingN %></div><div class="ks">rounds in play</div></div>
-    <div class="kpi n"><div class="kl">In play</div><div class="kv"><%= money(inPlay, cur) %></div><div class="ks">across open cases</div></div>
-    <div class="kpi g"><div class="kl">Settled</div><div class="kv"><%= settled.length %></div><div class="ks"><%= closed.length %> closed without deal</div></div>
+    <div class="kpi g"><div class="kl">Settled</div><div class="kv"><%= settled.length %></div><div class="ks"><%= settleRate %>% settlement rate</div></div>
     <div class="kpi g"><div class="kl">Value settled</div><div class="kv"><%= money(valueSettled, cur) %></div><div class="ks">to date</div></div>
+    <div class="kpi n"><div class="kl">In play</div><div class="kv"><%= money(inPlay, cur) %></div><div class="ks">across <%= openCases.length %> open</div></div>
+    <div class="kpi m"><div class="kl">In bidding</div><div class="kv"><%= biddingN %></div><div class="ks">rounds in play</div></div>
   </div>
 
   <div class="grid">
 
     <div class="col">
       <div class="panel">
-        <div class="panel-h"><h2>Priority cases</h2><a href="/dashboard">View all &rarr;</a></div>
+        <div class="panel-h"><h2>Priority cases</h2><a href="/cases">View all &rarr;</a></div>
         <div class="panel-b">
           <% if (priority.length === 0) { %>
-            <div class="empty">No open cases. <a href="/cases/new">Open a dispute &rarr;</a></div>
+            <div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div>
           <% } %>
           <% priority.forEach(function(c){
-               const st = (c.stage === 'bidding') ? 'bidding' : (c.stage === 'draft' ? 'draft' : 'awaiting');
-               const lbl = st === 'bidding' ? 'In bidding' : (st === 'draft' ? 'Draft' : 'Awaiting other party');
-               const rt  = st === 'bidding' ? 'Figures in play' : (st === 'draft' ? 'Not yet sent' : 'Invitation sent'); %>
+               const settledRow = c.status === 'settled';
+               const mine = c.claimant_id === me.id;
+               let spine, tagCls, tag, rA, rB, act, actCls;
+               if (settledRow) { spine='green'; tagCls='settled'; tag='Settled'; rA=money(c.settled_value != null ? c.settled_value : c.amount, c.currency); rB='midpoint'; act = mine ? 'View' : 'Pay'; actCls = mine ? '' : 'go'; }
+               else if (c.stage === 'bidding') { spine='bidding'; tagCls='bidding'; tag='In bidding'; rA='Figures in play'; rB='adjust yours any time'; act='Open'; actCls=''; }
+               else if (c.stage === 'draft') { spine='draft'; tagCls='draft'; tag='Draft'; rA='Not sent yet'; rB=''; act='Open'; actCls=''; }
+               else { spine='awaiting'; tagCls='awaiting'; tag='Awaiting'; rA='Invitation sent'; rB='waiting to join'; act='Open'; actCls=''; }
+               const meta = settledRow ? ('MB-' + c.id + ' · settled at ' + money(c.settled_value != null ? c.settled_value : c.amount, c.currency)) : ('MB-' + c.id + ' · ' + money(c.amount, c.currency) + ' in dispute'); %>
             <div class="prow">
-              <span class="spine <%= st %>"></span>
+              <span class="spine <%= spine %>"></span>
               <div class="pinfo">
-                <div class="ptitle"><span class="nm"><%= c.title %></span><span class="tag <%= st %>"><%= lbl %></span></div>
-                <div class="pmeta">MB-<%= c.id %> &middot; <%= money(c.amount, c.currency) %> in dispute</div>
+                <div class="ptitle"><span class="nm"><%= c.title %></span><span class="tag <%= tagCls %>"><%= tag %></span></div>
+                <div class="pmeta"><%= meta %></div>
               </div>
-              <div class="pright"><div class="a"><%= rt %></div></div>
-              <a class="pbtn" href="/cases/<%= c.id %>">Open</a>
+              <div class="pright"><div class="a"><%= rA %></div><% if (rB) { %><div class="b"><%= rB %></div><% } %></div>
+              <a class="pbtn <%= actCls %>" href="/cases/<%= c.id %>"><%= act %></a>
             </div>
           <% }); %>
         </div>
@@ -152,9 +179,7 @@ body{background:#eef1f7}
       <div class="panel">
         <div class="panel-h"><h2>Recent activity</h2></div>
         <div class="panel-b">
-          <% if (activity.length === 0) { %>
-            <div class="empty">Activity will appear here as cases progress.</div>
-          <% } %>
+          <% if (activity.length === 0) { %><div class="empty">Activity will appear here as cases progress.</div><% } %>
           <% activity.forEach(function(a){ %>
             <div class="act">
               <span class="adot <%= a.tone %>">
@@ -172,12 +197,17 @@ body{background:#eef1f7}
 
     <div class="col">
       <div class="panel">
-        <div class="panel-h"><h2>By stage</h2></div>
+        <div class="panel-h"><h2>Where each case stands</h2><span style="font:400 .72rem/1 'Spline Sans Mono',monospace;color:#9a8f72">Private</span></div>
         <div class="panel-b">
-          <div class="srow"><span class="sk">Awaiting other party</span><span class="sv"><%= awaitingN %></span></div>
-          <div class="srow"><span class="sk">In bidding</span><span class="sv"><%= biddingN %></span></div>
-          <div class="srow"><span class="sk">Settled</span><span class="sv green"><%= settled.length %></span></div>
-          <div class="srow"><span class="sk">Closed without deal</span><span class="sv"><%= closed.length %></span></div>
+          <% if (openTop.length === 0) { %><div class="empty">No open cases right now.</div><% } %>
+          <% openTop.forEach(function(c){
+               const bidding = c.stage === 'bidding';
+               const w = bidding ? '64%' : '30%'; %>
+            <div class="prog">
+              <div class="pl"><span class="lab"><%= c.title %></span><span class="st <%= bidding ? 'c-cobalt' : 'c-amber' %>"><%= bidding ? 'In bidding' : 'Awaiting' %></span></div>
+              <div class="bt"><span class="<%= bidding ? 'f-cobalt' : 'f-amber' %>" style="width:<%= w %>"></span></div>
+            </div>
+          <% }); %>
         </div>
       </div>
 
@@ -186,7 +216,7 @@ body{background:#eef1f7}
         <div class="panel-b">
           <div class="srow"><span class="sk">Total cases</span><span class="sv"><%= cases.length %></span></div>
           <div class="srow"><span class="sk">Open</span><span class="sv"><%= openCases.length %></span></div>
-          <div class="srow"><span class="sk">In play</span><span class="sv"><%= money(inPlay, cur) %></span></div>
+          <div class="srow"><span class="sk">Settled</span><span class="sv green"><%= settled.length %></span></div>
           <div class="srow"><span class="sk">Recovered</span><span class="sv green"><%= money(valueSettled, cur) %></span></div>
         </div>
       </div>
@@ -194,12 +224,27 @@ body{background:#eef1f7}
       <div class="cta">
         <h3>Got a whole ledger?</h3>
         <p>Import disputes in bulk, set one bid bar across the lot, and let MidBid chase the quiet ones.</p>
-        <a href="/cases/new">Open a case</a>
+        <a href="/cases">Open the ledger &rarr;</a>
       </div>
     </div>
 
   </div>
-
 </div>
+
+<% if (mineC.length) { %>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+var MINE = <%- JSON.stringify(mineC.map(function (c) { return {
+  'MidBid case ID': c.id, 'Debtor Company': c.title, 'Debtor Email': c.other_email || '',
+  'Amount in dispute': c.amount, 'Currency': c.currency, 'MidBid status': c.stage,
+  'Settled amount': c.settled_value == null ? '' : c.settled_value
+}; })) %>;
+function downloadMine(){
+  if(!MINE.length){alert('You have no cases of your own to download.');return;}
+  var ws=XLSX.utils.json_to_sheet(MINE), wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'My cases'); XLSX.writeFile(wb,'midbid-overview.xlsx');
+}
+</script>
+<% } %>
 
 <%- include('partials/foot') %>
