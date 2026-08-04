@@ -25,8 +25,8 @@
     background:radial-gradient(1100px 500px at 60% -8%, #f9efc9 0%, #f3e8cd 55%, #eee1c0 100%);background-attachment:fixed;min-height:100vh;display:flex}
   .seam{position:fixed;top:0;left:0;right:0;height:3px;z-index:50;background:linear-gradient(90deg,#2b54e6,#2f9e5f 45%,#c69632)}
 
-  .side{width:220px;flex:none;background:linear-gradient(180deg,var(--side),var(--side-2));color:#efe6cf;
-    display:flex;flex-direction:column;position:sticky;top:0;height:100vh;border-right:1px solid #3a3320}
+  .side{width:220px;flex:none;background:linear-gradient(180deg,var(--side),var(--side-2));color:#efe6cf;border-right:1px solid #3a3320}
+  .side-in{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;overflow-y:auto}
   .side .brand{display:flex;align-items:center;gap:11px;padding:20px 18px;border-bottom:1px solid #3a3320}
   .side .brand .m{width:30px;height:26px;position:relative;flex:none}
   .side .brand .m::before,.side .brand .m::after{content:"";position:absolute;top:2px;width:22px;height:22px;border-radius:50%;mix-blend-mode:screen}
@@ -75,6 +75,7 @@
 <div class="seam"></div>
 
 <aside class="side">
+  <div class="side-in">
   <div class="brand"><span class="m"></span><b>MidBid</b></div>
   <nav>
     <a href="/overview" class="<%= _act === 'overview' ? 'on' : '' %>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="lbl">Overview</span></a>
@@ -84,6 +85,7 @@
     <a href="/logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Log out</span></a>
   </nav>
   <div class="who"><div class="av"><%= _ini %></div><div><div class="nm"><%= _u %></div><div class="rl"><%= (me && me.account_type) ? me.account_type : 'individual' %></div></div></div>
+  </div>
 </aside>
 
 <div class="main">
