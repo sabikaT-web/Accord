@@ -30,7 +30,7 @@ const fs = require('node:fs');
     const src = path.join(__dirname, p + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(viewsDir, p + '.ejs'));
   }
-  for (const part of ['head','foot']) {
+  for (const part of ['head','foot','app-head','app-foot']) {
     const src = path.join(__dirname, part + '.ejs');
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(partialsDir, part + '.ejs'));
   }
