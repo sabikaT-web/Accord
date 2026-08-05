@@ -473,6 +473,11 @@
   .coach.tone-close,.coach.tone-success{background:#e6f3e9;border-color:#cce9d4;color:#1d4a2c}
   .note{font:400 .82rem/1.55 "Hanken Grotesk",system-ui,sans-serif;color:#7a6f57}
   .cx-mediator{max-width:1200px;margin:16px auto 0}
+  .mb-direction{display:flex;flex-direction:column;gap:3px;margin:0 0 14px;padding:10px 13px;border-radius:12px;border:1px solid}
+  .mb-direction .dlabel{font:700 .72rem/1 "Spline Sans Mono",monospace;letter-spacing:.06em;text-transform:uppercase}
+  .mb-direction .dsub{font:400 .8rem/1.4 "Hanken Grotesk",sans-serif;color:#6d6650}
+  .mb-direction.paid{background:#faf1dd;border-color:#ecdcb8}.mb-direction.paid .dlabel{color:#9a6f14}
+  .mb-direction.pay{background:#f6eae0;border-color:#e8d3c0}.mb-direction.pay .dlabel{color:#a85a2e}
 </style>
 
 <%
@@ -524,8 +529,13 @@
   </div>
   <div class="fpanel">
     <div><div class="fk">Case reference</div><div class="fv ref">MB-<%= c.id %></div></div>
-    <div><div class="fk">Claimant</div><div class="fv"><%= c.claim_full_name || (role === 'claim' ? 'You' : '—') %></div></div>
-    <div><div class="fk">Respondent</div><div class="fv"><%= c.resp_full_name || (role === 'resp' ? 'You' : (c.other_email || 'Awaiting')) %></div></div>
+    <% if (role === 'resp') { %>
+      <div><div class="fk">Respondent · you</div><div class="fv"><%= c.resp_full_name || 'You' %></div></div>
+      <div><div class="fk">Claimant</div><div class="fv"><%= c.claim_full_name || '—' %></div></div>
+    <% } else { %>
+      <div><div class="fk">Claimant · you</div><div class="fv"><%= c.claim_full_name || 'You' %></div></div>
+      <div><div class="fk">Respondent</div><div class="fv"><%= c.resp_full_name || (c.other_email || 'Awaiting') %></div></div>
+    <% } %>
     <div><div class="fk">Original amount</div><div class="fv amt"><%= money(c.amount, c.currency) %></div></div>
   </div>
 </div>
@@ -579,6 +589,10 @@
   <div class="mb-schead">
     <span class="mb-eyebrow">Your private figures</span>
     <span class="mb-rolechip">You &mdash; <%= role === 'claim' ? 'Claimant' : 'Respondent' %></span>
+  </div>
+  <div class="mb-direction <%= role === 'claim' ? 'paid' : 'pay' %>">
+    <span class="dlabel"><%= role === 'claim' ? 'You will be paid' : 'You will pay' %></span>
+    <span class="dsub"><%= role === 'claim' ? 'These are the amounts you would accept — from your ideal down to your walk-away.' : 'These are the amounts you would pay — from your ideal up to your walk-away.' %></span>
   </div>
   <div class="mb-figwrap">
     <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
@@ -732,6 +746,22 @@
     coach: status.coach, theirBidIn: !!status.theirBidIn, settledValue: status.settledValue,
     settleReason: status.settleReason }) %>;
   var CASE_TITLE = <%- JSON.stringify(c.title) %>;
+
+  // Round-advance / settle auto-refresh. Once BOTH sides have bid, the server opens the
+  // next round (or settles) — but a page that has already bid latches 'locked' and stops
+  // updating. Poll for the round moving on and reload, so neither side stays stuck on
+  // "Locked in for round N" after the round has actually turned over.
+  (function(){
+    if (INIT && INIT.state === 'settled') return;
+    var startRound = (INIT && INIT.round) ? INIT.round : 1;
+    var adv = setInterval(function(){
+      fetch('/cases/' + CASE_ID + '/status').then(function(r){ return r.json(); }).then(function(s){
+        if (!s) return;
+        if (s.state === 'settled') { clearInterval(adv); location.reload(); return; }
+        if (s.round && s.round > startRound) { clearInterval(adv); location.reload(); }
+      }).catch(function(){});
+    }, 5000);
+  })();
 
   var track=document.getElementById('track'), you=document.getElementById('you'), ring=document.getElementById('ring');
   var hIdeal=document.getElementById('hIdeal'), hFair=document.getElementById('hFair'), band=document.getElementById('band');
