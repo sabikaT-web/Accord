@@ -82,6 +82,9 @@
     <a href="/analytics" class="<%= _act === 'analytics' ? 'on' : '' %>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-6M22 20H2"/></svg><span class="lbl">Analytics</span></a>
     <div class="sep"></div>
     <a href="/account" class="<%= _act === 'account' ? 'on' : '' %>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span class="lbl">My account</span></a>
+    <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+    <a href="/admin" class="<%= _act === 'admin' ? 'on' : '' %>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span class="lbl">Admin</span></a>
+    <% } %>
     <a href="/logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Log out</span></a>
   </nav>
   <div class="who"><div class="av"><%= _ini %></div><div><div class="nm"><%= _u %></div><div class="rl"><%= (me && me.account_type) ? me.account_type : 'individual' %></div></div></div>
