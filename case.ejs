@@ -529,12 +529,14 @@
   </div>
   <div class="fpanel">
     <div><div class="fk">Case reference</div><div class="fv ref">MB-<%= c.id %></div></div>
+    <% const clName = c.claimant_name || c.claim_full_name; %>
+    <% const rpName = c.respondent_name || c.resp_full_name; %>
     <% if (role === 'resp') { %>
-      <div><div class="fk">Respondent · you</div><div class="fv"><%= c.resp_full_name || 'You' %></div></div>
-      <div><div class="fk">Claimant</div><div class="fv"><%= c.claim_full_name || '—' %></div></div>
+      <div><div class="fk">Respondent · you</div><div class="fv"><%= rpName || 'You' %></div></div>
+      <div><div class="fk">Claimant</div><div class="fv"><%= clName || '—' %></div></div>
     <% } else { %>
-      <div><div class="fk">Claimant · you</div><div class="fv"><%= c.claim_full_name || 'You' %></div></div>
-      <div><div class="fk">Respondent</div><div class="fv"><%= c.resp_full_name || (c.other_email || 'Awaiting') %></div></div>
+      <div><div class="fk">Claimant · you</div><div class="fv"><%= clName || 'You' %></div></div>
+      <div><div class="fk">Respondent</div><div class="fv"><%= rpName || 'Awaiting' %></div></div>
     <% } %>
     <div><div class="fk">Original amount</div><div class="fv amt"><%= money(c.amount, c.currency) %></div></div>
   </div>

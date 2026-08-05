@@ -999,7 +999,7 @@ app.post('/decline/:token', wrap(async (req, res) => {
 }));
 
 app.get('/cases/:id', requireLogin, wrap(async (req, res) => {
-  const c = await db.caseById(Number(req.params.id));
+  const c = await db.caseDetail(Number(req.params.id));
   if (!c) return res.status(404).render('message', { title: 'Not found', body: 'That case does not exist.' });
   const role = roleOf(c, req.session.userId);
   if (!role) return res.status(403).render('message', { title: 'No access', body: 'You are not a party to this case.' });
