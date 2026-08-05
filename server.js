@@ -223,6 +223,13 @@ async function chargeSavedCard(c, role, amountMinor, label) {
 }
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'midbid.settle@gmail.com').toLowerCase();
+// Everyone allowed into the admin area. ADMIN_EMAIL stays the primary (used for
+// support links/emails); add more here or via the ADMIN_EMAILS env var (comma-separated).
+const ADMIN_EMAILS = new Set(
+  [ADMIN_EMAIL, 'saabika@midbid.org']
+    .concat((process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()))
+    .filter(Boolean)
+);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -297,7 +304,7 @@ app.use(async (req, res, next) => {
   try {
     const me = req.session.userId ? await db.userById(req.session.userId) : null;
     res.locals.me = me;
-    res.locals.isAdmin = !!(me && me.email && me.email.toLowerCase() === ADMIN_EMAIL);
+    res.locals.isAdmin = !!(me && me.email && ADMIN_EMAILS.has(me.email.toLowerCase()));
     res.locals.currentPath = req.path;          // so the nav can mark itself
     res.locals.ADMIN_EMAIL = ADMIN_EMAIL;       // views link to it for demo requests
     res.locals.fmt = fmt;
