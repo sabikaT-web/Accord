@@ -478,6 +478,17 @@
   .mb-direction .dsub{font:400 .8rem/1.4 "Hanken Grotesk",sans-serif;color:#6d6650}
   .mb-direction.paid{background:#faf1dd;border-color:#ecdcb8}.mb-direction.paid .dlabel{color:#9a6f14}
   .mb-direction.pay{background:#f6eae0;border-color:#e8d3c0}.mb-direction.pay .dlabel{color:#a85a2e}
+  .mb-card.is-settled #onewayNote,.mb-card.is-settled .mb-actions,.mb-card.is-settled .mb-nudge{display:none}
+  .cx-mediator{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;max-width:1200px;margin:18px auto 0;padding:18px 40px;gap:24px}
+  .cx-mediator > div{flex:1;min-width:0}
+  .cx-mediator .mbtn{flex:none}
+  @media(max-width:640px){.cx-mediator{flex-direction:column;align-items:flex-start;padding:18px 20px}}
+  .mb-settled{display:flex;gap:13px;align-items:flex-start;margin:0 0 16px;padding:15px 17px;border-radius:14px;background:#e6f3e9;border:1px solid #bfe3cc}
+  .mb-settled .msg-check{width:34px;height:34px;border-radius:50%;background:#2f9e5f;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+  .mb-settled .msg-check svg{width:19px;height:19px}
+  .mb-settled .msg-lab{display:block;font:700 .68rem/1 "Spline Sans Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#2a8a53}
+  .mb-settled .msg-amt{display:block;font:500 1.6rem/1.1 "Fraunces",Georgia,serif;color:#1d4a2c;margin-top:4px;font-variant-numeric:tabular-nums}
+  .mb-settled .msg-sub{display:block;font:400 .8rem/1.4 "Hanken Grotesk",sans-serif;color:#3f6b4e;margin-top:5px}
 </style>
 
 <%
@@ -587,15 +598,26 @@
 
     <!-- RIGHT: Scale (full interactive) + Documents -->
     <div class="cx-stack">
-<div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %>">
+<div class="card mb-card <%= role === 'claim' ? 'tint-claim' : 'tint-resp' %><%= c.status === 'settled' ? ' is-settled' : '' %>">
   <div class="mb-schead">
     <span class="mb-eyebrow">Your private figures</span>
     <span class="mb-rolechip">You &mdash; <%= role === 'claim' ? 'Claimant' : 'Respondent' %></span>
   </div>
+  <% if (c.status === 'settled') { %>
+  <div class="mb-settled">
+    <span class="msg-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
+    <div>
+      <span class="msg-lab">Settled — <%= role === 'claim' ? 'you will receive' : 'you will pay' %></span>
+      <span class="msg-amt"><%= money(c.settled_value, c.currency) %></span>
+      <span class="msg-sub">Agreed at the midpoint and locked in by both sides.</span>
+    </div>
+  </div>
+  <% } else { %>
   <div class="mb-direction <%= role === 'claim' ? 'paid' : 'pay' %>">
     <span class="dlabel"><%= role === 'claim' ? 'You will be paid' : 'You will pay' %></span>
     <span class="dsub"><%= role === 'claim' ? 'These are the amounts you would accept — from your ideal down to your walk-away.' : 'These are the amounts you would pay — from your ideal up to your walk-away.' %></span>
   </div>
+  <% } %>
   <div class="mb-figwrap">
     <div class="mb-fig"><%= cur.symbol %><span id="figNum">0</span></div>
     <div class="mb-figrole" id="figRole">Drag the three handles to set your figures</div>
