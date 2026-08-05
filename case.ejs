@@ -479,10 +479,12 @@
   .mb-direction.paid{background:#faf1dd;border-color:#ecdcb8}.mb-direction.paid .dlabel{color:#9a6f14}
   .mb-direction.pay{background:#f6eae0;border-color:#e8d3c0}.mb-direction.pay .dlabel{color:#a85a2e}
   .mb-card.is-settled #onewayNote,.mb-card.is-settled .mb-actions,.mb-card.is-settled .mb-nudge{display:none}
-  .cx-mediator{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;max-width:1200px;margin:18px auto 0;padding:18px 40px;gap:24px}
-  .cx-mediator > div{flex:1;min-width:0}
-  .cx-mediator .mbtn{flex:none}
-  @media(max-width:640px){.cx-mediator{flex-direction:column;align-items:flex-start;padding:18px 20px}}
+  .cx-mediator{display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:space-between !important;flex-wrap:wrap;gap:20px;text-align:left;width:auto;max-width:1200px;margin:18px auto 0;padding:18px 26px;box-sizing:border-box}
+  .cx-mediator > div:first-child{flex:1 1 340px;min-width:260px}
+  .cx-mediator .mb{white-space:normal}
+  .cx-mediator .ms{max-width:70ch}
+  .cx-mediator .mbtn{flex:0 0 auto;white-space:nowrap}
+  @media(max-width:640px){.cx-mediator{flex-direction:column !important;align-items:stretch !important;padding:18px 20px}.cx-mediator .mbtn{width:100%}}
   .mb-settled{display:flex;gap:13px;align-items:flex-start;margin:0 0 16px;padding:15px 17px;border-radius:14px;background:#e6f3e9;border:1px solid #bfe3cc}
   .mb-settled .msg-check{width:34px;height:34px;border-radius:50%;background:#2f9e5f;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
   .mb-settled .msg-check svg{width:19px;height:19px}
