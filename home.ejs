@@ -621,7 +621,157 @@ body {
 </style>
 </head>
 <body>
-<%- include('partials/_pressure-intro') %>
+<!-- ===== MidBid pressure intro (inlined; no partial needed) ===== -->
+<%
+  var _list     = (typeof introList     !== 'undefined' && introList)     ? introList : [
+                    'Legal fees','Frozen cash','Disproportionate cost','Years lost',
+                    'Complex procedure','Adverse costs','Enforcement risk','Disclosure burden',
+                    'Uncertain outcome','Damaged relationships','Power imbalance','Lost confidentiality'];
+  var _eyebrow  = (typeof introEyebrow  !== 'undefined' && introEyebrow)  ? introEyebrow  : 'Without a private path';
+  var _climax   = (typeof introClimax   !== 'undefined' && introClimax)   ? introClimax   : 'Cost & uncertainty';
+  var _headline = (typeof introHeadline !== 'undefined' && introHeadline) ? introHeadline : 'Bid blind. Settle on your terms.';
+  var _tagline  = (typeof introTagline  !== 'undefined' && introTagline)  ? introTagline  : 'Private figures — when they meet, a binding settlement.';
+  var _once     = (typeof introOnce     !== 'undefined') ? introOnce : true;
+%>
+<style>
+.mbi{
+  position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
+  background:
+    radial-gradient(70% 60% at 50% 34%, #f2efe8 0%, var(--bg,#e8e6e0) 60%),
+    radial-gradient(40% 40% at 18% 78%, rgba(47,107,255,.10), transparent 60%),
+    radial-gradient(40% 40% at 82% 22%, rgba(245,179,18,.12), transparent 60%);
+  transform:translateY(0);transition:transform .78s cubic-bezier(.72,0,.18,1);will-change:transform;
+}
+.mbi.mbi-lift{transform:translateY(-101%)}
+.mbi-inner{width:min(760px,90vw);text-align:center;padding:24px}
+.mbi-logo{display:flex;justify-content:center;margin-bottom:24px}
+.mbi-ey{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--blue,#3d5a80);margin-bottom:16px}
+.mbi-lane{overflow:hidden;min-height:1.35em;display:flex;align-items:center;justify-content:center}
+.mbi-word{
+  font-family:"Fraunces",Georgia,serif;font-weight:600;
+  font-size:clamp(1.9rem,5.6vw,3.2rem);letter-spacing:-.025em;line-height:1.1;
+  color:var(--ink,#1a1612);white-space:nowrap;transform:translateX(0);opacity:1;will-change:transform,opacity;
+}
+.mbi-word.mbi-danger{color:#a85d42}
+.mbi-sub{margin-top:12px;font-size:.95rem;color:var(--mut,#6a6358);min-height:1.4em;transition:opacity .4s ease}
+.mbi-progress{width:200px;height:4px;border-radius:20px;background:rgba(26,22,18,.1);margin:28px auto 0;overflow:hidden}
+.mbi-progress i{display:block;height:100%;width:0;border-radius:20px;background:linear-gradient(90deg,#2f6bff,#e8a317 55%,#a85d42)}
+/* STATIC solution — always visible while the pressures cycle above */
+.mbi-solution{margin-top:32px;padding-top:24px;border-top:1px solid var(--line,#ddd6c8)}
+.mbi-solution .mbi-main{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(1.3rem,2.6vw,1.7rem);color:var(--ink,#1a1612);letter-spacing:-.01em;margin:0 0 6px}
+.mbi-solution .mbi-tag{font-size:.92rem;color:var(--mut,#6a6358);margin:0}
+.mbi-skip{position:absolute;top:24px;right:28px;font-size:.82rem;font-weight:600;color:var(--mut,#6a6358);background:rgba(250,248,244,.7);border:1px solid var(--line,#ddd6c8);border-radius:20px;padding:7px 15px;cursor:pointer;transition:.18s}
+.mbi-skip:hover{color:var(--ink,#1a1612);border-color:var(--blue,#3d5a80)}
+.mbi-hint{position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:.74rem;color:var(--mut,#6a6358);opacity:.7}
+body.mbi-lock{overflow:hidden}
+</style>
+
+<div class="mbi" id="mbIntro" data-once="<%= _once ? '1' : '0' %>" role="dialog" aria-label="Intro">
+  <button class="mbi-skip" id="mbiSkip" type="button">Skip intro →</button>
+  <div class="mbi-inner">
+    <div class="mbi-logo">
+      <svg width="56" height="47" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <clipPath id="mbiLens"><circle cx="19" cy="21" r="12"/></clipPath>
+        <circle cx="19" cy="21" r="12" fill="none" stroke="#2f6bff" stroke-width="2.4"/>
+        <circle cx="29" cy="21" r="12" fill="none" stroke="#f5b312" stroke-width="2.4"/>
+        <circle cx="29" cy="21" r="12" fill="#15b877" clip-path="url(#mbiLens)"/>
+        <circle cx="24" cy="4.5" r="2.4" fill="#2f6bff"/><circle cx="24" cy="37.5" r="2.4" fill="#f5b312"/>
+      </svg>
+    </div>
+    <div class="mbi-ey"><%= _eyebrow %></div>
+    <div class="mbi-lane"><div class="mbi-word" id="mbiWord"><%= _list[0] %></div></div>
+    <div class="mbi-sub" id="mbiSub">Pressures that stack in a typical dispute</div>
+    <div class="mbi-progress"><i id="mbiBar"></i></div>
+    <div class="mbi-solution">
+      <p class="mbi-main"><%= _headline %></p>
+      <p class="mbi-tag"><%= _tagline %></p>
+    </div>
+  </div>
+  <div class="mbi-hint">Click anywhere, scroll, or press any key to skip</div>
+</div>
+
+<script>
+(function () {
+  var KEY='mb_intro_seen_v1';
+  var root=document.getElementById('mbIntro');
+  if(!root) return;
+  var word=document.getElementById('mbiWord'), sub=document.getElementById('mbiSub'),
+      bar=document.getElementById('mbiBar'), skip=document.getElementById('mbiSkip');
+  var body=document.body, docEl=document.documentElement;
+  var scroller=document.getElementById('scroll'); // MidBid app-shell scroll region, if present
+
+  var LIST=<%- JSON.stringify(_list) %>;
+  var CLIMAX=<%- JSON.stringify(_climax) %>;
+  var ONCE = root.getAttribute('data-once')==='1';
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var STEP=780, SLIDE=360, OFF=36, START=200, CLIMAX_HOLD=1200;
+  var timers=[], ended=false;
+  function T(fn,ms){ var t=setTimeout(fn,ms); timers.push(t); return t; }
+  function clearAll(){ timers.forEach(clearTimeout); timers=[]; }
+
+  function lockScroll(on){
+    if(on){ body.classList.add('mbi-lock'); docEl.style.overflow='hidden'; if(scroller) scroller.style.overflow='hidden'; }
+    else  { body.classList.remove('mbi-lock'); docEl.style.overflow=''; if(scroller) scroller.style.overflow=''; }
+  }
+
+  function slideTo(label,danger){
+    word.style.transition='transform '+SLIDE+'ms cubic-bezier(.4,0,.2,1), opacity '+SLIDE+'ms ease';
+    word.style.transform='translateX(-'+OFF+'px)'; word.style.opacity='0';
+    T(function(){
+      word.textContent=label; word.classList.toggle('mbi-danger',!!danger);
+      word.style.transition='none'; word.style.transform='translateX('+OFF+'px)';
+      void word.offsetWidth;
+      word.style.transition='transform '+SLIDE+'ms cubic-bezier(.4,0,.2,1), opacity '+SLIDE+'ms ease';
+      word.style.transform='translateX(0)'; word.style.opacity='1';
+    }, SLIDE-20);
+  }
+
+  function endIntro(){
+    if(ended) return; ended=true; clearAll();
+    root.classList.add('mbi-lift'); lockScroll(false);
+    setTimeout(function(){ root.style.display='none'; }, 820);
+    detach();
+  }
+
+  function play(){
+    lockScroll(true);
+    var c = START + LIST.length*STEP;
+    var total = c + CLIMAX_HOLD;
+    void bar.offsetWidth;
+    bar.style.transition='width '+total+'ms linear'; bar.style.width='100%';
+    LIST.forEach(function(l,i){ if(i>0) T(function(){ slideTo(l,false); }, START + i*STEP); });
+    T(function(){ slideTo(CLIMAX, true); sub.textContent='They compound until the outcome is hard to control.'; }, c);
+    T(endIntro, total);
+    attach();
+  }
+
+  function onAny(){ endIntro(); }
+  function attach(){
+    window.addEventListener('keydown', onAny);
+    window.addEventListener('wheel', onAny, {passive:true});
+    window.addEventListener('touchstart', onAny, {passive:true});
+    root.addEventListener('click', onAny);
+  }
+  function detach(){
+    window.removeEventListener('keydown', onAny);
+    window.removeEventListener('wheel', onAny);
+    window.removeEventListener('touchstart', onAny);
+    root.removeEventListener('click', onAny);
+  }
+  skip.addEventListener('click', function(e){ e.stopPropagation(); endIntro(); });
+
+  // ---- decide on load ----
+  var seen=false; try{ seen = ONCE && localStorage.getItem(KEY)==='1'; }catch(e){}
+  if(seen || reduce){
+    root.style.display='none'; lockScroll(false);   // returning visitor / reduced-motion: skip straight in
+  } else {
+    if(ONCE){ try{ localStorage.setItem(KEY,'1'); }catch(e){} }
+    play();
+  }
+})();
+</script>
+<!-- ===== /pressure intro ===== -->
 <div class="stage">
   <div class="blob b1"></div>
   <div class="blob b2"></div>
