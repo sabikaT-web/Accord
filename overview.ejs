@@ -83,6 +83,14 @@ a{text-decoration:none;color:inherit}
 .content{padding:26px;max-width:1200px;width:100%;margin:0 auto}
 .phead h1{font-family:var(--disp);font-weight:600;font-size:1.7rem;letter-spacing:-.02em}
 .phead p{font-size:.9rem;color:var(--mut);margin-top:4px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:999px}
+.legend .lg i{width:7px;height:7px;border-radius:50%;display:block}
+.legend .lg.claim{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
+.legend .lg.claim i{background:var(--gold)}
+.legend .lg.resp{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
+.legend .lg.resp i{background:var(--blue)}
+
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0}
 .kpi{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--gold-border);border-radius:14px;padding:15px 16px}
@@ -104,22 +112,31 @@ a{text-decoration:none;color:inherit}
 .prow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}.prow:first-child{border-top:none}
 .spine{width:5px;height:44px;border-radius:999px;flex:none}
 .spine.awaiting{background:var(--gold)}.spine.bidding{background:var(--blue)}.spine.draft{background:#cdbfa6}.spine.green{background:var(--green)}
+.spine.claim{background:var(--gold)}.spine.resp{background:var(--blue)}
 .pinfo{flex:1;min-width:0}
 .ptitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ptitle .nm{font:600 1rem/1.2 var(--disp);color:var(--ink)}
+.ptitle .nm{font-family:var(--disp);font-weight:600;font-size:1rem;line-height:1.2;color:var(--ink)}
+.role-chip{font:700 .58rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
+.role-chip.claim{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
+.role-chip.resp{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
 .tag{font:600 .58rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
 .tag.awaiting{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
 .tag.bidding{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
 .tag.draft{background:#efe8d8;color:var(--mut)}
 .tag.settled{background:var(--green-soft);color:var(--green-deep);border:1px solid var(--green-border)}
-.pmeta{font:500 .78rem/1 var(--mono);color:var(--mut);margin-top:7px}
+.pmeta{font-family:var(--mono);font-weight:500;font-size:.78rem;color:var(--mut);margin-top:7px}
 .pright{text-align:right;flex:none;display:none}
-.pright .a{font:600 .82rem/1.2 var(--sans);color:var(--ink)}
-.pright .b{font:400 .72rem/1.2 var(--mono);color:var(--mut2);margin-top:3px}
-.pbtn{font:700 .68rem/1 var(--sans);padding:8px 14px;border-radius:9px;border:1px solid var(--gold-border);background:var(--surface);color:var(--blue);flex:none}
-.pbtn:hover{border-color:var(--blue)}
-.pbtn.go{background:var(--green);border-color:var(--green);color:#fff}
+.pright .a{font-family:var(--mono);font-weight:600;font-size:.85rem;line-height:1.2;color:var(--ink);font-variant-numeric:tabular-nums}
+.pright .b{font-family:var(--mono);font-weight:400;font-size:.72rem;line-height:1.2;color:var(--mut2);margin-top:3px}
+.pbtn{font-family:var(--sans);font-weight:700;font-size:.72rem;padding:8px 14px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink2);flex:none}
+.pbtn:hover{border-color:var(--mut2)}
+.pbtn.claim{background:linear-gradient(145deg,#a06720,var(--gold));border-color:var(--gold);color:#fff;box-shadow:0 6px 14px -6px rgba(194,120,3,.4)}
+.pbtn.resp{background:linear-gradient(145deg,var(--blue-deep),var(--blue));border-color:var(--blue);color:#fff;box-shadow:0 6px 14px -6px rgba(44,74,110,.4)}
+.pbtn.go{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 6px 14px -6px rgba(77,124,90,.35)}
 @media(min-width:640px){.pright{display:block}}
+/* party-tinted priority row hover */
+.prow.role-claim:hover{background:rgba(254,246,228,.35)}
+.prow.role-resp:hover{background:rgba(232,238,246,.4)}
 /* activity */
 .act{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line)}.act:first-child{border-top:none}
 .adot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}.adot svg{width:17px;height:17px}
@@ -192,7 +209,14 @@ a{text-decoration:none;color:inherit}
     </div>
 
     <div class="content">
-      <div class="phead"><h1>Overview</h1><p>Your private settlement pipeline · Nothing leaks until figures meet.</p></div>
+      <div class="phead">
+        <h1>Overview</h1>
+        <p>Your private settlement pipeline · Nothing leaks until figures meet.</p>
+        <div class="legend">
+          <span class="lg claim"><i></i> You are owed — gold</span>
+          <span class="lg resp"><i></i> You owe — slate</span>
+        </div>
+      </div>
 
       <div class="kpis">
         <div class="kpi b"><div class="kl">Active cases</div><div class="kv"><%= openCases.length %></div><div class="ks"><%= newThisWeek ? ('+' + newThisWeek + ' this week') : (awaitingN + ' awaiting · ' + biddingN + ' bidding') %></div></div>
@@ -210,16 +234,37 @@ a{text-decoration:none;color:inherit}
               <% if (priority.length === 0) { %><div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div><% } %>
               <% priority.forEach(function(c){
                    const settledRow = c.status === 'settled';
-                   const mine = c.claimant_id === me.id;
+                   const mine = c.claimant_id === me.id; /* true = you are claimant (owed) */
+                   const roleCls = mine ? 'claim' : 'resp';
+                   const roleLabel = mine ? 'You are owed' : 'You owe';
                    let spine, tagCls, tag, rA, rB, act, actCls;
-                   if (settledRow) { spine='green'; tagCls='settled'; tag='Settled'; rA=money(c.settled_value != null ? c.settled_value : c.amount, c.currency); rB='midpoint'; act = mine ? 'View' : 'Pay'; actCls = mine ? '' : 'go'; }
-                   else if (c.stage === 'bidding') { spine='bidding'; tagCls='bidding'; tag='In bidding'; rA='Figures in play'; rB='adjust any time'; act='Open'; actCls=''; }
-                   else if (c.stage === 'draft') { spine='draft'; tagCls='draft'; tag='Draft'; rA='Not sent yet'; rB=''; act='Open'; actCls=''; }
-                   else { spine='awaiting'; tagCls='awaiting'; tag='Awaiting'; rA='Invitation sent'; rB='waiting to join'; act='Open'; actCls=''; }
-                   const meta = settledRow ? ('MB-' + c.id + ' · settled at ' + money(c.settled_value != null ? c.settled_value : c.amount, c.currency)) : ('MB-' + c.id + ' · ' + money(c.amount, c.currency) + ' in dispute'); %>
-                <div class="prow">
+                   if (settledRow) {
+                     spine='green'; tagCls='settled'; tag='Settled';
+                     rA=money(c.settled_value != null ? c.settled_value : c.amount, c.currency); rB='midpoint';
+                     act = mine ? 'View' : 'Pay'; actCls = mine ? roleCls : 'go';
+                   } else if (c.stage === 'bidding') {
+                     spine=roleCls; tagCls='bidding'; tag='In bidding';
+                     rA='Figures in play'; rB='adjust any time'; act='Open'; actCls=roleCls;
+                   } else if (c.stage === 'draft') {
+                     spine='draft'; tagCls='draft'; tag='Draft';
+                     rA='Not sent yet'; rB=''; act='Open'; actCls=roleCls;
+                   } else {
+                     spine=roleCls; tagCls='awaiting'; tag='Awaiting';
+                     rA='Invitation sent'; rB='waiting to join'; act='Open'; actCls=roleCls;
+                   }
+                   const meta = settledRow
+                     ? ('MB-' + c.id + ' · settled at ' + money(c.settled_value != null ? c.settled_value : c.amount, c.currency))
+                     : ('MB-' + c.id + ' · ' + money(c.amount, c.currency) + ' in dispute'); %>
+                <div class="prow role-<%= roleCls %>">
                   <span class="spine <%= spine %>"></span>
-                  <div class="pinfo"><div class="ptitle"><span class="nm"><%= c.title %></span><span class="tag <%= tagCls %>"><%= tag %></span></div><div class="pmeta"><%= meta %></div></div>
+                  <div class="pinfo">
+                    <div class="ptitle">
+                      <span class="nm"><%= c.title %></span>
+                      <span class="role-chip <%= roleCls %>"><%= roleLabel %></span>
+                      <span class="tag <%= tagCls %>"><%= tag %></span>
+                    </div>
+                    <div class="pmeta"><%= meta %></div>
+                  </div>
                   <div class="pright"><div class="a"><%= rA %></div><% if (rB) { %><div class="b"><%= rB %></div><% } %></div>
                   <a class="pbtn <%= actCls %>" href="/cases/<%= c.id %>"><%= act %></a>
                 </div>
