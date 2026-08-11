@@ -1,5 +1,5 @@
 <%
-  // CASES / ledger — shared sidebar shell + beige theme. Data: cases, me, money().
+  // CASES / ledger — greige Glass Pop B. Role colour only on rows (gold = owed, blue = owe).
   const isNoDeal  = (c) => ['closed','declined'].includes(c.status);
   const activeN   = cases.filter(c => !['settled','declined','closed'].includes(c.status)).length;
   const settledN  = cases.filter(c => c.status === 'settled').length;
@@ -8,35 +8,156 @@
 %>
 <%- include('partials/app-head', { active: '', title: 'Cases' }) %>
 <style>
-  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
-  .tab{font:600 .82rem/1 "Hanken Grotesk",sans-serif;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:10px 14px;margin-bottom:-1px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
-  .tab:hover{color:var(--navy)}.tab.on{color:var(--navy);border-bottom-color:var(--cobalt)}
-  .tab .n{font:700 .64rem/1 "Spline Sans Mono",monospace;background:#f1e8cf;color:var(--muted);padding:2px 7px;border-radius:999px}
-  .tab.on .n{background:var(--cobsoft);color:var(--cobalt)}
-  .sheet{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .scroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;font-size:.9rem}
-  thead th{text-align:left;font:500 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:11px 16px;border-bottom:1px solid var(--line);background:#faf3e0;white-space:nowrap}
-  thead th.r{text-align:right}
-  tbody td{padding:14px 16px;border-bottom:1px solid #f1e8cf;vertical-align:middle;white-space:nowrap}
-  tbody td.r{text-align:right}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr:hover{background:#fbf4e2}
-  .cn{font:500 1rem/1.2 "Newsreader",Georgia,serif;color:var(--ink)}
-  .cn a{color:var(--ink);text-decoration:none}.cn a:hover{color:var(--cobalt)}
-  .cp{font:400 .74rem/1 "Spline Sans Mono",monospace;color:var(--faint);margin-top:4px}
-  .amt{font:500 .95rem/1 "Fraunces",Georgia,serif;color:var(--navy);font-variant-numeric:tabular-nums}
-  .role{font:600 .64rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
-  .fig{font:500 .86rem/1 "Spline Sans Mono",monospace;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px}
-  .fig svg{width:12px;height:12px;color:var(--faint)}.fig .ns{color:#b3a684;font-style:italic;font-family:"Newsreader",Georgia,serif}
-  .pill{font:600 .62rem/1 "Spline Sans Mono",monospace;padding:5px 10px;border-radius:999px;white-space:nowrap}
-  .pill.bidding{background:var(--cobsoft);color:var(--cobalt)}.pill.awaiting,.pill.draft{background:var(--ambersoft);color:#96640f}.pill.settled{background:var(--greensoft);color:var(--greend)}.pill.closed{background:#f0e8d2;color:var(--muted)}
-  .btn{font:600 .7rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;text-decoration:none;border:1px solid transparent}
-  .btn.go{background:var(--green);color:#fff}.btn.go:hover{background:#268a4f}
-  .btn.ghost{background:var(--paper);border-color:#d8cba6;color:var(--cobalt)}.btn.ghost:hover{border-color:var(--cobalt)}
-  .btn.link{color:var(--muted);padding:7px 6px}.btn.link:hover{color:var(--cobalt)}
-  .foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
-  .empty{padding:34px 16px;text-align:center;color:var(--muted)}.empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
+  /* Greige Glass Pop B — cases ledger */
+  :root {
+    --bg: #d8d4cc;
+    --surface: #f7f3eb;
+    --line: #ebe4d6;
+    --ink: #1a1814;
+    --ink2: #3a352c;
+    --mut: #6a6358;
+    --mut2: #8f877a;
+    --blue: #3d5a80;
+    --blue-deep: #2c4a6e;
+    --blue-soft: #e8eef6;
+    --blue-border: #b8c8dc;
+    --gold: #c27803;
+    --gold2: #e8a317;
+    --gold-soft: #fef6e4;
+    --gold-border: #e8d4a8;
+    --gold-text: #8a5a12;
+    --green: #4d7c5a;
+    --green-deep: #3c6349;
+    --green-soft: #e8f0ea;
+    --green-border: #c3d8ca;
+    --sans: "Plus Jakarta Sans", system-ui, sans-serif;
+    --disp: "Fraunces", Georgia, serif;
+    --mono: "IBM Plex Mono", "Spline Sans Mono", monospace;
+  }
+  .content, .topbar { font-family: var(--sans); }
+  .phead h1 { font-family: var(--disp); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+  .phead p { color: var(--mut); font-size: 0.9rem; }
+
+  .tabs {
+    display: flex; gap: 4px; border-bottom: 1px solid var(--line);
+    margin-bottom: 14px; overflow-x: auto;
+  }
+  .tab {
+    font: 600 0.82rem/1 var(--sans); color: var(--mut); background: none; border: none;
+    border-bottom: 2px solid transparent; padding: 10px 14px; margin-bottom: -1px;
+    cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 7px;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--ink); border-bottom-color: var(--blue); }
+  .tab .n {
+    font: 700 0.64rem/1 var(--mono); background: #efe8d8; color: var(--mut);
+    padding: 2px 7px; border-radius: 999px;
+  }
+  .tab.on .n { background: var(--blue-soft); color: var(--blue-deep); }
+
+  .sheet {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 12px 30px -24px rgba(40, 35, 25, 0.35);
+  }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  thead th {
+    text-align: left; font: 500 0.58rem/1 var(--mono); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--mut2); padding: 11px 16px;
+    border-bottom: 1px solid var(--line); background: #f3efe6; white-space: nowrap;
+  }
+  thead th.r { text-align: right; }
+  tbody td {
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    vertical-align: middle; white-space: nowrap;
+  }
+  tbody td.r { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #f3efe6; }
+
+  /* Role by colour only — claimant (owed) gold, respondent (owe) blue */
+  tbody tr.role-claim { box-shadow: inset 3px 0 0 var(--gold); }
+  tbody tr.role-resp { box-shadow: inset 3px 0 0 var(--blue); }
+  tbody tr.role-claim:hover { background: rgba(254, 246, 228, 0.45); }
+  tbody tr.role-resp:hover { background: rgba(232, 238, 246, 0.5); }
+
+  .cn { font: 600 1rem/1.2 var(--disp); color: var(--ink); }
+  .cn a { color: var(--ink); text-decoration: none; }
+  .cn a:hover { color: var(--blue); }
+  .cp { font: 400 0.74rem/1 var(--mono); color: var(--mut2); margin-top: 4px; }
+
+  .amt {
+    font: 600 0.95rem/1 var(--mono); color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  tr.role-claim .amt { color: var(--gold-text); }
+  tr.role-resp .amt { color: var(--blue-deep); }
+
+  .role {
+    font: 600 0.64rem/1 var(--mono); margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  tr.role-claim .role { color: var(--gold); }
+  tr.role-resp .role { color: var(--blue); }
+
+  .fig {
+    font: 500 0.86rem/1 var(--mono); color: var(--ink);
+    font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .fig svg { width: 12px; height: 12px; color: var(--mut2); }
+  .fig .ns { color: var(--mut2); font-style: italic; font-family: var(--disp); }
+
+  .pill {
+    font: 600 0.62rem/1 var(--mono); padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.bidding { background: var(--blue-soft); color: var(--blue-deep); border: 1px solid var(--blue-border); }
+  .pill.awaiting, .pill.draft { background: var(--gold-soft); color: var(--gold-text); border: 1px solid var(--gold-border); }
+  .pill.settled { background: var(--green-soft); color: var(--green-deep); border: 1px solid var(--green-border); }
+  .pill.closed { background: #efe8d8; color: var(--mut); }
+
+  /* Role overrides status pill tint slightly when active */
+  tr.role-claim .pill.bidding,
+  tr.role-claim .pill.awaiting,
+  tr.role-claim .pill.draft {
+    background: var(--gold-soft); color: var(--gold-text); border-color: var(--gold-border);
+  }
+  tr.role-resp .pill.bidding,
+  tr.role-resp .pill.awaiting,
+  tr.role-resp .pill.draft {
+    background: var(--blue-soft); color: var(--blue-deep); border-color: var(--blue-border);
+  }
+
+  .btn {
+    font: 700 0.7rem/1 var(--sans); padding: 7px 13px; border-radius: 8px;
+    text-decoration: none; border: 1.5px solid transparent; display: inline-block;
+  }
+  .btn.go { background: var(--green); color: #fff; }
+  .btn.go:hover { filter: brightness(1.05); }
+  .btn.ghost {
+    background: var(--surface); border-color: var(--line); color: var(--ink2);
+  }
+  .btn.ghost:hover { border-color: var(--mut2); }
+  tr.role-claim .btn.ghost {
+    border-color: var(--gold-border); color: var(--gold-text);
+  }
+  tr.role-claim .btn.ghost:hover {
+    background: var(--gold-soft); border-color: var(--gold);
+  }
+  tr.role-resp .btn.ghost {
+    border-color: var(--blue-border); color: var(--blue-deep);
+  }
+  tr.role-resp .btn.ghost:hover {
+    background: var(--blue-soft); border-color: var(--blue);
+  }
+  .btn.link { color: var(--mut); padding: 7px 6px; }
+  .btn.link:hover { color: var(--blue); }
+
+  .foot {
+    padding: 12px 16px; border-top: 1px solid var(--line);
+    color: var(--mut); font-size: 0.8rem;
+  }
+  .empty { padding: 34px 16px; text-align: center; color: var(--mut); }
+  .empty a { color: var(--blue); font-weight: 600; text-decoration: none; }
 </style>
 
 <div class="topbar">
@@ -64,17 +185,36 @@
           <% if (cases.length === 0) { %><tr><td colspan="5"><div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div></td></tr><% } %>
           <% cases.forEach(function(c){
                const mine = c.claimant_id === me.id;
+               const roleCls = mine ? 'claim' : 'resp';
                const settled = c.status === 'settled';
                const nodeal = ['closed','declined'].includes(c.status);
                const cat = settled ? 'settled' : (nodeal ? 'nodeal' : 'active');
                const stg = settled ? 'settled' : (nodeal ? 'closed' : (c.stage === 'bidding' ? 'bidding' : (c.stage === 'draft' ? 'draft' : 'awaiting')));
                const stL = ({settled:'Settled',closed:'No deal',bidding:'In bidding',draft:'Draft',awaiting:'Awaiting'})[stg]; %>
-            <tr data-cat="<%= cat %>">
-              <td><div class="cn"><a href="/cases/<%= c.id %>"><%= c.title %></a></div><div class="cp">MB-<%= c.id %> &middot; <%= c.other_email || 'no counterparty yet' %></div></td>
-              <td><div class="amt"><%= settled && c.settled_value != null ? money(c.settled_value, c.currency) : money(c.amount, c.currency) %></div><div class="role"><%= mine ? 'Claimant' : 'Respondent' %><%= settled ? ' · settled' : '' %></div></td>
-              <td><span class="fig"><% if (c.myLastBid != null) { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><%= money(c.myLastBid, c.currency) %><% } else { %><span class="ns">not set</span><% } %></span></td>
+            <tr data-cat="<%= cat %>" class="role-<%= roleCls %>">
+              <td>
+                <div class="cn"><a href="/cases/<%= c.id %>"><%= c.title %></a></div>
+                <div class="cp">MB-<%= c.id %> &middot; <%= c.other_email || 'no counterparty yet' %></div>
+              </td>
+              <td>
+                <div class="amt"><%= settled && c.settled_value != null ? money(c.settled_value, c.currency) : money(c.amount, c.currency) %></div>
+                <div class="role"><%= mine ? 'Claimant' : 'Respondent' %><%= settled ? ' · settled' : '' %></div>
+              </td>
+              <td>
+                <span class="fig"><% if (c.myLastBid != null) { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><%= money(c.myLastBid, c.currency) %><% } else { %><span class="ns">not set</span><% } %></span>
+              </td>
               <td><span class="pill <%= stg %>"><%= stL %></span></td>
-              <td class="r"><% if (settled) { %><% if (!mine) { %><a class="btn go" href="/cases/<%= c.id %>">Pay</a><% } else { %><a class="btn ghost" href="/cases/<%= c.id %>">View</a><% } %><% } else if (nodeal) { %><a class="btn ghost" href="/cases/<%= c.id %>">View</a><% } else { %><a class="btn ghost" href="/cases/<%= c.id %>">Open</a><% if (stg === 'awaiting' && mine) { %><a class="btn link" href="/cases/<%= c.id %>#inviteBox">Resend</a><% } %><% } %></td>
+              <td class="r">
+                <% if (settled) { %>
+                  <% if (!mine) { %><a class="btn go" href="/cases/<%= c.id %>">Pay</a>
+                  <% } else { %><a class="btn ghost" href="/cases/<%= c.id %>">View</a><% } %>
+                <% } else if (nodeal) { %>
+                  <a class="btn ghost" href="/cases/<%= c.id %>">View</a>
+                <% } else { %>
+                  <a class="btn ghost" href="/cases/<%= c.id %>">Open</a>
+                  <% if (stg === 'awaiting' && mine) { %><a class="btn link" href="/cases/<%= c.id %>#inviteBox">Resend</a><% } %>
+                <% } %>
+              </td>
             </tr>
           <% }); %>
         </tbody>
