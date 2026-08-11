@@ -83,13 +83,6 @@ a{text-decoration:none;color:inherit}
 .content{padding:26px;max-width:1200px;width:100%;margin:0 auto}
 .phead h1{font-family:var(--disp);font-weight:600;font-size:1.7rem;letter-spacing:-.02em}
 .phead p{font-size:.9rem;color:var(--mut);margin-top:4px}
-.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:999px}
-.legend .lg i{width:7px;height:7px;border-radius:50%;display:block}
-.legend .lg.claim{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
-.legend .lg.claim i{background:var(--gold)}
-.legend .lg.resp{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
-.legend .lg.resp i{background:var(--blue)}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0}
@@ -116,9 +109,6 @@ a{text-decoration:none;color:inherit}
 .pinfo{flex:1;min-width:0}
 .ptitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ptitle .nm{font-family:var(--disp);font-weight:600;font-size:1rem;line-height:1.2;color:var(--ink)}
-.role-chip{font:700 .58rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
-.role-chip.claim{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
-.role-chip.resp{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
 .tag{font:600 .58rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
 .tag.awaiting{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
 .tag.bidding{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
@@ -135,6 +125,17 @@ a{text-decoration:none;color:inherit}
 .pbtn.go{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 6px 14px -6px rgba(77,124,90,.35)}
 @media(min-width:640px){.pright{display:block}}
 /* party-tinted priority row hover */
+
+/* Case list — role by colour only (no labels) */
+.prow.role-claim{border-left:3px solid var(--gold);padding-left:12px;margin-left:-2px}
+.prow.role-resp{border-left:3px solid var(--blue);padding-left:12px;margin-left:-2px}
+.prow.role-claim .tag.awaiting,
+.prow.role-claim .tag.bidding{background:var(--gold-soft);color:var(--gold-text);border-color:var(--gold-border)}
+.prow.role-resp .tag.awaiting,
+.prow.role-resp .tag.bidding{background:var(--blue-soft);color:var(--blue-deep);border-color:var(--blue-border)}
+.prow.role-claim .pright .a{color:var(--gold-text)}
+.prow.role-resp .pright .a{color:var(--blue-deep)}
+
 .prow.role-claim:hover{background:rgba(254,246,228,.35)}
 .prow.role-resp:hover{background:rgba(232,238,246,.4)}
 /* activity */
@@ -209,14 +210,7 @@ a{text-decoration:none;color:inherit}
     </div>
 
     <div class="content">
-      <div class="phead">
-        <h1>Overview</h1>
-        <p>Your private settlement pipeline · Nothing leaks until figures meet.</p>
-        <div class="legend">
-          <span class="lg claim"><i></i> You are owed — gold</span>
-          <span class="lg resp"><i></i> You owe — slate</span>
-        </div>
-      </div>
+      <div class="phead"><h1>Overview</h1><p>Your private settlement pipeline · Nothing leaks until figures meet.</p></div>
 
       <div class="kpis">
         <div class="kpi b"><div class="kl">Active cases</div><div class="kv"><%= openCases.length %></div><div class="ks"><%= newThisWeek ? ('+' + newThisWeek + ' this week') : (awaitingN + ' awaiting · ' + biddingN + ' bidding') %></div></div>
@@ -236,7 +230,6 @@ a{text-decoration:none;color:inherit}
                    const settledRow = c.status === 'settled';
                    const mine = c.claimant_id === me.id; /* true = you are claimant (owed) */
                    const roleCls = mine ? 'claim' : 'resp';
-                   const roleLabel = mine ? 'You are owed' : 'You owe';
                    let spine, tagCls, tag, rA, rB, act, actCls;
                    if (settledRow) {
                      spine='green'; tagCls='settled'; tag='Settled';
@@ -260,7 +253,6 @@ a{text-decoration:none;color:inherit}
                   <div class="pinfo">
                     <div class="ptitle">
                       <span class="nm"><%= c.title %></span>
-                      <span class="role-chip <%= roleCls %>"><%= roleLabel %></span>
                       <span class="tag <%= tagCls %>"><%= tag %></span>
                     </div>
                     <div class="pmeta"><%= meta %></div>
