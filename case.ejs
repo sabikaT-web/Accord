@@ -600,39 +600,42 @@ html.role-resp .mb-ask-ic {
 <style>
   /* Balanced layout + band (from approved mock) — does not alter scale behaviour */
   html,body{overflow-x:hidden}
+  /* Light greige header, washed in the party colour (gold=claimant, slate=respondent). */
   .cx-band-wrap{
-    width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;
-    border-top:3px solid #e0b34a;border-bottom:3px solid #e0b34a;
+    width:auto;position:relative;left:auto;right:auto;margin:0;
+    border-top:3px solid var(--party);border-bottom:1px solid var(--line);
     background:
-      radial-gradient(820px 420px at 92% -30%,rgba(224,180,80,.20),transparent 60%),
-      linear-gradient(115deg,#14224e 0%,#1d2f6b 60%,#2c4a6e 100%);
+      radial-gradient(760px 380px at 92% -40%, color-mix(in srgb, var(--party) 15%, transparent), transparent 62%),
+      linear-gradient(150deg, var(--party-soft) 0%, var(--mb-surface) 58%);
   }
   .cx-band{
-    position:relative;color:#fff;padding:30px 40px 34px;max-width:1200px;margin:0 auto;
+    position:relative;color:var(--mb-ink);padding:30px 40px 34px;max-width:1200px;margin:0 auto;
     background:transparent;
     display:grid;grid-template-columns:1fr 340px;gap:34px;align-items:center;
   }
-  .cx-band .eyebrow{font:600 12px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#e6c079}
-  .cx-band .title{font:500 42px/1 Fraunces,serif;letter-spacing:-.01em;margin-top:8px}
+  .cx-band .eyebrow{font:600 12px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--party-text)}
+  .cx-band .title{font:500 42px/1 Fraunces,serif;letter-spacing:-.01em;margin-top:8px;color:var(--mb-ink)}
   .cx-band .statusline{display:flex;align-items:center;gap:12px;margin-top:18px}
-  .cx-band .apill{display:inline-flex;align-items:center;gap:.5em;font:700 11px/1 Inter;letter-spacing:.09em;text-transform:uppercase;color:#7ee0a8;background:rgba(18,161,80,.16);border:1px solid rgba(126,224,168,.4);padding:.5em .8em;border-radius:999px}
-  .cx-band .apill .d{width:7px;height:7px;border-radius:50%;background:#7ee0a8;box-shadow:0 0 8px #7ee0a8}
-  .cx-band .rd{font-size:14px;color:rgba(255,255,255,.82)}
+  .cx-band .apill{display:inline-flex;align-items:center;gap:.5em;font:700 11px/1 Inter;letter-spacing:.09em;text-transform:uppercase;color:#3c6349;background:#e8f0ea;border:1px solid #c3d8ca;padding:.5em .8em;border-radius:999px}
+  .cx-band .apill .d{width:7px;height:7px;border-radius:50%;background:#4d7c5a;box-shadow:0 0 8px rgba(77,124,90,.55)}
+  .cx-band .rd{font-size:14px;color:var(--mb-mut)}
   .cx-band .prog{margin-top:16px;max-width:520px}
-  .cx-band .ptrack{height:6px;border-radius:6px;background:rgba(255,255,255,.16);position:relative}
-  .cx-band .pf{position:absolute;left:0;top:0;height:6px;width:34%;border-radius:6px;background:linear-gradient(90deg,#e0b34a,#6b83a6)}
-  .cx-band .pdot{position:absolute;top:3px;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#e0b34a;border:2px solid #14224e}
-  .cx-band .plabels{display:flex;justify-content:space-between;margin-top:9px;font-size:12px;color:rgba(255,255,255,.6)}
-  .cx-band .plabels b{color:#fff;font-weight:600}
+  .cx-band .ptrack{height:6px;border-radius:6px;background:#e6ddcc;position:relative}
+  .cx-band .pf{position:absolute;left:0;top:0;height:6px;width:34%;border-radius:6px;background:linear-gradient(90deg,var(--party),var(--party-deep))}
+  .cx-band .pdot{position:absolute;top:3px;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:var(--party);border:2px solid var(--mb-surface)}
+  .cx-band .plabels{display:flex;justify-content:space-between;margin-top:9px;font-size:12px;color:var(--mb-mut)}
+  .cx-band .plabels b{color:var(--mb-ink);font-weight:600}
   .cx-band .bandbtns{display:flex;gap:12px;margin-top:22px}
-  .cx-band .bbtn{font:600 13.5px/1 Inter;padding:12px 20px;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff}
-  .cx-band .bbtn.solid{background:#fff;color:#14224e;border-color:#fff}
-  .cx-band .fpanel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:20px 22px;display:grid;grid-template-columns:1fr 1fr;gap:18px 26px}
-  .cx-band .fk{font:600 10px/1 Inter;letter-spacing:.13em;text-transform:uppercase;color:#e0b34a;display:flex;align-items:center;gap:.4em;margin-bottom:7px}
-  .cx-band .fk::before{content:"";width:6px;height:6px;border-radius:50%;background:#e0b34a}
-  .cx-band .fv{font:500 1rem/1.1 Newsreader,serif;color:#f3efe6}
-  .cx-band .fv.ref{font-family:Spline Sans Mono,monospace;font-weight:600;color:#f0c976;font-size:.95rem}
-  .cx-band .fv.amt{font:600 1.25rem/1 Fraunces,serif;color:#f0c976}
+  .cx-band .bbtn{font:600 13.5px/1 Inter;padding:12px 20px;border-radius:10px;cursor:pointer;border:1px solid var(--party-border);background:var(--mb-surface);color:var(--party-text)}
+  .cx-band .bbtn:hover{border-color:var(--party)}
+  .cx-band .bbtn.solid{background:var(--party);color:#fff;border-color:var(--party)}
+  .cx-band .bbtn.solid:hover{background:var(--party-deep);border-color:var(--party-deep)}
+  .cx-band .fpanel{background:var(--mb-surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;grid-template-columns:1fr 1fr;gap:18px 26px;box-shadow:0 1px 0 #fff inset}
+  .cx-band .fk{font:600 10px/1 Inter;letter-spacing:.13em;text-transform:uppercase;color:var(--party-text);display:flex;align-items:center;gap:.4em;margin-bottom:7px}
+  .cx-band .fk::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--party)}
+  .cx-band .fv{font:500 1rem/1.1 Newsreader,serif;color:var(--mb-ink)}
+  .cx-band .fv.ref{font-family:Spline Sans Mono,monospace;font-weight:600;color:var(--party-text);font-size:.95rem}
+  .cx-band .fv.amt{font:600 1.25rem/1 Fraunces,serif;color:var(--party-text)}
 
   .cx-body{padding:26px 0 34px}
   .cx-grid{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
@@ -736,7 +739,7 @@ html.role-resp .mb-ask-ic {
         <span class="apill"><span class="d"></span> Active</span>
         <span class="rd">Round <%= c.round || 1 %> · <%= otherJoined ? 'both parties on the case' : 'awaiting respondent' %></span>
       <% } else { %>
-        <span class="apill" style="color:#cdd;border-color:#666"><span class="d" style="background:#aaa;box-shadow:none"></span> <%= c.status %></span>
+        <span class="apill" style="color:var(--mb-mut);background:#f3efe6;border-color:var(--line)"><span class="d" style="background:#8f877a;box-shadow:none"></span> <%= c.status %></span>
       <% } %>
     </div>
     <div class="prog">
