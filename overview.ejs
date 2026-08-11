@@ -1,7 +1,7 @@
 <%
-  // OVERVIEW — uses the shared sidebar shell (partials/app-head + app-foot).
-  // Data: cases, me, money(). Proximity-style bits run off case STAGE (real
-  // closeness would leak the other side's figure).
+  // OVERVIEW — greige "Glass Pop B" theme, self-contained (no app-head/app-foot include).
+  // All data logic below is unchanged from the original. Proximity-style bits run off
+  // case STAGE (real closeness would leak the other side's figure).
   const openCases = cases.filter(c => !['settled','declined','closed'].includes(c.status));
   const settled   = cases.filter(c => c.status === 'settled');
   const noDeal    = cases.filter(c => ['closed','declined'].includes(c.status));
@@ -27,6 +27,8 @@
   const avgDays = days.length ? (days.reduce((a,b) => a+b, 0) / days.length).toFixed(1) : null;
   const priority = openCases.slice().sort((a,b) => (b.amount||0)-(a.amount||0)).concat(settled).slice(0, 5);
   const openTop  = openCases.slice().sort((a,b) => (b.amount||0)-(a.amount||0)).slice(0, 4);
+  const meName = (me && (me.name || me.email)) ? (me.name || me.email) : 'You';
+  const meInit = meName.trim().charAt(0).toUpperCase() || 'Y';
   const activity = cases.slice().sort((a,b) => (b.id||0)-(a.id||0)).slice(0, 4).map(function (c) {
     if (c.status === 'settled') return {tone:'green', t:'Settled — ' + c.title, s:'Locked at the midpoint' + (c.settled_value != null ? ' · ' + money(c.settled_value, c.currency) : '')};
     if (c.stage === 'bidding')  return {tone:'cobalt', t:'Bidding open — ' + c.title, s:'Both sides submitting sealed figures'};
@@ -34,153 +36,250 @@
     return {tone:'muted', t:c.title, s:'MB-' + c.id};
   });
 %>
-<%- include('partials/app-head', { active: 'overview', title: 'Overview' }) %>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overview · MidBid</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px}
-  .kpi{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:14px;padding:15px 16px}
-  .kpi.b{border-top-color:var(--cobalt)}.kpi.g{border-top-color:var(--green)}.kpi.m{border-top-color:var(--gold)}.kpi.n{border-top-color:#d8cba6}
-  .kl{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
-  .kv{font:600 1.6rem/1 "Fraunces",Georgia,serif;letter-spacing:-.01em;color:var(--navy);font-variant-numeric:tabular-nums}
-  .kpi.b .kv{color:var(--cobalt)}.kpi.g .kv{color:var(--greend)}.kpi.m .kv{color:#a6791b}
-  .ks{font-size:.73rem;color:var(--muted);margin-top:6px}
-  .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start}
-  .col{display:flex;flex-direction:column;gap:16px}
-  .panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-  .ph{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
-  .ph h2{font:500 1.05rem/1.2 "Fraunces",Georgia,serif;color:var(--navy)}
-  .ph a{font:600 .72rem/1 "Hanken Grotesk",sans-serif;color:var(--cobalt);text-decoration:none}.ph a:hover{text-decoration:underline}
-  .ph .priv{font:400 .72rem/1 "Spline Sans Mono",monospace;color:var(--faint)}
-  .pb{padding:4px 18px 14px}
-  .prow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #f1e8cf}.prow:first-child{border-top:none}
-  .spine{width:5px;height:42px;border-radius:999px;flex:none}
-  .spine.awaiting{background:var(--amber)}.spine.bidding{background:var(--cobalt)}.spine.draft{background:#d8cba6}.spine.green{background:var(--green)}
-  .pinfo{flex:1;min-width:0}
-  .ptitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .ptitle .nm{font:500 1rem/1.2 "Fraunces",Georgia,serif;color:var(--navy)}
-  .tag{font:700 .58rem/1 "Spline Sans Mono",monospace;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
-  .tag.awaiting{background:var(--ambersoft);color:#96640f}.tag.bidding{background:var(--cobsoft);color:var(--cobalt)}.tag.draft{background:#f0e8d2;color:var(--muted)}.tag.settled{background:var(--greensoft);color:var(--greend)}
-  .pmeta{font:500 .78rem/1 "Spline Sans Mono",monospace;color:var(--muted);margin-top:6px}
-  .pright{text-align:right;flex:none;display:none}
-  .pright .a{font:500 .82rem/1.2 "Hanken Grotesk",sans-serif;color:var(--ink)}
-  .pright .b{font:400 .72rem/1.2 "Spline Sans Mono",monospace;color:var(--faint);margin-top:3px}
-  .pbtn{font:600 .68rem/1 "Hanken Grotesk",sans-serif;padding:7px 13px;border-radius:8px;border:1px solid #d8cba6;background:var(--paper);color:var(--cobalt);text-decoration:none;flex:none}
-  .pbtn:hover{border-color:var(--cobalt)}.pbtn.go{background:var(--green);border-color:var(--green);color:#fff}.pbtn.go:hover{background:#268a4f}
-  @media(min-width:640px){.pright{display:block}}
-  .act{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f1e8cf}.act:first-child{border-top:none}
-  .adot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}.adot svg{width:17px;height:17px}
-  .adot.green{background:var(--greensoft);color:var(--greend)}.adot.cobalt{background:var(--cobsoft);color:var(--cobalt)}.adot.amber{background:var(--ambersoft);color:#96640f}.adot.muted{background:#f0e8d2;color:var(--muted)}
-  .at{font-size:.9rem;color:var(--ink)}.as{font:400 .76rem/1.3 "Spline Sans Mono",monospace;color:var(--faint);margin-top:3px}
-  .scale .subt{font-size:.8rem;color:var(--muted);margin:0 0 14px;line-height:1.45}
-  .prog{margin-bottom:13px}.prog:last-child{margin-bottom:0}
-  .pl{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px}
-  .pl .lab{color:var(--muted);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pl .st.c-cobalt{color:var(--cobalt);font-weight:600}.pl .st.c-amber{color:#96640f;font-weight:600}
-  .bt{height:8px;border-radius:999px;background:#f1e8cf;overflow:hidden}.bt span{display:block;height:100%;border-radius:999px}
-  .f-cobalt{background:linear-gradient(90deg,#5f80ee,var(--cobalt))}.f-amber{background:linear-gradient(90deg,#e6b25a,var(--amber))}
-  .scale .go{margin-top:14px;display:block;text-align:center;font:600 .78rem/1 "Hanken Grotesk",sans-serif;color:var(--cobalt);text-decoration:none;padding:8px}
-  .srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f1e8cf}.srow:first-child{border-top:none}
-  .srow .sk{font-size:.86rem;color:var(--muted)}.srow .sv{font:600 .92rem/1 "Hanken Grotesk",sans-serif;color:var(--navy);font-variant-numeric:tabular-nums}.srow .sv.green{color:var(--greend)}
-  .cta{background:linear-gradient(160deg,#2a2410,#4a3d17);border-radius:16px;padding:20px 22px;color:#fdf6e3}
-  .cta h3{font:500 1.1rem/1.2 "Fraunces",Georgia,serif;margin-bottom:6px}
-  .cta p{font-size:.86rem;color:rgba(253,246,227,.8);line-height:1.5;margin-bottom:14px}
-  .cta a{display:block;text-align:center;font:600 .78rem/1 "Hanken Grotesk",sans-serif;padding:11px;border-radius:10px;background:var(--gold);color:#2a2410;text-decoration:none}.cta a:hover{background:#d8a83f}
-  .empty{padding:26px 0;text-align:center;color:var(--muted);font-size:.9rem}.empty a{color:var(--cobalt);font-weight:600;text-decoration:none}
-  @media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+:root{
+  --bg:#d8d4cc; --surface:#f7f3eb; --surface2:#f3efe6; --line:#ebe4d6;
+  --ink:#1a1814; --ink2:#3a352c; --mut:#6a6358; --mut2:#8f877a;
+  --blue:#3d5a80; --blue-deep:#2c4a6e; --blue-soft:#e8eef6; --blue-border:#b8c8dc;
+  --gold:#c27803; --gold2:#e8a317; --gold-soft:#fef6e4; --gold-border:#e8d4a8; --gold-text:#8a5a12;
+  --green:#4d7c5a; --green-deep:#3c6349; --green-soft:#e8f0ea; --green-border:#c3d8ca;
+  --danger:#a85d42;
+  --sans:"Plus Jakarta Sans",system-ui,sans-serif; --disp:"Fraunces",Georgia,serif; --mono:"IBM Plex Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+.wrap{display:flex;min-height:100vh}
+/* sidebar */
+.side{width:236px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:600;font-size:1.2rem;padding:4px 8px 20px}
+.brand svg{width:32px;height:27px;overflow:visible}
+.snav{display:flex;flex-direction:column;gap:3px}
+.snav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font-size:.9rem;font-weight:500;color:var(--mut)}
+.snav a .ic{width:16px;height:16px;flex:none;opacity:.7}
+.snav a:hover{background:var(--surface2);color:var(--ink)}
+.snav a.on{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border);font-weight:600}
+.snav a.on .ic{opacity:1}
+.side-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid var(--line)}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(145deg,var(--gold2),var(--gold));color:#fff;display:grid;place-items:center;font-weight:700;font-size:.82rem;flex:none}
+.side-foot .nm{font-size:.82rem;font-weight:600}.side-foot .em{font-size:.7rem;color:var(--mut2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:12px;padding:16px 26px;border-bottom:1px solid var(--line);background:rgba(247,243,235,.6);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+.search{flex:1;max-width:420px;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 13px;color:var(--mut2)}
+.search svg{width:16px;height:16px;flex:none}
+.search input{border:none;outline:none;background:none;font:inherit;font-size:.86rem;width:100%;color:var(--ink)}
+.tb-sp{flex:1}
+.exp{font-size:.8rem;font-weight:600;color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer}
+.newc{display:inline-flex;align-items:center;gap:7px;font-size:.82rem;font-weight:700;color:#fff;background:linear-gradient(145deg,var(--blue-deep),var(--blue));border-radius:10px;padding:9px 15px;box-shadow:0 8px 18px -8px rgba(44,74,110,.4)}
+.newc svg{width:15px;height:15px}
+.content{padding:26px;max-width:1200px;width:100%;margin:0 auto}
+.phead h1{font-family:var(--disp);font-weight:600;font-size:1.7rem;letter-spacing:-.02em}
+.phead p{font-size:.9rem;color:var(--mut);margin-top:4px}
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--gold-border);border-radius:14px;padding:15px 16px}
+.kpi.b{border-top-color:var(--blue)}.kpi.g{border-top-color:var(--green)}.kpi.m{border-top-color:var(--gold)}.kpi.n{border-top-color:var(--gold-border)}
+.kl{font:600 .58rem/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--mut2);margin-bottom:9px}
+.kv{font:600 1.55rem/1 var(--disp);letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+.kpi.b .kv{color:var(--blue)}.kpi.g .kv{color:var(--green-deep)}.kpi.m .kv{color:var(--gold)}
+.ks{font-size:.73rem;color:var(--mut);margin-top:6px}
+/* grid */
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 12px 30px -24px rgba(40,35,25,.4)}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.ph h2{font:600 1.05rem/1.2 var(--disp);color:var(--ink)}
+.ph a{font:600 .72rem/1 var(--sans);color:var(--blue)}.ph a:hover{text-decoration:underline}
+.ph .priv{font:500 .68rem/1 var(--mono);color:var(--mut2);letter-spacing:.04em}
+.pb{padding:4px 18px 14px}
+/* priority rows */
+.prow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}.prow:first-child{border-top:none}
+.spine{width:5px;height:44px;border-radius:999px;flex:none}
+.spine.awaiting{background:var(--gold)}.spine.bidding{background:var(--blue)}.spine.draft{background:#cdbfa6}.spine.green{background:var(--green)}
+.pinfo{flex:1;min-width:0}
+.ptitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ptitle .nm{font:600 1rem/1.2 var(--disp);color:var(--ink)}
+.tag{font:600 .58rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px}
+.tag.awaiting{background:var(--gold-soft);color:var(--gold-text);border:1px solid var(--gold-border)}
+.tag.bidding{background:var(--blue-soft);color:var(--blue-deep);border:1px solid var(--blue-border)}
+.tag.draft{background:#efe8d8;color:var(--mut)}
+.tag.settled{background:var(--green-soft);color:var(--green-deep);border:1px solid var(--green-border)}
+.pmeta{font:500 .78rem/1 var(--mono);color:var(--mut);margin-top:7px}
+.pright{text-align:right;flex:none;display:none}
+.pright .a{font:600 .82rem/1.2 var(--sans);color:var(--ink)}
+.pright .b{font:400 .72rem/1.2 var(--mono);color:var(--mut2);margin-top:3px}
+.pbtn{font:700 .68rem/1 var(--sans);padding:8px 14px;border-radius:9px;border:1px solid var(--gold-border);background:var(--surface);color:var(--blue);flex:none}
+.pbtn:hover{border-color:var(--blue)}
+.pbtn.go{background:var(--green);border-color:var(--green);color:#fff}
+@media(min-width:640px){.pright{display:block}}
+/* activity */
+.act{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line)}.act:first-child{border-top:none}
+.adot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}.adot svg{width:17px;height:17px}
+.adot.green{background:var(--green-soft);color:var(--green-deep)}
+.adot.cobalt{background:var(--blue-soft);color:var(--blue)}
+.adot.amber{background:var(--gold-soft);color:var(--gold-text)}
+.adot.muted{background:#efe8d8;color:var(--mut)}
+.at{font-size:.9rem;color:var(--ink)}.as{font:400 .76rem/1.3 var(--mono);color:var(--mut2);margin-top:3px}
+/* settlement scale — Glass Pop B */
+.glass{border-radius:20px;padding:6px;position:relative;overflow:hidden;
+  background:linear-gradient(155deg,rgba(255,255,255,.55),rgba(247,243,235,.38),rgba(239,233,220,.45));
+  backdrop-filter:blur(22px) saturate(1.1);border:1.5px solid rgba(255,255,255,.8);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 22px 48px -18px rgba(40,35,25,.14)}
+.glass::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background-size:200% 100%;animation:iri 11s ease-in-out infinite;
+  background:linear-gradient(90deg,transparent,rgba(194,120,3,.5),rgba(61,90,128,.5),transparent)}
+@keyframes iri{0%,100%{background-position:0 0}50%{background-position:100% 0}}
+.glass .core{background:var(--surface);border-radius:15px;border:1px solid var(--line)}
+.scale .subt{font-size:.8rem;color:var(--mut);margin:0 0 14px;line-height:1.45}
+.prog{margin-bottom:14px}.prog:last-child{margin-bottom:0}
+.pl{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px}
+.pl .lab{color:var(--mut);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .st.c-cobalt{color:var(--blue);font-weight:600}.pl .st.c-amber{color:var(--gold-text);font-weight:600}
+.bt{height:8px;border-radius:999px;background:#eae2d2;overflow:hidden}.bt span{display:block;height:100%;border-radius:999px}
+.f-cobalt{background:linear-gradient(90deg,#5f7ba8,var(--blue))}.f-amber{background:linear-gradient(90deg,var(--gold2),var(--gold))}
+.scale .go{margin-top:14px;display:block;text-align:center;font:600 .78rem/1 var(--sans);color:var(--blue);padding:8px}
+/* this month */
+.srow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line)}.srow:first-child{border-top:none}
+.srow .sk{font-size:.86rem;color:var(--mut)}
+.srow .sv{font:600 .95rem/1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}.srow .sv.green{color:var(--green-deep)}
+/* CTA */
+.cta{background:linear-gradient(160deg,#2c2a24,#403a2c);border-radius:16px;padding:20px 22px;color:#faf5ea}
+.cta h3{font:600 1.1rem/1.2 var(--disp);margin-bottom:6px}
+.cta p{font-size:.86rem;color:rgba(250,245,234,.78);line-height:1.5;margin-bottom:14px}
+.cta a{display:block;text-align:center;font:700 .78rem/1 var(--sans);padding:11px;border-radius:10px;background:var(--gold);color:#2c2a24}
+.empty{padding:26px 0;text-align:center;color:var(--mut);font-size:.9rem}.empty a{color:var(--blue);font-weight:600}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.side{display:none}}
 </style>
+</head>
+<body>
+<div class="wrap">
 
-<div class="topbar">
-  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" placeholder="Search cases or counterparties…"></div>
-  <div class="tb-sp"></div>
-  <% if (mineC.length) { %><button type="button" class="exp" onclick="downloadMine()">&#8595; Export</button><% } %>
-  <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
-</div>
+  <aside class="side">
+    <div class="brand">
+      <svg viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><clipPath id="mb-side-lens"><circle cx="18" cy="20" r="11"/></clipPath></defs>
+        <g clip-path="url(#mb-side-lens)"><circle cx="30" cy="20" r="11" fill="#22c55e"/></g>
+        <circle cx="18" cy="20" r="11" fill="none" stroke="#2563eb" stroke-width="2.4"/>
+        <circle cx="30" cy="20" r="11" fill="none" stroke="#f59e0b" stroke-width="2.4"/>
+        <circle cx="24" cy="3.4" r="2.3" fill="#2563eb"/><circle cx="24" cy="36.6" r="2.3" fill="#f59e0b"/>
+      </svg>
+      MidBid
+    </div>
+    <nav class="snav">
+      <a class="on" href="/overview"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+      <a href="/cases"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Cases</a>
+      <a href="/account"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Account</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar"><%= meInit %></div>
+      <div><div class="nm"><%= (me && me.name) ? me.name : 'Your account' %></div><div class="em"><%= (me && me.email) ? me.email : '' %></div></div>
+    </div>
+  </aside>
 
-<div class="content">
-  <div class="phead"><div><h1>Overview</h1><p>Your private settlement pipeline · Nothing leaks until figures meet.</p></div></div>
-
-  <div class="kpis">
-    <div class="kpi b"><div class="kl">Active cases</div><div class="kv"><%= openCases.length %></div><div class="ks"><%= newThisWeek ? ('+' + newThisWeek + ' this week') : (awaitingN + ' awaiting · ' + biddingN + ' bidding') %></div></div>
-    <div class="kpi g"><div class="kl">Settled (30d)</div><div class="kv"><%= settled30 %></div><div class="ks"><%= settleRate %>% success rate</div></div>
-    <div class="kpi g"><div class="kl">Value settled</div><div class="kv"><%= money(valueSettled, cur) %></div><div class="ks">to date</div></div>
-    <div class="kpi n"><div class="kl">Avg. days to settle</div><div class="kv"><%= avgDays != null ? avgDays : '—' %></div><div class="ks">from case opened</div></div>
-    <div class="kpi m"><div class="kl">In bidding</div><div class="kv"><%= biddingN %></div><div class="ks">rounds in play</div></div>
-  </div>
-
-  <div class="grid">
-    <div class="col">
-      <div class="panel">
-        <div class="ph"><h2>Priority cases</h2><a href="/cases">View all &rarr;</a></div>
-        <div class="pb">
-          <% if (priority.length === 0) { %><div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div><% } %>
-          <% priority.forEach(function(c){
-               const settledRow = c.status === 'settled';
-               const mine = c.claimant_id === me.id;
-               let spine, tagCls, tag, rA, rB, act, actCls;
-               if (settledRow) { spine='green'; tagCls='settled'; tag='Settled'; rA=money(c.settled_value != null ? c.settled_value : c.amount, c.currency); rB='midpoint'; act = mine ? 'View' : 'Pay'; actCls = mine ? '' : 'go'; }
-               else if (c.stage === 'bidding') { spine='bidding'; tagCls='bidding'; tag='In bidding'; rA='Figures in play'; rB='adjust any time'; act='Open'; actCls=''; }
-               else if (c.stage === 'draft') { spine='draft'; tagCls='draft'; tag='Draft'; rA='Not sent yet'; rB=''; act='Open'; actCls=''; }
-               else { spine='awaiting'; tagCls='awaiting'; tag='Awaiting'; rA='Invitation sent'; rB='waiting to join'; act='Open'; actCls=''; }
-               const meta = settledRow ? ('MB-' + c.id + ' · settled at ' + money(c.settled_value != null ? c.settled_value : c.amount, c.currency)) : ('MB-' + c.id + ' · ' + money(c.amount, c.currency) + ' in dispute'); %>
-            <div class="prow">
-              <span class="spine <%= spine %>"></span>
-              <div class="pinfo"><div class="ptitle"><span class="nm"><%= c.title %></span><span class="tag <%= tagCls %>"><%= tag %></span></div><div class="pmeta"><%= meta %></div></div>
-              <div class="pright"><div class="a"><%= rA %></div><% if (rB) { %><div class="b"><%= rB %></div><% } %></div>
-              <a class="pbtn <%= actCls %>" href="/cases/<%= c.id %>"><%= act %></a>
-            </div>
-          <% }); %>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="ph"><h2>Recent activity</h2></div>
-        <div class="pb">
-          <% if (activity.length === 0) { %><div class="empty">Activity will appear here as cases progress.</div><% } %>
-          <% activity.forEach(function(a){ %>
-            <div class="act">
-              <span class="adot <%= a.tone %>">
-                <% if (a.tone === 'green') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4 10-10"/></svg>
-                <% } else if (a.tone === 'cobalt') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
-                <% } else if (a.tone === 'amber') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-                <% } else { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><% } %>
-              </span>
-              <div><p class="at"><%= a.t %></p><p class="as"><%= a.s %></p></div>
-            </div>
-          <% }); %>
-        </div>
-      </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" placeholder="Search cases or counterparties…"></div>
+      <div class="tb-sp"></div>
+      <% if (mineC.length) { %><button type="button" class="exp" onclick="downloadMine()">&#8595; Export</button><% } %>
+      <a class="newc" href="/cases/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Open new case</a>
     </div>
 
-    <div class="col">
-      <div class="panel scale">
-        <div class="ph"><h2>Your settlement scale</h2><span class="priv">Private</span></div>
-        <div class="pb">
-          <p class="subt">Only you see your figure. A case&rsquo;s colour follows its stage — never how close the other side is.</p>
-          <% if (openTop.length === 0) { %><div class="empty">No open cases right now.</div><% } %>
-          <% openTop.forEach(function(c){ const bidding = c.stage === 'bidding'; %>
-            <div class="prog">
-              <div class="pl"><span class="lab"><%= c.title %></span><span class="st <%= bidding ? 'c-cobalt' : 'c-amber' %>"><%= bidding ? 'In bidding' : 'Awaiting' %></span></div>
-              <div class="bt"><span class="<%= bidding ? 'f-cobalt' : 'f-amber' %>" style="width:<%= bidding ? '64%' : '30%' %>"></span></div>
+    <div class="content">
+      <div class="phead"><h1>Overview</h1><p>Your private settlement pipeline · Nothing leaks until figures meet.</p></div>
+
+      <div class="kpis">
+        <div class="kpi b"><div class="kl">Active cases</div><div class="kv"><%= openCases.length %></div><div class="ks"><%= newThisWeek ? ('+' + newThisWeek + ' this week') : (awaitingN + ' awaiting · ' + biddingN + ' bidding') %></div></div>
+        <div class="kpi g"><div class="kl">Settled (30d)</div><div class="kv"><%= settled30 %></div><div class="ks"><%= settleRate %>% success rate</div></div>
+        <div class="kpi g"><div class="kl">Value settled</div><div class="kv"><%= money(valueSettled, cur) %></div><div class="ks">to date</div></div>
+        <div class="kpi n"><div class="kl">Avg. days to settle</div><div class="kv"><%= avgDays != null ? avgDays : '—' %></div><div class="ks">from case opened</div></div>
+        <div class="kpi m"><div class="kl">In bidding</div><div class="kv"><%= biddingN %></div><div class="ks">rounds in play</div></div>
+      </div>
+
+      <div class="grid">
+        <div class="col">
+          <div class="panel">
+            <div class="ph"><h2>Priority cases</h2><a href="/cases">View all &rarr;</a></div>
+            <div class="pb">
+              <% if (priority.length === 0) { %><div class="empty">No cases yet — <a href="/cases/new">open your first dispute →</a></div><% } %>
+              <% priority.forEach(function(c){
+                   const settledRow = c.status === 'settled';
+                   const mine = c.claimant_id === me.id;
+                   let spine, tagCls, tag, rA, rB, act, actCls;
+                   if (settledRow) { spine='green'; tagCls='settled'; tag='Settled'; rA=money(c.settled_value != null ? c.settled_value : c.amount, c.currency); rB='midpoint'; act = mine ? 'View' : 'Pay'; actCls = mine ? '' : 'go'; }
+                   else if (c.stage === 'bidding') { spine='bidding'; tagCls='bidding'; tag='In bidding'; rA='Figures in play'; rB='adjust any time'; act='Open'; actCls=''; }
+                   else if (c.stage === 'draft') { spine='draft'; tagCls='draft'; tag='Draft'; rA='Not sent yet'; rB=''; act='Open'; actCls=''; }
+                   else { spine='awaiting'; tagCls='awaiting'; tag='Awaiting'; rA='Invitation sent'; rB='waiting to join'; act='Open'; actCls=''; }
+                   const meta = settledRow ? ('MB-' + c.id + ' · settled at ' + money(c.settled_value != null ? c.settled_value : c.amount, c.currency)) : ('MB-' + c.id + ' · ' + money(c.amount, c.currency) + ' in dispute'); %>
+                <div class="prow">
+                  <span class="spine <%= spine %>"></span>
+                  <div class="pinfo"><div class="ptitle"><span class="nm"><%= c.title %></span><span class="tag <%= tagCls %>"><%= tag %></span></div><div class="pmeta"><%= meta %></div></div>
+                  <div class="pright"><div class="a"><%= rA %></div><% if (rB) { %><div class="b"><%= rB %></div><% } %></div>
+                  <a class="pbtn <%= actCls %>" href="/cases/<%= c.id %>"><%= act %></a>
+                </div>
+              <% }); %>
             </div>
-          <% }); %>
-          <% if (openTop.length) { %><a class="go" href="/cases/<%= openTop[0].id %>">Open active case &rarr;</a><% } %>
-        </div>
-      </div>
+          </div>
 
-      <div class="panel">
-        <div class="ph"><h2>This month</h2></div>
-        <div class="pb">
-          <div class="srow"><span class="sk">Cases opened</span><span class="sv"><%= openedMonth %></span></div>
-          <div class="srow"><span class="sk">Settled</span><span class="sv green"><%= settledMonth %></span></div>
-          <div class="srow"><span class="sk">Value settled</span><span class="sv green"><%= money(valueMonth, cur) %></span></div>
-          <div class="srow"><span class="sk">In bidding now</span><span class="sv"><%= biddingN %></span></div>
+          <div class="panel">
+            <div class="ph"><h2>Recent activity</h2></div>
+            <div class="pb">
+              <% if (activity.length === 0) { %><div class="empty">Activity will appear here as cases progress.</div><% } %>
+              <% activity.forEach(function(a){ %>
+                <div class="act">
+                  <span class="adot <%= a.tone %>">
+                    <% if (a.tone === 'green') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4 10-10"/></svg>
+                    <% } else if (a.tone === 'cobalt') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+                    <% } else if (a.tone === 'amber') { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                    <% } else { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><% } %>
+                  </span>
+                  <div><p class="at"><%= a.t %></p><p class="as"><%= a.s %></p></div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="cta">
-        <h3>Got a whole ledger?</h3>
-        <p>Import disputes in bulk, set one bid bar across the lot, and let MidBid chase the quiet ones.</p>
-        <a href="/cases">Open the ledger &rarr;</a>
+        <div class="col">
+          <div class="glass scale">
+            <div class="core">
+              <div class="ph"><h2>Your settlement scale</h2><span class="priv">Private</span></div>
+              <div class="pb">
+                <p class="subt">Only you see your figure. A case&rsquo;s colour follows its stage — never how close the other side is.</p>
+                <% if (openTop.length === 0) { %><div class="empty">No open cases right now.</div><% } %>
+                <% openTop.forEach(function(c){ const bidding = c.stage === 'bidding'; %>
+                  <div class="prog">
+                    <div class="pl"><span class="lab"><%= c.title %></span><span class="st <%= bidding ? 'c-cobalt' : 'c-amber' %>"><%= bidding ? 'In bidding' : 'Awaiting' %></span></div>
+                    <div class="bt"><span class="<%= bidding ? 'f-cobalt' : 'f-amber' %>" style="width:<%= bidding ? '64%' : '30%' %>"></span></div>
+                  </div>
+                <% }); %>
+                <% if (openTop.length) { %><a class="go" href="/cases/<%= openTop[0].id %>">Open active case &rarr;</a><% } %>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="ph"><h2>This month</h2></div>
+            <div class="pb">
+              <div class="srow"><span class="sk">Cases opened</span><span class="sv"><%= openedMonth %></span></div>
+              <div class="srow"><span class="sk">Settled</span><span class="sv green"><%= settledMonth %></span></div>
+              <div class="srow"><span class="sk">Value settled</span><span class="sv green"><%= money(valueMonth, cur) %></span></div>
+              <div class="srow"><span class="sk">In bidding now</span><span class="sv"><%= biddingN %></span></div>
+            </div>
+          </div>
+
+          <div class="cta">
+            <h3>Got a whole ledger?</h3>
+            <p>Import disputes in bulk, set one bid bar across the lot, and let MidBid chase the quiet ones.</p>
+            <a href="/cases">Open the ledger &rarr;</a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -202,4 +301,5 @@ function downloadMine(){
 </script>
 <% } %>
 
-<%- include('partials/app-foot') %>
+</body>
+</html>
