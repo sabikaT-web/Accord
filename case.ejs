@@ -2104,6 +2104,119 @@ html.role-resp .btn-gold {
 .mb-oneway svg { color: var(--party) !important; }
 .mb-nudge-top b, .mb-nudge-top svg { color: var(--party-text) !important; }
 
+
+/* Case title — role accent, not black */
+.cx-band .title,
+.cx-band .btitle,
+.cx-band h1 {
+  color: var(--party-text, #6f4a10) !important;
+}
+html.role-claim .cx-band .title { color: #6f4a10 !important; }
+html.role-resp .cx-band .title { color: #1e3a5f !important; }
+.cx-band .eyebrow {
+  color: var(--party-text, #6f4a10) !important;
+}
+
+/* Scale body text — role accent, not black */
+.mb-card,
+.mb-card .mb-figrole,
+.mb-card .note,
+.mb-card .muted,
+.mb-card #saveHint,
+.mb-card .mb-scale,
+.mb-card .mb-scale span {
+  color: var(--party-text, #6f4a10) !important;
+}
+html.role-claim .mb-card .mb-figrole,
+html.role-claim .mb-card .muted,
+html.role-claim .mb-card #saveHint { color: #6f4a10 !important; }
+html.role-resp .mb-card .mb-figrole,
+html.role-resp .mb-card .muted,
+html.role-resp .mb-card #saveHint { color: #1e3a5f !important; }
+
+html.role-claim .mb-fig { color: #6f4a10 !important; }
+html.role-resp .mb-fig { color: #1e3a5f !important; }
+
+/* Ideal/fair chip labels on scale — readable dark accents */
+.mb-chip[data-slot="ideal"] .k,
+.mb-chip[data-slot="ideal"] .v { color: #5b4a8a !important; }
+.mb-chip[data-slot="fair"] .k,
+.mb-chip[data-slot="fair"] .v { color: #2c4a6e !important; }
+
+/* Glass Pop buttons — Reset / Locked / ghost */
+.mb-actions .btn,
+.mb-actions button,
+#resetBtn,
+#saveBtn,
+.btn-ghost,
+button.btn-ghost {
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  font-size: .82rem !important;
+  padding: 10px 16px !important;
+  transition: background .15s, border-color .15s, box-shadow .15s !important;
+}
+/* Primary / locked save — solid party (already set); ensure not black */
+#saveBtn,
+.mb-actions .btn-primary {
+  background: var(--party, #8a5a12) !important;
+  border: 1.5px solid var(--party-deep, #6f4a10) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px -8px var(--party-glow) !important;
+}
+/* Ghost / Reset — glass pop */
+#resetBtn,
+.mb-actions .btn-ghost,
+button.btn-ghost,
+.mb-actions button.btn-ghost {
+  background:
+    linear-gradient(var(--mb-surface, #f7f3eb), var(--mb-surface, #f7f3eb)) padding-box,
+    linear-gradient(155deg, rgba(255,255,255,.7), color-mix(in srgb, var(--party-soft, #f5ead0) 70%, #fff)) border-box !important;
+  border: 2px solid transparent !important;
+  color: var(--party-text, #6f4a10) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 6px 14px -8px color-mix(in srgb, var(--party, #8a5a12) 25%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.08) !important;
+}
+html.role-claim #resetBtn,
+html.role-claim .btn-ghost {
+  color: #6f4a10 !important;
+  border-color: transparent !important;
+}
+html.role-resp #resetBtn,
+html.role-resp .btn-ghost {
+  color: #1e3a5f !important;
+}
+#resetBtn:hover,
+.btn-ghost:hover {
+  background:
+    linear-gradient(color-mix(in srgb, var(--party-soft) 35%, #fff), color-mix(in srgb, var(--party-soft) 35%, #fff)) padding-box,
+    linear-gradient(155deg, rgba(255,255,255,.85), var(--party-soft)) border-box !important;
+}
+
+/* Approve / Settle secondary if present */
+#approve,
+.mb-approve {
+  border-radius: 12px !important;
+  background:
+    linear-gradient(var(--mb-surface, #f7f3eb), var(--mb-surface, #f7f3eb)) padding-box,
+    linear-gradient(155deg, rgba(255,255,255,.7), var(--party-soft)) border-box !important;
+  border: 2px solid transparent !important;
+  color: var(--party-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Kill pure black on scale + band */
+.mb-card,
+.mb-card * {
+  /* don't force all children — too aggressive */
+}
+.mb-card .mb-chip .v {
+  font-weight: 600 !important;
+}
+
 </style>
 </div><!-- .main -->
 </body>
