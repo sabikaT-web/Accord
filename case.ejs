@@ -2011,16 +2011,14 @@ html.role-resp .fpanel{
 }
 .cx-band .fv.amt,
 .fpanel .fv.amt{
-  color: var(--party, #c27803) !important;
-  font-size: 1.05rem !important;
+  color: inherit !important;
+  font-size: 0.95rem !important; /* same as other values */
 }
 html.role-resp .cx-band .fv,
-html.role-resp .fpanel .fv{
-  color: var(--mb-blue-deep, #2c4a6e) !important;
-}
+html.role-resp .fpanel .fv,
 html.role-resp .cx-band .fv.amt,
 html.role-resp .fpanel .fv.amt{
-  color: var(--mb-blue, #3d5a80) !important;
+  color: var(--mb-blue-deep, #2c4a6e) !important;
 }
 .cx-band .fpanel > div,
 .fpanel > div{
@@ -2029,6 +2027,82 @@ html.role-resp .fpanel .fv.amt{
   flex-direction: column !important;
   align-items: flex-start !important;
 }
+
+
+/* Scale — darker party accents (match role text weight) */
+html.role-claim {
+  --party: #8a5a12;
+  --party-deep: #6f4a10;
+  --party-text: #6f4a10;
+  --party-soft: #f5ead0;
+  --party-border: #d4b87a;
+}
+html.role-resp {
+  --party: #2c4a6e;
+  --party-deep: #1e3a5f;
+  --party-text: #1e3a5f;
+  --party-soft: #dfe8f2;
+  --party-border: #8fa4bc;
+}
+
+html.role-claim .mb-fig { color: #6f4a10 !important; }
+html.role-resp .mb-fig { color: #1e3a5f !important; }
+
+html.role-claim .hub {
+  background: #8a5a12 !important;
+  box-shadow: 0 0 0 5px rgba(138,90,18,.22), 0 0 10px 1px rgba(138,90,18,.4) !important;
+}
+html.role-resp .hub {
+  background: #2c4a6e !important;
+  box-shadow: 0 0 0 5px rgba(44,74,110,.25), 0 0 10px 1px rgba(44,74,110,.4) !important;
+}
+
+html.role-claim .mb-chip[data-slot="res"] .k,
+html.role-claim .mb-chip[data-slot="res"] .v { color: #6f4a10 !important; }
+html.role-resp .mb-chip[data-slot="res"] .k,
+html.role-resp .mb-chip[data-slot="res"] .v { color: #1e3a5f !important; }
+
+html.role-claim .mb-chip[data-slot="res"].sel {
+  border-color: #8a5a12 !important;
+  background: color-mix(in srgb, #8a5a12 12%, #fff) !important;
+  box-shadow: 0 0 0 3px rgba(138,90,18,.22) !important;
+}
+html.role-resp .mb-chip[data-slot="res"].sel {
+  border-color: #2c4a6e !important;
+  background: color-mix(in srgb, #2c4a6e 12%, #fff) !important;
+  box-shadow: 0 0 0 3px rgba(44,74,110,.22) !important;
+}
+
+html.role-claim .mb-chip[data-slot="fair"] .k,
+html.role-claim .mb-chip[data-slot="fair"] .v { color: #2c4a6e !important; }
+html.role-resp .mb-chip[data-slot="fair"] .k,
+html.role-resp .mb-chip[data-slot="fair"] .v { color: #2c4a6e !important; }
+
+html.role-claim .coach-badge {
+  background: linear-gradient(135deg, #6f4a10, #8a5a12) !important;
+}
+html.role-resp .coach-badge {
+  background: linear-gradient(135deg, #1e3a5f, #2c4a6e) !important;
+}
+
+html.role-claim #saveBtn,
+html.role-claim .btn-primary#saveBtn,
+html.role-claim .btn-gold {
+  background: #8a5a12 !important;
+  border-color: #6f4a10 !important;
+  color: #fff !important;
+}
+html.role-resp #saveBtn,
+html.role-resp .btn-primary#saveBtn,
+html.role-resp .btn-gold {
+  background: #2c4a6e !important;
+  border-color: #1e3a5f !important;
+  color: #fff !important;
+}
+
+.mb-oneway { color: var(--party-text) !important; border-left-color: var(--party) !important; }
+.mb-oneway svg { color: var(--party) !important; }
+.mb-nudge-top b, .mb-nudge-top svg { color: var(--party-text) !important; }
 
 </style>
 </div><!-- .main -->
