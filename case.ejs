@@ -2495,6 +2495,129 @@ html.role-resp .hub {
   animation: none !important;
 }
 
+
+/* Scale glass pop — role specific (gold claim / slate resp) */
+html.role-claim .mb-card {
+  background:
+    linear-gradient(#f7f3eb, #f7f3eb) padding-box,
+    linear-gradient(145deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(254,246,228,.9) 28%,
+      rgba(232,212,168,.85) 52%,
+      rgba(194,120,3,.45) 78%,
+      rgba(232,163,23,.55) 100%) border-box !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.95) inset,
+    0 0 0 1px rgba(194,120,3,.18),
+    0 12px 28px -10px rgba(194,120,3,.22),
+    0 28px 56px -20px rgba(40,35,25,.14) !important;
+}
+html.role-resp .mb-card {
+  background:
+    linear-gradient(#f7f3eb, #f7f3eb) padding-box,
+    linear-gradient(145deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(232,238,246,.95) 28%,
+      rgba(184,200,220,.85) 52%,
+      rgba(61,90,128,.45) 78%,
+      rgba(90,122,166,.55) 100%) border-box !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.95) inset,
+    0 0 0 1px rgba(61,90,128,.2),
+    0 12px 28px -10px rgba(61,90,128,.22),
+    0 28px 56px -20px rgba(40,35,25,.14) !important;
+}
+
+/* Scale accents by role */
+html.role-claim .mb-card .mb-fig,
+html.role-claim .mb-card .mb-figrole,
+html.role-claim .mb-card #saveHint,
+html.role-claim .mb-card .muted { color: #8a5a12 !important; }
+html.role-resp .mb-card .mb-fig,
+html.role-resp .mb-card .mb-figrole,
+html.role-resp .mb-card #saveHint,
+html.role-resp .mb-card .muted { color: #2c4a6e !important; }
+
+html.role-claim .mb-card .hub,
+html.role-claim .hub {
+  background: #c27803 !important;
+  box-shadow: 0 0 0 5px rgba(194,120,3,.2), 0 0 12px 2px rgba(194,120,3,.4) !important;
+}
+html.role-resp .mb-card .hub,
+html.role-resp .hub {
+  background: #3d5a80 !important;
+  box-shadow: 0 0 0 5px rgba(61,90,128,.22), 0 0 12px 2px rgba(61,90,128,.4) !important;
+}
+
+html.role-claim .mb-card .mb-chip[data-slot="res"] .k,
+html.role-claim .mb-card .mb-chip[data-slot="res"] .v { color: #8a5a12 !important; }
+html.role-resp .mb-card .mb-chip[data-slot="res"] .k,
+html.role-resp .mb-card .mb-chip[data-slot="res"] .v { color: #2c4a6e !important; }
+
+html.role-claim .mb-card .mb-chip[data-slot="res"].sel {
+  border-color: #c27803 !important;
+  background: color-mix(in srgb, #c27803 12%, #fff) !important;
+  box-shadow: 0 0 0 3px rgba(194,120,3,.2) !important;
+}
+html.role-resp .mb-card .mb-chip[data-slot="res"].sel {
+  border-color: #3d5a80 !important;
+  background: color-mix(in srgb, #3d5a80 12%, #fff) !important;
+  box-shadow: 0 0 0 3px rgba(61,90,128,.22) !important;
+}
+
+html.role-claim .mb-card #saveBtn,
+html.role-claim .mb-card .btn-primary {
+  background: linear-gradient(145deg, #a06720, #c27803) !important;
+  border-color: #a06720 !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px -8px rgba(194,120,3,.4) !important;
+}
+html.role-resp .mb-card #saveBtn,
+html.role-resp .mb-card .btn-primary {
+  background: linear-gradient(145deg, #2c4a6e, #3d5a80) !important;
+  border-color: #2c4a6e !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px -8px rgba(61,90,128,.4) !important;
+}
+
+html.role-claim .mb-card #resetBtn,
+html.role-claim .mb-card .btn-ghost {
+  background:
+    linear-gradient(#f7f3eb, #f7f3eb) padding-box,
+    linear-gradient(155deg, rgba(255,255,255,.85), #fef6e4 40%, #e8d4a8) border-box !important;
+  color: #8a5a12 !important;
+}
+html.role-resp .mb-card #resetBtn,
+html.role-resp .mb-card .btn-ghost {
+  background:
+    linear-gradient(#f7f3eb, #f7f3eb) padding-box,
+    linear-gradient(155deg, rgba(255,255,255,.85), #e8eef6 40%, #b8c8dc) border-box !important;
+  color: #2c4a6e !important;
+  box-shadow: 0 1px 0 #fff inset, 0 6px 14px -8px rgba(61,90,128,.2) !important;
+}
+
+html.role-claim .mb-card .mb-oneway {
+  background: #fef6e4 !important;
+  border-color: #e8d4a8 !important;
+  border-left-color: #c27803 !important;
+  color: #8a5a12 !important;
+}
+html.role-claim .mb-card .mb-oneway svg { color: #c27803 !important; }
+html.role-resp .mb-card .mb-oneway {
+  background: #e8eef6 !important;
+  border-color: #b8c8dc !important;
+  border-left-color: #3d5a80 !important;
+  color: #2c4a6e !important;
+}
+html.role-resp .mb-card .mb-oneway svg { color: #3d5a80 !important; }
+
+html.role-claim .mb-card .coach-badge {
+  background: linear-gradient(135deg, #a06720, #c27803) !important;
+}
+html.role-resp .mb-card .coach-badge {
+  background: linear-gradient(135deg, #2c4a6e, #3d5a80) !important;
+}
+
 </style>
 </div><!-- .main -->
 </body>
