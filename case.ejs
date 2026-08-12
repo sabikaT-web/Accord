@@ -2480,6 +2480,21 @@ html.role-resp .hub {
   border-radius: 14px !important;
 }
 
+
+/* Remove top accent line on scale / glass cards */
+.mb-card::after,
+.cx-card::after,
+.cx-band-wrap::after,
+.cx-docs::after,
+.cx-mediator::after,
+.inv::after {
+  display: none !important;
+  content: none !important;
+  height: 0 !important;
+  background: none !important;
+  animation: none !important;
+}
+
 </style>
 </div><!-- .main -->
 </body>
