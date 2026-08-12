@@ -1902,9 +1902,12 @@ html.role-resp #mediatorBtn{
 
 
 /* Contrast boost */
-body, .main { color: #1a1814 !important; }
-.cx-band .fk, .cx-ceyebrow, .muted, .mb-figrole { color: #4a453c !important; }
-.cx-band .fv, .cx-ct, .cx-ti .h { color: #1a1814 !important; }
+body, .main { color: #2a2620 !important; }
+.cx-band .fk, .cx-ceyebrow, .muted, .mb-figrole { color: #5c564c !important; }
+.cx-ct, .cx-ti .h { color: #2a2620 !important; }
+.cx-band .id-title, .cx-band h1, .cx-band .btitle {
+  color: var(--party-text, #8a5a12) !important;
+}
 .cx-card, .cx-docs, .inv {
   border-color: #d9d0c0 !important;
   background: #f7f3eb !important;
@@ -1930,13 +1933,13 @@ body, .main { color: #1a1814 !important; }
 .cx-mediator .mb,
 .cx-mediator .cx-med-b,
 .med-broad .mb {
-  color: #1a1814 !important;
+  color: var(--party-text, #8a5a12) !important;
   font: 600 1.02rem/1.25 "Fraunces", Georgia, serif !important;
 }
 .cx-mediator .ms,
 .cx-mediator .cx-med-s,
 .med-broad .ms {
-  color: #3a352c !important;
+  color: #4a453c !important;
   font-size: .85rem !important;
   line-height: 1.5 !important;
   opacity: 1 !important;
@@ -2002,14 +2005,22 @@ html.role-resp .fpanel{
   font-weight: 600 !important;
   font-size: 0.95rem !important;
   line-height: 1.25 !important;
-  color: #1a1814 !important;
+  color: var(--party-text, #8a5a12) !important;
   margin: 0 !important;
   letter-spacing: -0.01em !important;
 }
 .cx-band .fv.amt,
 .fpanel .fv.amt{
-  color: var(--party-text, #8a5a12) !important;
+  color: var(--party, #c27803) !important;
   font-size: 1.05rem !important;
+}
+html.role-resp .cx-band .fv,
+html.role-resp .fpanel .fv{
+  color: var(--mb-blue-deep, #2c4a6e) !important;
+}
+html.role-resp .cx-band .fv.amt,
+html.role-resp .fpanel .fv.amt{
+  color: var(--mb-blue, #3d5a80) !important;
 }
 .cx-band .fpanel > div,
 .fpanel > div{
