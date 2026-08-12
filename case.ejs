@@ -2345,6 +2345,141 @@ html.role-resp .btn-ghost {
   padding: 12px 14px !important;
 }
 
+
+/* Overview palette + scale glass (claimant gold glow) */
+:root {
+  --bg: #d8d4cc !important;
+  --surface: #f7f3eb !important;
+  --surface2: #f3efe6 !important;
+  --line: #ebe4d6 !important;
+  --ink: #2a2620 !important;
+  --ink2: #3a352c !important;
+  --mut: #6a6358 !important;
+  --mut2: #8f877a !important;
+  --gold: #c27803 !important;
+  --gold2: #e8a317 !important;
+  --gold-soft: #fef6e4 !important;
+  --gold-border: #e8d4a8 !important;
+  --gold-text: #8a5a12 !important;
+  --gold-deep: #a06720 !important;
+  --mb-bg: #d8d4cc !important;
+  --mb-surface: #f7f3eb !important;
+  --mb-line: #ebe4d6 !important;
+  --mb-gold: #c27803 !important;
+  --mb-gold-soft: #fef6e4 !important;
+  --mb-gold-border: #e8d4a8 !important;
+  --mb-gold-text: #8a5a12 !important;
+}
+body {
+  background: #d8d4cc !important;
+  color: #2a2620 !important;
+}
+.side, .side-in, .side-bottom {
+  background: #f7f3eb !important;
+}
+.main, .topbar {
+  background: transparent !important;
+}
+.topbar {
+  background: rgba(247,243,235,.88) !important;
+  border-bottom: 1px solid #ebe4d6 !important;
+}
+.cx-card, .cx-docs, .inv, .cx-mediator, .med-broad, .cx-band-wrap {
+  background: #f7f3eb !important;
+  border-color: #ebe4d6 !important;
+}
+
+/* Scale: always claimant-gold glass glow pop */
+.mb-card {
+  border: 8px solid transparent !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(#f7f3eb, #f7f3eb) padding-box,
+    linear-gradient(145deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(254,246,228,.9) 28%,
+      rgba(232,212,168,.85) 52%,
+      rgba(194,120,3,.45) 78%,
+      rgba(232,163,23,.55) 100%) border-box !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.95) inset,
+    0 0 0 1px rgba(194,120,3,.18),
+    0 12px 28px -10px rgba(194,120,3,.22),
+    0 28px 56px -20px rgba(40,35,25,.14) !important;
+  backdrop-filter: blur(22px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.15) !important;
+}
+.mb-card::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 2.5px !important; z-index: 6 !important; pointer-events: none !important;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(232,163,23,.5) 20%,
+    #c27803 50%,
+    rgba(232,163,23,.5) 80%,
+    transparent) !important;
+  background-size: 200% 100% !important;
+  animation: iriGP 12s ease-in-out infinite !important;
+}
+
+/* Scale accents — claimant gold family */
+.mb-card .mb-fig,
+.mb-card .mb-figrole,
+.mb-card #saveHint,
+.mb-card .muted {
+  color: #8a5a12 !important;
+}
+.mb-card .hub,
+html.role-claim .hub,
+html.role-resp .hub {
+  background: #c27803 !important;
+  box-shadow: 0 0 0 5px rgba(194,120,3,.2), 0 0 12px 2px rgba(194,120,3,.4) !important;
+}
+.mb-card .mb-chip[data-slot="res"] .k,
+.mb-card .mb-chip[data-slot="res"] .v {
+  color: #8a5a12 !important;
+}
+.mb-card .mb-chip[data-slot="res"].sel {
+  border-color: #c27803 !important;
+  background: color-mix(in srgb, #c27803 12%, #fff) !important;
+  box-shadow: 0 0 0 3px rgba(194,120,3,.2) !important;
+}
+.mb-card #saveBtn,
+.mb-card .btn-primary {
+  background: linear-gradient(145deg, #a06720, #c27803) !important;
+  border-color: #a06720 !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px -8px rgba(194,120,3,.4) !important;
+}
+.mb-card #resetBtn,
+.mb-card .btn-ghost {
+  background:
+    linear-gradient(#f7f3eb, #f7f3eb) padding-box,
+    linear-gradient(155deg, rgba(255,255,255,.85), #fef6e4 40%, #e8d4a8) border-box !important;
+  border: 2px solid transparent !important;
+  color: #8a5a12 !important;
+  box-shadow: 0 1px 0 #fff inset, 0 6px 14px -8px rgba(194,120,3,.2) !important;
+}
+.mb-card .mb-oneway {
+  background: #fef6e4 !important;
+  border-color: #e8d4a8 !important;
+  border-left: 3px solid #c27803 !important;
+  color: #8a5a12 !important;
+}
+.mb-card .mb-oneway svg { color: #c27803 !important; }
+.mb-card .coach-badge {
+  background: linear-gradient(135deg, #a06720, #c27803) !important;
+}
+
+/* Side panels: overview-like soft surface */
+.cx-card, .cx-docs {
+  box-shadow: 0 1px 0 #fff inset !important;
+  border: 1px solid #ebe4d6 !important;
+  border-radius: 14px !important;
+}
+
 </style>
 </div><!-- .main -->
 </body>
