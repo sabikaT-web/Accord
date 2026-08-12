@@ -794,7 +794,10 @@ html.role-resp .mb-ask-ic {
           <div class="cx-ti a"><div class="h">Invitation sent</div><div class="t"><%= fmtDate(c.invited_at) %></div></div>
           <% } %>
           <% if ((role === 'claim' ? c.claim_value : c.resp_value) != null) { %>
-          <div class="cx-ti"><div class="h">Your figures saved</div><div class="t">—</div></div>
+          <div class="cx-ti">
+            <div class="h">Your figures saved<% if (role === 'claim' && c.claim_value != null) { %><div class="tsub">Minimum acceptable amount · <%= money(c.claim_value, c.currency) %></div><% } %></div>
+            <div class="t">—</div>
+          </div>
           <% } %>
           <% if (c.status === 'settled') { %>
           <div class="cx-ti g"><div class="h">Settled at <%= money(c.settled_value, c.currency) %></div><div class="t"><%= fmtDate(c.settled_at) %></div></div>
@@ -917,10 +920,9 @@ html.role-resp .mb-ask-ic {
     <button class="btn btn-ghost" type="button" id="resetBtn" title="The figures will go back to your last saved numbers.">Reset</button>
     <button class="mb-approve" type="button" id="approve" style="display:none"><span class="lbl" id="approveLbl">Settle</span></button>
     <span class="muted" id="saveHint"></span>
-    <span class="muted" id="roundLine" style="display:block;width:100%;margin-top:.4rem;font-size:.82rem"></span>
+    <span class="muted" id="roundLine" style="display:none" aria-hidden="true"></span>
   </div>
 
-  <p class="note">🔒&nbsp; These three figures are yours alone. The other side never sees your numbers — the coach only signals when your ranges get close.</p>
 
       <div class="cx-card cx-pad" id="documents">
         <span class="cx-ceyebrow">Evidence</span>
@@ -1182,11 +1184,9 @@ html.role-resp .mb-ask-ic {
     roundLine(s);
   }
   function roundLine(s){
+    /* Round / limit line removed from UI — limit still enforced server-side */
     var el = document.getElementById('roundLine');
-    if(!el) return;
-    var bits = ['Round ' + s.round];
-    if(s.limitText) bits.push(s.limitText);
-    el.textContent = bits.join(' · ');
+    if(el){ el.textContent = ''; el.style.display = 'none'; }
   }
 
   function step(sn,tx,ty,e){ sn.x+=(tx-sn.x)*e; sn.y+=(ty-sn.y)*e; sn.hist.unshift({x:sn.x,y:sn.y}); if(sn.hist.length>70)sn.hist.pop(); }
@@ -1825,6 +1825,45 @@ html.role-resp #saveBtn{
   .side{width:64px !important}
   .side .brand b,.side nav a .lbl,.side .who .nm,.side .who .rl,.side .newcase .lbl{display:none}
 }
+
+/* Timeline sub-line under "Your figures saved" */
+.cx-ti .tsub{display:block;font:500 .75rem/1.35 "Hanken Grotesk",sans-serif;color:var(--party-text,#8a5a12);margin-top:3px}
+html.role-claim .cx-ti .tsub{color:var(--mb-gold-text,#8a5a12)}
+
+/* Mediator: bottom of page, darker CTA */
+.cx-body{display:flex !important;flex-direction:column !important}
+.cx-grid{flex:1 1 auto !important}
+.cx-mediator, .med-broad, .cx-card.cx-mediator{
+  order:99 !important;
+  margin-top:auto !important;
+  width:100% !important;
+  max-width:none !important;
+}
+.cx-mediator .mbtn,
+.cx-mediator .cx-med-btn,
+.med-broad .mbtn,
+#mediatorBtn{
+  background:linear-gradient(145deg, var(--party-deep,#a06720), var(--party,#c27803)) !important;
+  border:1px solid var(--party-deep,#a06720) !important;
+  color:#fff !important;
+  font-weight:700 !important;
+  box-shadow:0 8px 18px -8px var(--party-glow,rgba(194,120,3,.4)) !important;
+}
+html.role-resp .cx-mediator .mbtn,
+html.role-resp .cx-mediator .cx-med-btn,
+html.role-resp .med-broad .mbtn,
+html.role-resp #mediatorBtn{
+  background:linear-gradient(145deg, #2c4a6e, #3d5a80) !important;
+  border-color:#2c4a6e !important;
+  color:#fff !important;
+}
+#mediatorBtn:disabled,
+.cx-mediator .mbtn:disabled{
+  opacity:.75 !important;
+  cursor:default !important;
+  box-shadow:none !important;
+}
+
 </style>
 </div><!-- .main -->
 </body>
