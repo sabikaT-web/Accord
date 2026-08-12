@@ -1759,8 +1759,33 @@ body{display:flex !important}
     0 22px 46px -18px rgba(40,35,25,.15),
     0 0 0 1px color-mix(in srgb, var(--party,#c27803) 16%, transparent) !important;
   position:relative;
-  overflow:hidden;
+  overflow:visible !important; /* don't clip corner text */
+  padding: 4px !important; /* inset content from curved border */
+  box-sizing: border-box !important;
 }
+.mb-card > *{
+  position: relative;
+  z-index: 1;
+}
+/* Inner content inset so text clears the radius */
+.mb-card .mb-figwrap,
+.mb-card .mb-chips,
+.mb-card .mb-track,
+.mb-card .mb-scale,
+.mb-card .mb-oneway,
+.mb-card .mb-nudge,
+.mb-card .coach,
+.mb-card .mb-actions,
+.mb-card .mb-ask,
+.mb-card h2,
+.mb-card .mb-direction,
+.mb-card .mb-settled{
+  margin-left: 6px !important;
+  margin-right: 6px !important;
+}
+.mb-card .mb-figwrap{ margin-top: 12px !important; }
+.mb-card .mb-actions{ margin-bottom: 10px !important; padding-bottom: 4px !important; }
+
 .mb-card::after{
   content:"";position:absolute;top:0;left:0;right:0;height:2px;z-index:6;pointer-events:none;
   background:linear-gradient(90deg,transparent, color-mix(in srgb,var(--party,#c27803) 55%,transparent) 30%, var(--party,#c27803) 50%, transparent);
@@ -1843,19 +1868,30 @@ html.role-claim .cx-ti .tsub{color:var(--mb-gold-text,#8a5a12)}
 .cx-mediator .cx-med-btn,
 .med-broad .mbtn,
 #mediatorBtn{
-  background:linear-gradient(145deg, var(--party-deep,#a06720), var(--party,#c27803)) !important;
-  border:1px solid var(--party-deep,#a06720) !important;
-  color:#fff !important;
-  font-weight:700 !important;
-  box-shadow:0 8px 18px -8px var(--party-glow,rgba(194,120,3,.4)) !important;
+  background: var(--party-deep, #a06720) !important;
+  border: 1.5px solid var(--party-deep, #a06720) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: .82rem !important;
+  letter-spacing: .01em !important;
+  text-shadow: 0 1px 0 rgba(0,0,0,.2) !important;
+  box-shadow: 0 8px 18px -8px var(--party-glow, rgba(194,120,3,.4)) !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+html.role-claim .cx-mediator .mbtn,
+html.role-claim #mediatorBtn,
+html.role-claim .med-broad .mbtn{
+  background: #8a5a12 !important; /* darker gold for WCAG contrast with white */
+  border-color: #6f4a10 !important;
+  color: #fff !important;
 }
 html.role-resp .cx-mediator .mbtn,
 html.role-resp .cx-mediator .cx-med-btn,
 html.role-resp .med-broad .mbtn,
 html.role-resp #mediatorBtn{
-  background:linear-gradient(145deg, #2c4a6e, #3d5a80) !important;
-  border-color:#2c4a6e !important;
-  color:#fff !important;
+  background: #1e3a5f !important; /* darker blue */
+  border-color: #152a45 !important;
+  color: #fff !important;
 }
 #mediatorBtn:disabled,
 .cx-mediator .mbtn:disabled{
@@ -1863,6 +1899,26 @@ html.role-resp #mediatorBtn{
   cursor:default !important;
   box-shadow:none !important;
 }
+
+
+/* Contrast boost */
+body, .main { color: #1a1814 !important; }
+.cx-band .fk, .cx-ceyebrow, .muted, .mb-figrole { color: #4a453c !important; }
+.cx-band .fv, .cx-ct, .cx-ti .h { color: #1a1814 !important; }
+.cx-card, .cx-docs, .inv {
+  border-color: #d9d0c0 !important;
+  background: #f7f3eb !important;
+}
+.mb-chip {
+  border-color: #d9d0c0 !important;
+  background: #f3efe6 !important;
+}
+.mb-chip .k { color: #5c564c !important; }
+.mb-chip .v { color: #1a1814 !important; }
+.cx-ti .t { color: #5c564c !important; }
+.note, .mb-oneway, .coach-text { color: #2a2620 !important; }
+.topbar { border-bottom-color: #d9d0c0 !important; }
+.side { border-right-color: #d9d0c0 !important; }
 
 </style>
 </div><!-- .main -->
