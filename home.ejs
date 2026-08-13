@@ -1,1247 +1,204 @@
-<%#
-  MidBid homepage
-  Usage (Express):  res.render('home', { title: 'MidBid — Bid blind. Settle on your terms.' })
-  Optional locals:  signupUrl, businessUrl, privacyUrl, termsUrl, cookiesUrl, contactEmail
-%>
+<%# home.ejs — self-contained view (no partial includes), deploy to repo root, commit to main.
+    Contains the new TOP of the homepage: nav + hero (with the private-figures scale on the right) + the guarantee card.
+    Your existing sections (intro slider / value bar / industries / how-it-works / footer) drop into the marked slots below. %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><%= typeof title !== "undefined" && title ? title : "MidBid — Bid blind. Settle on your terms." %></title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<title>MidBid — Bid blind. Settle on your terms.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #e8e6e0;
-  --ink: #1a1612;
-  --ink2: #2c2620;
-  --mut: #6a6358;
-  --mut2: #8a8278;
-  --blue: #3d5a80;
-  --blue-deep: #2c4a6e;
-  --blue-soft: #e4eaf2;
-  --gold: #c27803;
-  --gold2: #e8a317;
-  --gold-soft: #fef6e4;
-  --green: #4d7c5a;
-  --green2: #5f9a6e;
-  --green-soft: #e8f0ea;
-  --line: #ddd6c8;
-  --white: #faf8f4;
-
-  /* Type theme — 3 roles only */
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-
-  /* Type scale (root 16px). Minimum readable UI: 14px; body: 16px */
-  --text-xs: 0.75rem;    /* 12px — labels, uppercase only */
-  --text-sm: 0.875rem;   /* 14px — secondary UI */
-  --text-base: 1rem;     /* 16px — body */
-  --text-md: 1.125rem;   /* 18px — lead */
-  --text-lg: 1.25rem;    /* 20px — card titles */
-  --text-xl: 1.5rem;     /* 24px — section sub */
-  --text-2xl: clamp(1.75rem, 3vw, 2.25rem);  /* ~28–36 */
-  --text-3xl: clamp(2rem, 4vw, 2.5rem);      /* hero */
-
-  --leading-tight: 1.2;
-  --leading-snug: 1.35;
-  --leading-normal: 1.55;
-  --leading-relaxed: 1.65;
-  --tracking-label: 0.12em;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body {
-  background: var(--bg); color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-normal);
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;              /* the inner .scroll region scrolls, not the page */
-  --vb-h: 48px;
-}
-/* App shell: fixed nav, a scrolling content region, and the value bar as a real slot
-   that reorders between top and bottom — so it never overlaps the content. */
-.shell {
-  height: 100vh; height: 100dvh;
-  display: flex; flex-direction: column; overflow: hidden;
-  position: relative; z-index: 1;
-}
-.scroll {
-  order: 2; flex: 1 1 auto; min-height: 0;
-  overflow-y: auto; overflow-x: hidden;
-  scroll-behavior: smooth;
-}
-/* Value bar: a real flex slot (not an overlay). Docks bottom while scrolling down,
-   flips above the content while scrolling up. Never overlaps content. */
-.valuebar {
-  flex: none; order: 3; height: var(--vb-h); z-index: 2;
-  background: rgba(250,248,244,0.94);
-  -webkit-backdrop-filter: saturate(1.1) blur(10px);
-  backdrop-filter: saturate(1.1) blur(10px);
-  transition: opacity 0.16s ease;
-  will-change: opacity;
-}
-.valuebar.dock-bottom {
-  order: 3;
-  border-top: 1px solid var(--line);
-  box-shadow: 0 -8px 24px -18px rgba(40,35,25,0.35);
-}
-.valuebar.dock-top {
-  order: 1;
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 8px 24px -18px rgba(40,35,25,0.35);
-}
-.valuebar.swap { opacity: 0; }
-.vb-inner {
-  max-width: 1200px; height: 100%; margin: 0 auto; padding: 0 24px;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-}
-.vb-item {
-  display: flex; align-items: center; gap: 9px;
-  font-size: var(--text-sm); font-weight: 600; color: var(--mut);
-  white-space: nowrap;
-}
-.vb-item .vb-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--mut2); }
-.vb-item:nth-child(1) .vb-dot { background: var(--blue); }
-.vb-item:nth-child(2) .vb-dot { background: var(--gold2); }
-.vb-item:nth-child(3) .vb-dot { background: var(--blue); }
-.vb-item:nth-child(4) .vb-dot { background: var(--gold2); }
-.vb-sep { width: 1px; height: 16px; background: var(--line); flex: none; }
-@media (max-width: 760px) {
-  body { --vb-h: 74px; }              /* taller band on mobile where items wrap to two rows */
-  .valuebar { height: var(--vb-h); }
-  .vb-sep { display: none; }
-  .vb-inner { flex-wrap: wrap; justify-content: center; align-content: center; gap: 6px 18px; padding: 0 18px; }
-  .vb-item { font-size: var(--text-xs); }
-}
-.stage { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.blob { position: absolute; border-radius: 50%; filter: blur(90px); }
-.b1 { width: 480px; height: 480px; left: -12%; top: -14%; background: #d4c4a8; opacity: 0.42; }
-.b2 { width: 380px; height: 380px; right: -10%; top: 18%; background: #a8b8d0; opacity: 0.3; }
-.b3 { width: 300px; height: 300px; left: 30%; bottom: -8%; background: #e8c878; opacity: 0.26; }
-
-.nav {
-  order: 0; flex: none;
-  position: relative; z-index: 20;
-  width: 100%; max-width: 1200px; margin: 0 auto; padding: 16px 24px;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-}
-.logo {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-family: var(--font-display); font-weight: 600; font-size: var(--text-lg);
-  letter-spacing: -0.02em; text-decoration: none; color: var(--ink);
-}
-.logo-mark { display: block; width: 40px; height: 34px; flex: none; }
-.logo-mark svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.foot-logo-mark { width: 34px; height: 29px; flex: none; }
-.foot-logo-mark svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.nav-links a {
-  font-size: var(--text-sm); font-weight: 600; text-decoration: none; color: var(--mut);
-  padding: 8px 12px; border-radius: 9px;
-}
-.nav-links a:hover { color: var(--ink); background: rgba(255,255,255,0.7); }
-.nav-links a.cta {
-  color: #fff; background: var(--blue);
-  padding: 9px 16px; margin-left: 6px;
-  box-shadow: 0 8px 20px -6px rgba(61,90,128,0.4);
-}
-.nav-links a.cta:hover { background: var(--blue-deep); color: #fff; }
-
-.app {
-  position: relative; z-index: 1;
-  max-width: 1200px; margin: 0 auto; padding: 0 24px 80px;
-}
-.nav {
-  max-width: 1200px;
-}
-
-.btn {
-  font-weight: 700; font-size: var(--text-sm); padding: 12px 20px; border-radius: 12px;
-  text-decoration: none; display: inline-flex; align-items: center; border: none;
-  cursor: pointer; transition: filter 0.15s, transform 0.15s;
-}
-.btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
-.btn-blue {
-  background: linear-gradient(145deg, var(--blue-deep), var(--blue)); color: #fff;
-  box-shadow: 0 10px 26px -8px rgba(44,74,110,0.45);
-}
-.btn-gold {
-  background: linear-gradient(145deg, var(--gold), var(--gold2)); color: #1c1917;
-  box-shadow: 0 10px 26px -8px rgba(194,120,3,0.35);
-}
-.btn-ghost {
-  background: var(--white); color: var(--ink2); border: 1.5px solid var(--line);
-}
-
-/* Split hero */
-.hero-split {
-  display: grid;
-  grid-template-columns: 1.02fr 0.98fr;
-  gap: 48px;
-  align-items: center;
-  margin: 40px 0 44px;
-  width: 100%;
-}
-.hero-copy .ey {
-  font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
-  font-weight: 700; color: var(--blue);
-}
-.hero-copy h1 {
-  font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-3xl); letter-spacing: -0.03em; line-height: var(--leading-tight);
-  margin: 12px 0 14px;
-}
-.hero-copy .lead {
-  color: var(--mut); font-size: var(--text-md); line-height: var(--leading-relaxed);
-  margin-bottom: 22px; max-width: none;
-}
-.hero-actions {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;
-}
-.pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.hero-features {
-  list-style: none; display: grid; gap: 12px; margin-top: 6px;
-}
-.hero-features li {
-  display: flex; align-items: flex-start; gap: 11px;
-  font-size: var(--text-base); color: var(--ink2); line-height: var(--leading-snug);
-}
-.hero-features .fx {
-  flex: none; width: 22px; height: 22px; border-radius: 7px; margin-top: 1px;
-  display: grid; place-items: center;
-  background: var(--blue-soft); color: var(--blue-deep);
-  font-size: 12px; font-weight: 800;
-}
-.hero-features li:nth-child(2) .fx { background: var(--gold-soft); color: #92400e; }
-.hero-features li:nth-child(3) .fx { background: #ece9e3; color: var(--ink2); }
-.hero-features li strong { font-weight: 700; }
-.hero-features li span.ft-sub { color: var(--mut); font-weight: 400; }
-.pill {
-  font-size: var(--text-xs); font-weight: 700; padding: 7px 12px; border-radius: 999px;
-}
-.pill.b { background: var(--blue-soft); color: var(--blue-deep); }
-.pill.g { background: var(--gold-soft); color: #92400e; }
-.pill.n { background: var(--green-soft); color: #2d4a34; }
-.pill.m { background: #f0eeeb; color: var(--mut); }
-
-/* Scale on right — interactive product surface */
-.scale {
-  padding: 26px 24px 22px;
-  border-radius: 22px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.9) inset,
-    0 24px 48px -16px rgba(40,35,25,0.14),
-    0 0 0 1px rgba(61,90,128,0.05);
-  position: relative; overflow: hidden;
-  transition: box-shadow 0.35s ease, border-color 0.35s ease;
-}
-.scale.is-close {
-  border-color: #e8c878;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.9) inset,
-    0 24px 48px -16px rgba(40,35,25,0.14),
-    0 0 0 1px rgba(232,163,23,0.2),
-    0 0 40px -12px rgba(232,163,23,0.25);
-}
-.scale.is-meet {
-  border-color: #a3c9ae;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.9) inset,
-    0 24px 48px -16px rgba(40,35,25,0.12),
-    0 0 0 1px rgba(79,124,90,0.25),
-    0 0 48px -10px rgba(79,124,90,0.35);
-}
-.scale::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--gold2), var(--green2), var(--blue));
-  background-size: 200% 100%;
-  animation: flow 5s ease-in-out infinite;
-}
-.scale.is-meet::before {
-  background: linear-gradient(90deg, var(--green2), #86efac, var(--green2));
-  animation: flow 2.5s ease-in-out infinite;
-}
-@keyframes flow {
-  0%,100% { background-position: 0% 0; }
-  50% { background-position: 100% 0; }
-}
-.scale-head { margin-bottom: 16px; }
-.scale-head h2 {
-  font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-lg); margin-bottom: 4px; letter-spacing: -0.02em;
-  line-height: var(--leading-snug);
-}
-.scale-head p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
-
-.scale-sides {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
-}
-.side-box {
-  padding: 14px; border-radius: 14px;
-  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
-}
-.side-box.owed { background: #fef6e4; border: 1.5px solid #e8c878; }
-.side-box.owe { background: var(--blue-soft); border: 1.5px solid #c5d0dc; }
-.side-box.active {
-  box-shadow: 0 0 0 2px rgba(61,90,128,0.15);
-  transform: translateY(-1px);
-}
-.side-box.owed.active { box-shadow: 0 0 0 2px rgba(232,163,23,0.35); }
-.side-box.owe.active { box-shadow: 0 0 0 2px rgba(61,90,128,0.3); }
-.side-box .label {
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-label);
-  text-transform: uppercase; color: var(--mut2);
-}
-.side-box .role { font-size: var(--text-sm); color: var(--mut); margin-top: 2px; }
-.side-box .amount {
-  font-family: var(--font-mono);
-  font-size: var(--text-xl); font-weight: 600; margin-top: 6px;
-  transition: color 0.25s, transform 0.15s;
-}
-.side-box .amount.tick {
-  transform: scale(1.04);
-}
-.side-box.owed .amount { color: var(--gold); }
-.side-box.owe .amount { color: var(--blue); }
-
-.track {
-  height: 16px; border-radius: 12px;
-  background: linear-gradient(180deg, #e8e4dc, #f5f2eb);
-  border: 1px solid var(--line);
-  position: relative; margin-bottom: 6px;
-  box-shadow: inset 0 1px 3px rgba(40,35,25,0.08);
-  cursor: pointer;
-}
-.band {
-  position: absolute; left: 34%; width: 28%; height: 100%; border-radius: 12px;
-  background: linear-gradient(90deg,
-    rgba(232,163,23,0.55),
-    rgba(95,154,110,0.5),
-    rgba(61,90,128,0.5));
-  transition: left 0.06s linear, width 0.06s linear, background 0.3s, box-shadow 0.3s;
-}
-.band.meet {
-  background: linear-gradient(90deg, #5f9a6e, #86efac, #5f9a6e);
-  background-size: 200% 100%;
-  animation: bandShine 1.8s ease-in-out infinite;
-  box-shadow: 0 0 20px rgba(79,124,90,0.45);
-}
-@keyframes bandShine {
-  0%,100% { background-position: 0% 0; }
-  50% { background-position: 100% 0; }
-}
-.handle {
-  position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 3px solid #fff;
-  cursor: grab; touch-action: none; z-index: 2;
-  transition: transform 0.12s ease, box-shadow 0.2s;
-}
-.handle::after {
-  content: ""; position: absolute; inset: -8px; border-radius: 50%;
-  border: 2px solid transparent;
-  transition: border-color 0.2s, transform 0.2s;
-}
-.handle:hover { transform: translate(-50%, -50%) scale(1.1); }
-.handle:hover::after { border-color: rgba(40,35,25,0.12); }
-.handle.dragging {
-  cursor: grabbing; transform: translate(-50%, -50%) scale(1.18);
-  z-index: 3;
-}
-.handle.a {
-  left: 34%;
-  background: radial-gradient(circle at 35% 30%, #fde68a, var(--gold2));
-  box-shadow: 0 0 0 0 rgba(232,163,23,0.4), 0 4px 12px rgba(15,23,42,0.18);
-}
-.handle.a.dragging, .handle.a:hover {
-  box-shadow: 0 0 0 6px rgba(232,163,23,0.2), 0 6px 16px rgba(15,23,42,0.2);
-}
-.handle.b {
-  left: 62%;
-  background: radial-gradient(circle at 35% 30%, #b8cce0, var(--blue));
-  box-shadow: 0 0 0 0 rgba(61,90,128,0.35), 0 4px 12px rgba(15,23,42,0.18);
-}
-.handle.b.dragging, .handle.b:hover {
-  box-shadow: 0 0 0 6px rgba(61,90,128,0.18), 0 6px 16px rgba(15,23,42,0.2);
-}
-.handle:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 3px;
-}
-.scale-labs {
-  display: flex; justify-content: space-between;
-  font-size: var(--text-xs); font-family: var(--font-mono); color: var(--mut2);
-  margin-bottom: 14px;
-}
-.meter {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;
-}
-.meter span {
-  text-align: center; font-size: var(--text-xs); font-weight: 600;
-  padding: 8px 4px; border-radius: 10px;
-  color: var(--mut2); background: #f8f6f1; border: 1px solid var(--line);
-}
-.meter span.active-far {
-  background: #fef2f2; border-color: #fecaca; color: #b91c1c;
-}
-.meter span.active-close {
-  background: #fef6e4; border-color: #e8c878; color: #92400e;
-}
-.meter span.active-meet {
-  background: var(--green-soft); border-color: #a3c9ae; color: #2d4a34;
-}
-.signal {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 12px 14px; border-radius: 12px;
-  font-size: var(--text-sm); font-weight: 600; line-height: var(--leading-snug);
-  transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.25s;
-}
-.signal.meet {
-  transform: scale(1.01);
-}
-.signal .dot {
-  width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 4px;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 1; } 50% { opacity: 0.45; }
-}
-.signal.far { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
-.signal.far .dot { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-.signal.close { background: #fef6e4; border: 1px solid #e8c878; color: #92400e; }
-.signal.close .dot { background: var(--gold2); box-shadow: 0 0 8px var(--gold2); }
-.signal.meet { background: var(--green-soft); border: 1px solid #a3c9ae; color: #2d4a34; }
-.signal.meet .dot { background: var(--green2); box-shadow: 0 0 8px var(--green2); }
-.scale-note {
-  margin-top: 10px; font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal);
-}
-.scale-rules {
-  margin-top: 8px; padding: 10px 12px; border-radius: 10px;
-  background: #f5f2eb; border: 1px solid var(--line);
-  font-size: var(--text-sm); line-height: var(--leading-normal);
-}
-
-.section { margin: 56px 0; }
-.section .ey {
-  text-align: center; font-size: var(--text-xs); letter-spacing: var(--tracking-label);
-  text-transform: uppercase; font-weight: 700; color: var(--blue);
-}
-.section h2 {
-  text-align: center; font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-2xl); margin: 8px 0 10px; letter-spacing: -0.02em;
-  line-height: var(--leading-tight);
-}
-.section .lead {
-  text-align: center; color: var(--mut); font-size: var(--text-md); line-height: var(--leading-relaxed);
-  max-width: 54ch; margin: 0 auto 28px;
-}
-
-.steps {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-}
-.step {
-  padding: 20px 16px; border-radius: 18px;
-  background: var(--white); border: 1px solid var(--line);
-  box-shadow: 0 8px 24px -12px rgba(40,35,25,0.06);
-  border-top: 3px solid var(--blue);
-}
-.step:nth-child(2) { border-top-color: var(--gold2); }
-.step:nth-child(3) { border-top-color: var(--green2); }
-.step:nth-child(4) { border-top-color: var(--blue); }
-.step .n {
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em; margin-bottom: 8px;
-}
-.step:nth-child(1) .n { color: var(--blue); }
-.step:nth-child(2) .n { color: var(--gold); }
-.step:nth-child(3) .n { color: var(--green); }
-.step:nth-child(4) .n { color: var(--blue); }
-.step h3 { font-size: var(--text-base); font-weight: 700; margin-bottom: 6px; line-height: var(--leading-snug); }
-.step p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
-
-.why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.why .card {
-  padding: 22px 18px; border-radius: 18px;
-  background: var(--white); border: 1px solid var(--line);
-}
-.why h3 { font-size: var(--text-base); font-weight: 700; margin-bottom: 6px; line-height: var(--leading-snug); }
-.why p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
-
-.privacy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.privacy-card {
-  padding: 20px 18px; border-radius: 16px;
-  background: var(--white); border: 1px solid var(--line);
-}
-.privacy-card .tag {
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-label);
-  text-transform: uppercase; color: var(--mut2); margin-bottom: 8px;
-}
-.privacy-card h3 { font-size: var(--text-base); font-weight: 700; margin-bottom: 6px; }
-.privacy-card p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
-.privacy-foot {
-  margin-top: 16px; padding: 16px 18px; border-radius: 14px;
-  background: #f5f2eb; border: 1px solid var(--line);
-  font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal);
-}
-.privacy-foot a { color: var(--blue); font-weight: 600; }
-
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.split .card { padding: 26px 24px; border-radius: 20px; }
-.split .ind {
-  background: linear-gradient(160deg, var(--blue-soft) 0%, var(--white) 60%);
-  border: 1.5px solid #c5d0dc;
-}
-.split .biz {
-  background: linear-gradient(160deg, #fef6e4 0%, var(--white) 60%);
-  border: 1.5px solid #e8c878;
-}
-.split .tag {
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-label);
-  text-transform: uppercase; display: block; margin-bottom: 8px;
-}
-.split .ind .tag { color: var(--blue); }
-.split .biz .tag { color: var(--gold); }
-.split h3 {
-  font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-xl); margin-bottom: 8px; line-height: var(--leading-snug);
-}
-.split p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); margin-bottom: 14px; }
-.split ul {
-  list-style: none; font-size: var(--text-sm); color: var(--ink2);
-  line-height: 1.7; margin-bottom: 18px;
-}
-.split .ind ul li::before { content: "· "; color: var(--blue); font-weight: 700; }
-.split .biz ul li::before { content: "· "; color: var(--gold); font-weight: 700; }
-.split .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-.split .chip {
-  font-size: var(--text-xs); font-weight: 600; padding: 5px 10px; border-radius: 999px;
-  background: rgba(255,255,255,0.85); border: 1px solid var(--line); color: var(--mut);
-}
-
-.industries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.ind-card {
-  padding: 20px 20px; border-radius: 14px;
-  background: var(--white); border: 1px solid var(--line);
-  border-top: 3px solid var(--blue);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.ind-card:nth-child(3n+2) { border-top-color: var(--gold2); }
-.ind-card:nth-child(3n) { border-top-color: var(--ink2); }
-.ind-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px -12px rgba(40,35,25,0.12);
-}
-
-.ind-card h4 { font-size: var(--text-sm); font-weight: 700; margin-bottom: 4px; }
-.ind-card p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
-.ind-note {
-  margin-top: 16px; text-align: center; font-size: var(--text-sm); color: var(--mut);
-  max-width: 56ch; margin-left: auto; margin-right: auto; line-height: var(--leading-normal);
-}
-
-.quotes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.quote {
-  padding: 22px 18px; border-radius: 18px;
-  background: var(--white); border: 1px solid var(--line);
-}
-.quote p {
-  font-size: var(--text-base); line-height: var(--leading-normal); color: var(--ink2); margin-bottom: 14px;
-  font-family: var(--font-display); font-weight: 500;
-}
-.quote .who { font-size: var(--text-sm); font-weight: 700; color: var(--ink); }
-.quote .role { font-size: var(--text-sm); color: var(--mut2); }
-
-.final {
-  text-align: center; padding: 40px 28px; border-radius: 24px; margin-top: 56px;
-  background: linear-gradient(145deg, #2c2620 0%, #3d5a80 55%, #4a6a8a 100%);
-  color: #fff;
-  box-shadow: 0 24px 48px -16px rgba(44,74,110,0.35);
-  position: relative; overflow: hidden;
-}
-.final::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, transparent, #e8a317, #5f9a6e, #93a8c0, transparent);
-  background-size: 200% 100%;
-  animation: flow 5s ease-in-out infinite;
-}
-.final-ey {
-  font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
-  font-weight: 700; color: #e8c878; margin-bottom: 10px;
-}
-.final h2 {
-  font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-2xl); margin-bottom: 8px; line-height: var(--leading-tight);
-}
-.final p {
-  opacity: 0.92; font-size: var(--text-md); margin-bottom: 20px;
-  max-width: 44ch; margin-left: auto; margin-right: auto;
-  line-height: var(--leading-relaxed);
-}
-
-.site-foot {
-  margin-top: 56px; padding-top: 36px; border-top: 1px solid var(--line);
-  font-size: var(--text-sm); color: var(--mut2);
-}
-.foot-grid {
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px;
-  margin-bottom: 28px;
-}
-.foot-logo {
-  display: inline-flex; align-items: center; gap: 9px;
-  font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-lg); color: var(--ink); margin-bottom: 8px;
-}
-.foot-brand p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); max-width: 28ch; }
-.foot-col h4 {
-  font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
-  font-weight: 700; color: var(--ink2); margin-bottom: 10px;
-}
-.foot-col a {
-  display: block; color: var(--mut); text-decoration: none;
-  font-weight: 500; font-size: var(--text-sm); padding: 3px 0;
-}
-.foot-col a:hover { color: var(--blue); }
-.foot-bottom {
-  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-  padding-top: 18px; border-top: 1px solid var(--line);
-  font-size: var(--text-xs); color: var(--mut2);
-}
-
-@media (max-width: 900px) {
-  .hero-split, .steps, .why, .privacy-grid, .split, .quotes, .scale-sides {
-    grid-template-columns: 1fr;
+  :root{
+    --bg:#e8e6e0; --surface:#f7f3eb; --surface-2:#fbf8f1;
+    --ink:#232019; --muted:#6f685c; --slate:#3d5a80;
+    --gold:#c27803; --green:#4d7c5a; --line:#d9d3c6; --line-soft:#e6e0d4;
   }
-  .industries { grid-template-columns: 1fr 1fr; }
-  .foot-grid { grid-template-columns: 1fr 1fr; }
-}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 44px}
+  a{color:inherit;text-decoration:none}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+  .btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14.5px;cursor:pointer;border-radius:10px;padding:11px 20px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+  .btn-primary{background:var(--slate);border-color:var(--slate);color:#fff;font-weight:600}
+  .dotg{width:9px;height:9px;border-radius:999px;background:var(--green);display:inline-block}
+
+  /* nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0 0}
+  .brand{display:flex;align-items:center;gap:11px;font-family:"Fraunces",serif;font-size:21px;font-weight:600}
+  .brand svg{width:34px;height:29px}
+  .navlinks{display:flex;align-items:center;gap:30px;font-size:14.5px;color:var(--muted)}
+  .navlinks a:hover{color:var(--ink)}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:56px 0 20px}
+  .hero .eyebrow{display:block;margin:0 0 20px}
+  .hero h1{font-family:"Fraunces",serif;font-weight:500;font-size:54px;line-height:1.04;letter-spacing:-.02em;margin:0 0 22px}
+  .hero .lead{font-size:17px;color:var(--muted);margin:0 0 28px;max-width:500px}
+  .hero .cta{display:flex;gap:12px}
+
+  /* hero scale panel */
+  .panel{background:linear-gradient(160deg,var(--surface-2),var(--surface));border:1px solid var(--line);border-radius:20px;padding:28px 30px;box-shadow:0 26px 50px -34px rgba(50,42,28,.5)}
+  .panel .top{display:flex;justify-content:space-between;align-items:center}
+  .p-tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .p-status{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--green);display:flex;align-items:center;gap:7px}
+  .conv{position:relative;height:150px;margin:16px 0 6px}
+  .conv .rail{position:absolute;left:8%;right:8%;top:50%;height:5px;border-radius:5px;background:#e7e0d1;transform:translateY(-50%)}
+  .settle{position:absolute;top:50%;left:60%;width:24px;height:24px;border-radius:999px;transform:translate(-50%,-50%);
+    background:rgba(77,124,90,.16);border:2px solid var(--green);opacity:0;transition:opacity .45s ease;box-shadow:0 0 0 8px rgba(77,124,90,.10)}
+  .cdot{position:absolute;top:50%;width:20px;height:20px;border-radius:999px;transform:translate(-50%,-50%);left:16%}
+  .cdot.a{background:var(--slate)}
+  .cdot.b{background:var(--gold);left:84%}
+  .p-legend{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);border-top:1px solid var(--line-soft);padding-top:16px;margin-top:8px}
+  .p-caption{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.03em;color:#9a9280;margin-top:9px;text-align:center}
+
+  /* guarantees */
+  .guarantees{padding:64px 0}
+  .gcard{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px 46px 20px;display:grid;grid-template-columns:.9fr 1.1fr;gap:60px;align-items:center}
+  .thesis{padding:30px 0}
+  .thesis .eyebrow{display:block;margin:0 0 18px}
+  .thesis h2{font-family:"Fraunces",serif;font-weight:500;font-size:33px;line-height:1.18;margin:0;letter-spacing:-.01em}
+  .thesis h2 .soft{color:var(--muted)}
+  .g-row{display:grid;grid-template-columns:104px 1fr;gap:28px;align-items:center;padding:24px 0;border-top:1px solid var(--line-soft)}
+  .g-row:last-child{border-bottom:1px solid var(--line-soft)}
+  .g-art{width:104px;height:56px}
+  .g-kicker{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin:0 0 7px}
+  .g-row p.g-text{font-family:"Fraunces",serif;font-weight:400;font-size:19px;line-height:1.4;margin:0;color:var(--ink)}
+  .g-text b{font-weight:600}
+
+  /* placeholder footer — replace with your existing footer */
+  .foot{border-top:1px solid var(--line);margin-top:8px}
+  .foot .wrap{display:flex;justify-content:space-between;align-items:center;padding-top:34px;padding-bottom:44px;color:var(--muted);font-size:13.5px}
+  .foot .brand{font-size:18px}
+
+  @media (max-width:900px){
+    .wrap{padding:0 22px}
+    .navlinks a:not(.btn){display:none}
+    .hero,.gcard{grid-template-columns:1fr;gap:34px}
+    .gcard{padding:26px 26px 10px}
+    .g-row{grid-template-columns:1fr;gap:12px}
+    .g-art{order:2}
+    .hero h1{font-size:40px}
+  }
+  @media (prefers-reduced-motion:reduce){.settle{transition:none}}
 </style>
 </head>
 <body>
-<!-- ===== MidBid pressure intro (inlined; no partial needed) ===== -->
-<%
-  var _list     = (typeof introList     !== 'undefined' && introList)     ? introList : [
-                    'Legal fees','Frozen cash','Disproportionate cost','Years lost',
-                    'Complex procedure','Adverse costs','Enforcement risk','Disclosure burden',
-                    'Uncertain outcome','Damaged relationships','Power imbalance','Lost confidentiality'];
-  var _eyebrow  = (typeof introEyebrow  !== 'undefined' && introEyebrow)  ? introEyebrow  : 'Without a private path';
-  var _climax   = (typeof introClimax   !== 'undefined' && introClimax)   ? introClimax   : 'Cost & uncertainty';
-  var _headline = (typeof introHeadline !== 'undefined' && introHeadline) ? introHeadline : 'Bid blind. Settle on your terms.';
-  var _tagline  = (typeof introTagline  !== 'undefined' && introTagline)  ? introTagline  : 'Private figures — when they meet, a binding settlement.';
-  var _once     = (typeof introOnce     !== 'undefined') ? introOnce : true;
-%>
-<style>
-.mbi{
-  position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
-  background:
-    radial-gradient(70% 60% at 50% 34%, #f2efe8 0%, var(--bg,#e8e6e0) 60%),
-    radial-gradient(40% 40% at 18% 78%, rgba(47,107,255,.10), transparent 60%),
-    radial-gradient(40% 40% at 82% 22%, rgba(245,179,18,.12), transparent 60%);
-  transform:translateY(0);transition:transform .78s cubic-bezier(.72,0,.18,1);will-change:transform;
-}
-.mbi.mbi-lift{transform:translateY(-101%)}
-.mbi-inner{width:min(760px,90vw);text-align:center;padding:24px}
-.mbi-logo{display:flex;justify-content:center;margin-bottom:24px}
-.mbi-ey{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--blue,#3d5a80);margin-bottom:16px}
-.mbi-lane{overflow:hidden;min-height:1.35em;display:flex;align-items:center;justify-content:center}
-.mbi-word{
-  font-family:"Fraunces",Georgia,serif;font-weight:600;
-  font-size:clamp(1.9rem,5.6vw,3.2rem);letter-spacing:-.025em;line-height:1.1;
-  color:var(--ink,#1a1612);white-space:nowrap;transform:translateX(0);opacity:1;will-change:transform,opacity;
-}
-.mbi-word.mbi-danger{color:#a85d42}
-.mbi-sub{margin-top:12px;font-size:.95rem;color:var(--mut,#6a6358);min-height:1.4em;transition:opacity .4s ease}
-.mbi-progress{width:200px;height:4px;border-radius:20px;background:rgba(26,22,18,.1);margin:28px auto 0;overflow:hidden}
-.mbi-progress i{display:block;height:100%;width:0;border-radius:20px;background:linear-gradient(90deg,#2f6bff,#e8a317 55%,#a85d42)}
-/* STATIC solution — always visible while the pressures cycle above */
-.mbi-solution{margin-top:32px;padding-top:24px;border-top:1px solid var(--line,#ddd6c8)}
-.mbi-solution .mbi-main{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(1.3rem,2.6vw,1.7rem);color:var(--ink,#1a1612);letter-spacing:-.01em;margin:0 0 6px}
-.mbi-solution .mbi-tag{font-size:.92rem;color:var(--mut,#6a6358);margin:0}
-.mbi-skip{position:absolute;top:24px;right:28px;font-size:.82rem;font-weight:600;color:var(--mut,#6a6358);background:rgba(250,248,244,.7);border:1px solid var(--line,#ddd6c8);border-radius:20px;padding:7px 15px;cursor:pointer;transition:.18s}
-.mbi-skip:hover{color:var(--ink,#1a1612);border-color:var(--blue,#3d5a80)}
-.mbi-hint{position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:.74rem;color:var(--mut,#6a6358);opacity:.7}
-body.mbi-lock{overflow:hidden}
-</style>
 
-<div class="mbi" id="mbIntro" data-once="<%= _once ? '1' : '0' %>" role="dialog" aria-label="Intro">
-  <button class="mbi-skip" id="mbiSkip" type="button">Skip intro →</button>
-  <div class="mbi-inner">
-    <div class="mbi-logo">
-      <svg width="56" height="47" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <clipPath id="mbiLens"><circle cx="19" cy="21" r="12"/></clipPath>
-        <circle cx="19" cy="21" r="12" fill="none" stroke="#2f6bff" stroke-width="2.4"/>
-        <circle cx="29" cy="21" r="12" fill="none" stroke="#f5b312" stroke-width="2.4"/>
-        <circle cx="29" cy="21" r="12" fill="#15b877" clip-path="url(#mbiLens)"/>
-        <circle cx="24" cy="4.5" r="2.4" fill="#2f6bff"/><circle cx="24" cy="37.5" r="2.4" fill="#f5b312"/>
-      </svg>
+  <%# logo mark — unique clipPath id to avoid colliding with any other logo in the page %>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="mb-logo" viewBox="0 0 48 40">
+      <clipPath id="mb-lens-hero"><circle cx="19" cy="21" r="11"/></clipPath>
+      <g clip-path="url(#mb-lens-hero)"><circle cx="29" cy="21" r="11" fill="#15B877" opacity="0.9"/></g>
+      <circle cx="19" cy="21" r="11" fill="none" stroke="#2F6BFF" stroke-width="2.4"/>
+      <circle cx="29" cy="21" r="11" fill="none" stroke="#F5B312" stroke-width="2.4"/>
+      <circle cx="24" cy="6" r="2.3" fill="#2F6BFF"/><circle cx="24" cy="36" r="2.3" fill="#F5B312"/>
+    </symbol>
+  </svg>
+
+  <%# ===== NAV ===== (point links at your real routes) %>
+  <div class="wrap"><nav class="nav">
+    <div class="brand"><svg><use href="#mb-logo"/></svg> MidBid</div>
+    <div class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="/fees">Pricing</a>
+      <a href="/login">Log in</a>
+      <a class="btn btn-primary" href="/cases/new">Open a case</a>
     </div>
-    <div class="mbi-ey"><%= _eyebrow %></div>
-    <div class="mbi-lane"><div class="mbi-word" id="mbiWord"><%= _list[0] %></div></div>
-    <div class="mbi-sub" id="mbiSub">Pressures that stack in a typical dispute</div>
-    <div class="mbi-progress"><i id="mbiBar"></i></div>
-    <div class="mbi-solution">
-      <p class="mbi-main"><%= _headline %></p>
-      <p class="mbi-tag"><%= _tagline %></p>
-    </div>
-  </div>
-  <div class="mbi-hint">Click anywhere, scroll, or press any key to skip</div>
-</div>
+  </nav></div>
 
-<script>
-(function () {
-  var KEY='mb_intro_seen_v1';
-  var root=document.getElementById('mbIntro');
-  if(!root) return;
-  var word=document.getElementById('mbiWord'), sub=document.getElementById('mbiSub'),
-      bar=document.getElementById('mbiBar'), skip=document.getElementById('mbiSkip');
-  var body=document.body, docEl=document.documentElement;
-  var scroller=document.getElementById('scroll'); // MidBid app-shell scroll region, if present
-
-  var LIST=<%- JSON.stringify(_list) %>;
-  var CLIMAX=<%- JSON.stringify(_climax) %>;
-  var ONCE = root.getAttribute('data-once')==='1';
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  var STEP=780, SLIDE=360, OFF=36, START=200, CLIMAX_HOLD=1200;
-  var timers=[], ended=false;
-  function T(fn,ms){ var t=setTimeout(fn,ms); timers.push(t); return t; }
-  function clearAll(){ timers.forEach(clearTimeout); timers=[]; }
-
-  function lockScroll(on){
-    if(on){ body.classList.add('mbi-lock'); docEl.style.overflow='hidden'; if(scroller) scroller.style.overflow='hidden'; }
-    else  { body.classList.remove('mbi-lock'); docEl.style.overflow=''; if(scroller) scroller.style.overflow=''; }
-  }
-
-  function slideTo(label,danger){
-    word.style.transition='transform '+SLIDE+'ms cubic-bezier(.4,0,.2,1), opacity '+SLIDE+'ms ease';
-    word.style.transform='translateX(-'+OFF+'px)'; word.style.opacity='0';
-    T(function(){
-      word.textContent=label; word.classList.toggle('mbi-danger',!!danger);
-      word.style.transition='none'; word.style.transform='translateX('+OFF+'px)';
-      void word.offsetWidth;
-      word.style.transition='transform '+SLIDE+'ms cubic-bezier(.4,0,.2,1), opacity '+SLIDE+'ms ease';
-      word.style.transform='translateX(0)'; word.style.opacity='1';
-    }, SLIDE-20);
-  }
-
-  function endIntro(){
-    if(ended) return; ended=true; clearAll();
-    root.classList.add('mbi-lift'); lockScroll(false);
-    setTimeout(function(){ root.style.display='none'; }, 820);
-    detach();
-  }
-
-  function play(){
-    lockScroll(true);
-    var c = START + LIST.length*STEP;
-    var total = c + CLIMAX_HOLD;
-    void bar.offsetWidth;
-    bar.style.transition='width '+total+'ms linear'; bar.style.width='100%';
-    LIST.forEach(function(l,i){ if(i>0) T(function(){ slideTo(l,false); }, START + i*STEP); });
-    T(function(){ slideTo(CLIMAX, true); sub.textContent='They compound until the outcome is hard to control.'; }, c);
-    T(endIntro, total);
-    attach();
-  }
-
-  function onAny(){ endIntro(); }
-  function attach(){
-    window.addEventListener('keydown', onAny);
-    window.addEventListener('wheel', onAny, {passive:true});
-    window.addEventListener('touchstart', onAny, {passive:true});
-    root.addEventListener('click', onAny);
-  }
-  function detach(){
-    window.removeEventListener('keydown', onAny);
-    window.removeEventListener('wheel', onAny);
-    window.removeEventListener('touchstart', onAny);
-    root.removeEventListener('click', onAny);
-  }
-  skip.addEventListener('click', function(e){ e.stopPropagation(); endIntro(); });
-
-  // ---- decide on load ----
-  var seen=false; try{ seen = ONCE && localStorage.getItem(KEY)==='1'; }catch(e){}
-  if(seen || reduce){
-    root.style.display='none'; lockScroll(false);   // returning visitor / reduced-motion: skip straight in
-  } else {
-    if(ONCE){ try{ localStorage.setItem(KEY,'1'); }catch(e){} }
-    play();
-  }
-})();
-</script>
-<!-- ===== /pressure intro ===== -->
-<div class="stage">
-  <div class="blob b1"></div>
-  <div class="blob b2"></div>
-  <div class="blob b3"></div>
-</div>
-
-<div class="shell">
-
-<nav class="nav">
-  <a class="logo" href="#" aria-label="MidBid home">
-    <span class="logo-mark" aria-hidden="true">
-      <svg viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <clipPath id="mb-lens-nav"><circle cx="18" cy="20" r="11"/></clipPath>
-        </defs>
-        <!-- settlement lens: green shows only within the true overlap -->
-        <g clip-path="url(#mb-lens-nav)"><circle cx="30" cy="20" r="11" fill="#15B877"/></g>
-        <!-- the two parties, drawn as clean outlined circles -->
-        <circle cx="18" cy="20" r="11" fill="none" stroke="#2F6BFF" stroke-width="2.4"/>
-        <circle cx="30" cy="20" r="11" fill="none" stroke="#F5B312" stroke-width="2.4"/>
-        <!-- accent dots -->
-        <circle cx="24" cy="3.4" r="2.3" fill="#2F6BFF"/>
-        <circle cx="24" cy="36.6" r="2.3" fill="#F5B312"/>
-      </svg>
-    </span>
-    <span>MidBid</span>
-  </a>
-  <div class="nav-links">
-    <a href="#process">How it works</a>
-    <a href="#why">Why MidBid</a>
-    <a href="#privacy">Confidentiality</a>
-    <a href="#audiences">Business</a>
-    <a class="cta" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
-  </div>
-</nav>
-
-<aside class="valuebar dock-bottom" id="valuebar" aria-label="Why MidBid">
-  <div class="vb-inner">
-    <span class="vb-item"><span class="vb-dot" aria-hidden="true"></span>Private by design</span>
-    <span class="vb-sep" aria-hidden="true"></span>
-    <span class="vb-item"><span class="vb-dot" aria-hidden="true"></span>Settle in days</span>
-    <span class="vb-sep" aria-hidden="true"></span>
-    <span class="vb-item"><span class="vb-dot" aria-hidden="true"></span>Binding &amp; enforceable</span>
-    <span class="vb-sep" aria-hidden="true"></span>
-    <span class="vb-item"><span class="vb-dot" aria-hidden="true"></span>Avoid costly litigation</span>
-  </div>
-</aside>
-
-<div class="scroll" id="scroll">
-<div class="app">
-
-  <section class="hero-split">
-    <div class="hero-copy">
-      <div class="ey">Online mediation</div>
+  <%# ===== HERO ===== %>
+  <header class="hero wrap">
+    <div>
+      <span class="eyebrow">Online mediation</span>
       <h1>Bid blind.<br>Settle on your terms.</h1>
       <p class="lead">Each party submits private figures the other never sees, round after round. The case settles the moment your figures meet — no lawyers, no courtroom, no showing your hand.</p>
-      <div class="hero-actions">
-        <a class="btn btn-blue" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
-        <a class="btn btn-ghost" href="#process">How it works</a>
+      <div class="cta">
+        <a class="btn btn-primary" href="/cases/new">Open a case</a>
+        <a class="btn" href="#how">See how it works</a>
       </div>
-      <ul class="hero-features">
-        <li><span class="fx" aria-hidden="true">✓</span><span><strong>Neither side sees the other's figure</strong> <span class="ft-sub">— only a shared colour signal when you're close.</span></span></li>
-        <li><span class="fx" aria-hidden="true">✓</span><span><strong>One sealed bid per round</strong> <span class="ft-sub">— no probing, no anchoring, no games.</span></span></li>
-        <li><span class="fx" aria-hidden="true">✓</span><span><strong>No settlement, no success fee</strong> <span class="ft-sub">— a modest fee to open a case, the rest only if it resolves.</span></span></li>
-      </ul>
     </div>
+    <div class="panel">
+      <div class="top"><span class="p-tag">Round 3 · live</span><span class="p-status"><span class="dotg"></span> closing in</span></div>
+      <div class="conv"><div class="rail"></div><div class="settle" id="settle"></div><div class="cdot a" id="dotA"></div><div class="cdot b" id="dotB"></div></div>
+      <div class="p-legend"><span>You</span><span>Them</span></div>
+      <div class="p-caption">Settles wherever your figures cross</div>
+    </div>
+  </header>
 
-    <div class="scale" aria-label="Interactive settlement scale demo">
-      <div class="scale-head">
-        <h2>The settlement scale</h2>
-        <p>Drag either handle. Live cases show only your side and a shared colour signal.</p>
+  <%# ===== GUARANTEES ===== %>
+  <section class="guarantees wrap" id="how">
+    <div class="gcard">
+      <div class="thesis">
+        <span class="eyebrow">Why it's fair</span>
+        <h2>No tactics to learn, no leverage to lose. <span class="soft">Three fixed guarantees do the negotiating for you.</span></h2>
       </div>
-      <div class="scale-sides">
-        <div class="side-box owed">
-          <div class="label">Claimant</div>
-          <div class="role">Least you will accept</div>
-          <div class="amount" id="amt-owed">£58,000</div>
+      <div class="proof">
+        <div class="g-row">
+          <svg class="g-art" viewBox="0 0 104 56" fill="none" aria-hidden="true">
+            <line x1="12" y1="28" x2="92" y2="28" stroke="#d9d3c6" stroke-width="2"/>
+            <circle cx="42" cy="28" r="13" fill="#4d7c5a" opacity="0.14"/><circle cx="64" cy="28" r="13" fill="#4d7c5a" opacity="0.14"/>
+            <circle cx="42" cy="28" r="5.4" fill="#3d5a80"/><circle cx="64" cy="28" r="5.4" fill="#c27803"/>
+          </svg>
+          <div><p class="g-kicker">Privacy</p><p class="g-text">Neither side sees the other's figure — only a <b>shared colour signal</b> when you're close.</p></div>
         </div>
-        <div class="side-box owe">
-          <div class="label">Respondent</div>
-          <div class="role">Most you will pay</div>
-          <div class="amount" id="amt-owe">£30,000</div>
+        <div class="g-row">
+          <svg class="g-art" viewBox="0 0 104 56" fill="none" aria-hidden="true">
+            <rect x="33" y="15" width="38" height="28" rx="5" fill="#f7f3eb" stroke="#3d5a80" stroke-width="2"/>
+            <path d="M43 15v-2.4a9 9 0 0 1 18 0V15" stroke="#3d5a80" stroke-width="2" fill="none"/>
+            <circle cx="52" cy="29" r="3" fill="#c27803"/><rect x="50.6" y="30.6" width="2.8" height="7" rx="1.4" fill="#c27803"/>
+          </svg>
+          <div><p class="g-kicker">The bid</p><p class="g-text">One <b>sealed bid</b> per round — no probing, no anchoring, no games.</p></div>
+        </div>
+        <div class="g-row">
+          <svg class="g-art" viewBox="0 0 104 56" fill="none" aria-hidden="true">
+            <circle cx="40" cy="28" r="12" fill="none" stroke="#b9b1a1" stroke-width="2" stroke-dasharray="3 4"/>
+            <circle cx="66" cy="28" r="12" fill="#c27803" opacity="0.12"/><circle cx="66" cy="28" r="12" fill="none" stroke="#c27803" stroke-width="2"/>
+            <text x="66" y="32.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#c27803">£</text>
+          </svg>
+          <div><p class="g-kicker">The fee</p><p class="g-text">No settlement, no success fee — a modest fee to open a case, the rest <b>only if it resolves.</b></p></div>
         </div>
       </div>
-      <div class="track" id="scale-track">
-        <div class="band" id="scale-band"></div>
-        <div class="handle a" id="handle-owed" role="slider" aria-valuemin="0" aria-valuemax="80000" aria-label="Least you will accept" tabindex="0"></div>
-        <div class="handle b" id="handle-owe" role="slider" aria-valuemin="0" aria-valuemax="80000" aria-label="Most you will pay" tabindex="0"></div>
-      </div>
-      <div class="scale-labs"><span>£0</span><span>£40,000</span><span>£80,000</span></div>
-      <div class="meter" id="scale-meter">
-        <span data-state="far">Far apart</span>
-        <span data-state="close">Getting close</span>
-        <span data-state="meet">Settled</span>
-      </div>
-      <div class="signal close" id="scale-signal">
-        <span class="dot"></span>
-        <span id="signal-text">Adjust the handles to explore proximity and settlement.</span>
-      </div>
-      <p class="scale-note">Demo shows both sides for clarity. On a live case each party sees only their own figure and a shared colour—never the counterpart’s number.</p>
-      <p class="scale-rules"><strong>Settlement rules.</strong> A round settles when the claimant’s minimum is less than or equal to the respondent’s maximum—the figures meet. The settlement amount is the midpoint. Drag the handles to see how proximity is signalled.</p>
     </div>
   </section>
 
-  <section class="section" id="process">
-    <div class="ey">The process</div>
-    <h2>From dispute to settlement in four steps</h2>
-    <p class="lead">A structured path to a signed outcome—without revealing either party’s position until settlement is possible.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="n">STEP 01</div>
-        <h3>Define the dispute</h3>
-        <p>Identify the parties and the amount in issue. Both confirm and agree to resolve the matter on MidBid.</p>
-      </div>
-      <div class="step">
-        <div class="n">STEP 02</div>
-        <h3>Submit private figures</h3>
-        <p>Enter, in private, the least you will accept or the most you will pay. You may revise before a round is locked.</p>
-      </div>
-      <div class="step">
-        <div class="n">STEP 03</div>
-        <h3>Read the signal</h3>
-        <p>While figures remain far apart, nothing is disclosed. As figures approach, the scale indicates proximity—still without revealing amounts.</p>
-      </div>
-      <div class="step">
-        <div class="n">STEP 04</div>
-        <h3>Settle</h3>
-        <p>When figures meet, the midpoint becomes a binding, e-signed settlement.</p>
-      </div>
-    </div>
-  </section>
+  <%# ============================================================
+      YOUR EXISTING SECTIONS GO HERE
+      Paste the rest of your current home.ejs below this line —
+      the industries section, how-it-works steps, final CTA, etc.
+      (The intro slider + docking value bar live near the top of your
+      current file; keep those as they are — they aren't in this file.)
+      ============================================================ %>
 
-  <section class="section" id="why">
-    <div class="ey">Why MidBid</div>
-    <h2>Neither party is required to move first in the open</h2>
-    <p class="lead">Conventional negotiation rewards disclosure or delay. Blind bidding lets both sides move toward a fair number without exposing their hand.</p>
-    <div class="why">
-      <div class="card">
-        <h3>No settlement, no success fee</h3>
-        <p>A modest charge opens a case. A service fee applies only if the matter settles.</p>
-      </div>
-      <div class="card">
-        <h3>Blind by design</h3>
-        <p>Your figure is never shown to the other party—only a shared colour signal when proximity is reached.</p>
-      </div>
-      <div class="card">
-        <h3>One bid per round</h3>
-        <p>Figures lock when a round is submitted. There is no opportunity to probe or infer the other side’s number.</p>
-      </div>
-      <div class="card">
-        <h3>Binding settlements</h3>
-        <p>When the rules are met, the midpoint is recorded as an e-signed, enforceable settlement.</p>
-      </div>
-      <div class="card">
-        <h3>Transparent fees</h3>
-        <p>Opening fee and success-linked charge only. No escrow percentage on the settled sum.</p>
-      </div>
-      <div class="card">
-        <h3>Days, not years</h3>
-        <p>Most matters conclude in a small number of rounds—far shorter than litigation or prolonged correspondence.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="privacy">
-    <div class="ey">Confidentiality</div>
-    <h2>Blind only matters if it is real</h2>
-    <p class="lead">What is never transmitted, what the other party can see, and what MidBid retains.</p>
-    <div class="privacy-grid">
-      <div class="privacy-card">
-        <div class="tag">Never transmitted</div>
-        <h3>Your figures do not travel</h3>
-        <p>Ideal, target, and walk-away values are never sent to the other party. The only number that crosses is the settled amount, when the rules are met.</p>
-      </div>
-      <div class="privacy-card">
-        <div class="tag">Never transmitted</div>
-        <h3>Your notes remain private</h3>
-        <p>Case notes are visible only to you. They are not shown to the other party at any stage.</p>
-      </div>
-      <div class="privacy-card">
-        <div class="tag">Not public</div>
-        <h3>No public record of disputes</h3>
-        <p>MidBid does not operate a public directory of cases. A matter is visible to the parties and authorised staff only.</p>
-      </div>
-      <div class="privacy-card">
-        <div class="tag">Access</div>
-        <h3>Who may open your case</h3>
-        <p>You, the other party, and MidBid staff operating the service. Anyone else requires your explicit authority.</p>
-      </div>
-    </div>
-    <div class="privacy-foot">
-      <strong>Retention.</strong> Case data remains available while your account is open. You may request deletion. MidBid is the data controller under UK GDPR. See the <a href="<%= typeof privacyUrl !== 'undefined' && privacyUrl ? privacyUrl : '/privacy' %>">privacy notice</a>.
-    </div>
-  </section>
-
-  <section class="section" id="audiences">
-    <div class="ey">Who it is for</div>
-    <h2>One dispute or a full ledger</h2>
-    <p class="lead">The same private scale applies from modest deposits to multi-figure commercial claims.</p>
-    <div class="split">
-      <div class="card ind">
-        <span class="tag">Individuals</span>
-        <h3>A single matter</h3>
-        <p>One unresolved sum between you and another party. Open a case, invite the counterpart, and proceed through private rounds until the matter settles or you stop.</p>
-        <ul>
-          <li>Define the dispute and invite the other side</li>
-          <li>Submit private figures in each round</li>
-          <li>Reach a binding settlement where ranges allow</li>
-        </ul>
-        <div class="chips">
-          <span class="chip">One case</span>
-          <span class="chip">No success fee if unresolved</span>
-        </div>
-        <a class="btn btn-blue" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
-      </div>
-      <div class="card biz">
-        <span class="tag">Business</span>
-        <h3>A portfolio of disputes</h3>
-        <p>Handle volume without a separate negotiation for every claim. Import matters, set policy, manage invitations in one place.</p>
-        <ul>
-          <li>Import disputes from a spreadsheet</li>
-          <li>Apply a consistent bid policy across cases</li>
-          <li>Bulk invitations and automated reminders</li>
-        </ul>
-        <div class="chips">
-          <span class="chip">Many cases</span>
-          <span class="chip">Bulk invites</span>
-          <span class="chip">Dashboard</span>
-        </div>
-        <a class="btn btn-gold" href="<%= typeof businessUrl !== 'undefined' && businessUrl ? businessUrl : '/business' %>">Business portal</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="ey">Sectors</div>
-    <h2>Where MidBid is used</h2>
-    <p class="lead">The mechanism does not depend on industry, but on the intentions of the parties.</p>
-    <div class="industries">
-      <div class="ind-card"><h4>Construction &amp; engineering</h4><p>Variations, delay, retention, and final accounts.</p></div>
-      <div class="ind-card"><h4>Shipping &amp; logistics</h4><p>Demurrage, freight, cargo damage, and delay.</p></div>
-      <div class="ind-card"><h4>Energy &amp; infrastructure</h4><p>Supply contracts, EPC disputes, availability, and offtake.</p></div>
-      <div class="ind-card"><h4>Property &amp; real estate</h4><p>Deposits, dilapidations, service charges, and arrears.</p></div>
-      <div class="ind-card"><h4>Professional services</h4><p>Unpaid fees, scope disputes, and terminated engagements.</p></div>
-      <div class="ind-card"><h4>Technology &amp; SaaS</h4><p>Licence fees, SLA credits, and contract exits.</p></div>
-      <div class="ind-card"><h4>Insurance</h4><p>Quantum gaps, subrogation, and recoveries.</p></div>
-      <div class="ind-card"><h4>Manufacturing &amp; supply</h4><p>Delivery, defects, price, and volume disputes.</p></div>
-    </div>
-    <p class="ind-note"><strong>No floor, no ceiling.</strong> Court is slow at every scale. The settlement rules are not.</p>
-  </section>
-
-  <section class="final">
-    <div class="final-ey">Bid blind. Settle on your terms.</div>
-    <h2>Open your first case</h2>
-    <p>Create an account and invite the other party. Figures remain private until the settlement rules are met.</p>
-    <a class="btn btn-gold" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Create account</a>
-  </section>
-
-  <footer class="site-foot">
-    <div class="foot-grid">
-      <div class="foot-brand">
-        <div class="foot-logo">
-          <span class="foot-logo-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <clipPath id="mb-lens-foot"><circle cx="18" cy="20" r="11"/></clipPath>
-              </defs>
-              <g clip-path="url(#mb-lens-foot)"><circle cx="30" cy="20" r="11" fill="#15B877"/></g>
-              <circle cx="18" cy="20" r="11" fill="none" stroke="#2F6BFF" stroke-width="2.4"/>
-              <circle cx="30" cy="20" r="11" fill="none" stroke="#F5B312" stroke-width="2.4"/>
-              <circle cx="24" cy="3.4" r="2.3" fill="#2F6BFF"/>
-              <circle cx="24" cy="36.6" r="2.3" fill="#F5B312"/>
-            </svg>
-          </span>
-          <span>MidBid</span>
-        </div>
-        <p>Bid blind. Settle on your terms — privately, when your figures meet.</p>
-      </div>
-      <div class="foot-col">
-        <h4>Product</h4>
-        <a href="#process">How it works</a>
-        <a href="#why">Why MidBid</a>
-        <a href="#audiences">Individuals</a>
-        <a href="#audiences">Business</a>
-      </div>
-      <div class="foot-col">
-        <h4>Legal</h4>
-        <a href="<%= typeof privacyUrl !== 'undefined' && privacyUrl ? privacyUrl : '/privacy' %>">Privacy notice</a>
-        <a href="<%= typeof termsUrl !== 'undefined' && termsUrl ? termsUrl : '/terms' %>">Terms of use</a>
-        <a href="<%= typeof cookiesUrl !== 'undefined' && cookiesUrl ? cookiesUrl : '/cookies' %>">Cookie policy</a>
-      </div>
-      <div class="foot-col">
-        <h4>Company</h4>
-        <a href="mailto:<%= typeof contactEmail !== 'undefined' && contactEmail ? contactEmail : 'hello@midbid.com' %>">Contact</a>
-        <a href="<%= typeof helpUrl !== 'undefined' && helpUrl ? helpUrl : '/help' %>">Help centre</a>
-        <a href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
-      </div>
-    </div>
-    <div class="foot-bottom">
-      <span>© 2026 MidBid. All rights reserved.</span>
-      <span>UK GDPR data controller · Settlement when figures meet</span>
+  <%# ===== FOOTER (placeholder — swap for your existing footer) ===== %>
+  <footer class="foot">
+    <div class="wrap">
+      <div class="brand"><svg style="width:26px;height:22px"><use href="#mb-logo"/></svg> MidBid</div>
+      <div>Bid blind. Settle on your terms.</div>
     </div>
   </footer>
-</div>
-</div><!-- /.scroll -->
-</div><!-- /.shell -->
 
 <script>
-(function () {
-  var bar = document.getElementById('valuebar');
-  var scroller = document.getElementById('scroll');
-  if (!bar || !scroller) return;
-  var lastY = scroller.scrollTop || 0;
-  var dock = 'bottom';         // start docked at the bottom
-  var ticking = false;
-  function setDock(next) {
-    if (next === dock) return;
-    dock = next;
-    bar.classList.add('swap'); // fade out
-    window.setTimeout(function () {
-      bar.classList.toggle('dock-top', dock === 'top');
-      bar.classList.toggle('dock-bottom', dock === 'bottom');
-      bar.classList.remove('swap'); // fade back in at the new edge
-    }, 150);
+(function(){
+  var A=document.getElementById('dotA'),B=document.getElementById('dotB'),S=document.getElementById('settle');
+  if(!A) return;
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){A.style.left='58%';B.style.left='63%';S.style.left='60%';S.style.opacity=1;return;}
+  var targets=[37,66,45,72,54,29];  /* varied crossing points — never the same, rarely centre */
+  var i=0;
+  function cycle(){
+    var t=targets[i%targets.length]; i++;
+    A.style.transition='none'; B.style.transition='none'; S.style.opacity=0;
+    A.style.left='16%'; B.style.left='84%';
+    void A.offsetWidth;
+    A.style.transition=B.style.transition='left 1.7s cubic-bezier(.45,0,.15,1)';
+    requestAnimationFrame(function(){ A.style.left=t+'%'; B.style.left=t+'%'; });
+    setTimeout(function(){ S.style.left=t+'%'; S.style.opacity=1; }, 1650);
+    setTimeout(cycle, 4400);
   }
-  function onScroll() {
-    var y = scroller.scrollTop;
-    if (y < 0) y = 0;
-    if (Math.abs(y - lastY) > 6) {          // small threshold to avoid jitter
-      setDock(y > lastY ? 'bottom' : 'top'); // scrolling down -> bottom, up -> top
-      lastY = y;
-    }
-    ticking = false;
-  }
-  scroller.addEventListener('scroll', function () {
-    if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
-  }, { passive: true });
-})();
-</script>
-
-<script>
-(function () {
-  var MAX = 80000, MIN = 0;
-  var track = document.getElementById('scale-track');
-  var band = document.getElementById('scale-band');
-  var hOwed = document.getElementById('handle-owed');
-  var hOwe = document.getElementById('handle-owe');
-  var amtOwed = document.getElementById('amt-owed');
-  var amtOwe = document.getElementById('amt-owe');
-  var meter = document.getElementById('scale-meter');
-  var signal = document.getElementById('scale-signal');
-  var signalText = document.getElementById('signal-text');
-  if (!track || !hOwed || !hOwe) return;
-
-  var valOwed = 58000, valOwe = 30000;
-
-  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
-  function fmt(n) { return '£' + Math.round(n).toLocaleString('en-GB'); }
-  function pct(v) { return (clamp(v, MIN, MAX) / MAX) * 100; }
-  function validate(proposed) {
-    return clamp(Math.round(clamp(proposed, MIN, MAX) / 100) * 100, MIN, MAX);
-  }
-  function analyse() {
-    var accept = valOwed, pay = valOwe;
-    var gap = accept - pay; // positive when still apart
-    var absGap = Math.abs(accept - pay);
-    var mid = (accept + pay) / 2;
-    var relativeGap = mid > 0 ? absGap / mid : 0;
-    var meets = accept <= pay; // figures meet / ranges overlap
-    var close = !meets && relativeGap <= 0.12; // UI proximity signal only
-    var state = meets ? 'meet' : (close ? 'close' : 'far');
-    return { gap: absGap, relativeGap: relativeGap, midpoint: mid, meets: meets, state: state };
-  }
-  var scaleEl = document.querySelector('.scale');
-  var boxOwed = document.querySelector('.side-box.owed');
-  var boxOwe = document.querySelector('.side-box.owe');
-  var lastOwed = valOwed, lastOwe = valOwe;
-
-  function render() {
-    var a = analyse();
-    hOwed.style.left = pct(valOwed) + '%';
-    hOwe.style.left = pct(valOwe) + '%';
-    hOwed.setAttribute('aria-valuenow', Math.round(valOwed));
-    hOwe.setAttribute('aria-valuenow', Math.round(valOwe));
-    if (amtOwed.textContent !== fmt(valOwed)) {
-      amtOwed.textContent = fmt(valOwed);
-      amtOwed.classList.remove('tick'); void amtOwed.offsetWidth; amtOwed.classList.add('tick');
-    }
-    if (amtOwe.textContent !== fmt(valOwe)) {
-      amtOwe.textContent = fmt(valOwe);
-      amtOwe.classList.remove('tick'); void amtOwe.offsetWidth; amtOwe.classList.add('tick');
-    }
-    if (scaleEl) {
-      scaleEl.classList.toggle('is-close', a.state === 'close');
-      scaleEl.classList.toggle('is-meet', a.state === 'meet');
-    }
-    var lo = Math.min(pct(valOwed), pct(valOwe));
-    var hi = Math.max(pct(valOwed), pct(valOwe));
-    band.style.left = lo + '%';
-    band.style.width = Math.max(1.5, hi - lo) + '%';
-    band.classList.toggle('meet', a.meets);
-    meter.querySelectorAll('span').forEach(function (el) {
-      el.classList.remove('active', 'active-far', 'active-close', 'active-meet');
-      if (el.getAttribute('data-state') === a.state) el.classList.add('active', 'active-' + a.state);
-    });
-    signal.className = 'signal ' + a.state;
-    if (a.state === 'far') signalText.textContent = 'Far apart — gap ' + fmt(a.gap) + '. Nothing is disclosed.';
-    else if (a.state === 'close') signalText.textContent = 'Getting close — gap ' + fmt(a.gap) + '. Still private.';
-    else signalText.textContent = 'Figures meet — demo settlement at midpoint ' + fmt(a.midpoint) + '.';
-  }
-  function valueFromEvent(e) {
-    var rect = track.getBoundingClientRect();
-    var clientX = (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
-    return clamp((clientX - rect.left) / rect.width, 0, 1) * MAX;
-  }
-  function bind(handle, which) {
-    var dragging = false;
-    function start(e) {
-      e.preventDefault();
-      dragging = true;
-      handle.classList.add('dragging');
-      if (boxOwed && boxOwe) {
-        boxOwed.classList.toggle('active', which === 'owed');
-        boxOwe.classList.toggle('active', which === 'owe');
-      }
-      move(e);
-    }
-    function move(e) {
-      if (!dragging) return;
-      if (e.cancelable) e.preventDefault();
-      var next = validate(valueFromEvent(e));
-      if (which === 'owed') valOwed = next; else valOwe = next;
-      render();
-    }
-    function end() {
-      dragging = false;
-      handle.classList.remove('dragging');
-      if (boxOwed) boxOwed.classList.remove('active');
-      if (boxOwe) boxOwe.classList.remove('active');
-      render();
-    }
-    handle.addEventListener('mousedown', start);
-    handle.addEventListener('touchstart', start, { passive: false });
-    window.addEventListener('mousemove', move);
-    window.addEventListener('touchmove', move, { passive: false });
-    window.addEventListener('mouseup', end);
-    window.addEventListener('touchend', end);
-    handle.addEventListener('keydown', function (e) {
-      var step = e.shiftKey ? 2000 : 500, delta = 0;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = step;
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -step;
-      if (!delta) return;
-      e.preventDefault();
-      if (which === 'owed') valOwed = validate(valOwed + delta);
-      else valOwe = validate(valOwe + delta);
-      render();
-    });
-  }
-  bind(hOwed, 'owed');
-  bind(hOwe, 'owe');
-
-  track.addEventListener('pointerdown', function (e) {
-    if (e.target.classList.contains('handle')) return;
-    var v = validate(valueFromEvent(e));
-    var dOwed = Math.abs(v - valOwed);
-    var dOwe = Math.abs(v - valOwe);
-    if (dOwed <= dOwe) valOwed = v; else valOwe = v;
-    render();
-  });
-  render();
+  cycle();
 })();
 </script>
 </body>
