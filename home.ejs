@@ -611,12 +611,49 @@ body {
   font-size: var(--text-xs); color: var(--mut2);
 }
 
+/* ===== Guarantees (thesis + proof) — replaces the hero tick-list ===== */
+.guar-sec { margin: 44px 0 56px; }
+.guar-card {
+  display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: center;
+  padding: 14px 40px 22px; border-radius: 20px;
+  background: var(--white); border: 1px solid var(--line);
+  box-shadow: 0 8px 24px -12px rgba(40,35,25,0.06);
+}
+.guar-thesis { padding: 24px 0; }
+.guar-eyebrow {
+  font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
+  font-weight: 700; color: var(--blue); margin-bottom: 14px;
+}
+.guar-h {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: var(--text-xl); line-height: var(--leading-snug); letter-spacing: -0.02em; margin: 0;
+}
+.guar-h .guar-soft { color: var(--mut); font-weight: 500; }
+.grow {
+  display: grid; grid-template-columns: 96px 1fr; gap: 22px; align-items: center;
+  padding: 20px 0; border-top: 1px solid var(--line);
+}
+.grow:last-child { border-bottom: 1px solid var(--line); }
+.gart { width: 96px; height: 52px; flex: none; }
+.gkick {
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--blue); font-weight: 600; margin-bottom: 6px;
+}
+.gtext {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: var(--text-base); line-height: var(--leading-snug); color: var(--ink2); margin: 0;
+}
+.gtext strong { font-weight: 700; color: var(--ink); }
+
 @media (max-width: 900px) {
   .hero-split, .steps, .why, .privacy-grid, .split, .quotes, .scale-sides {
     grid-template-columns: 1fr;
   }
   .industries { grid-template-columns: 1fr 1fr; }
   .foot-grid { grid-template-columns: 1fr 1fr; }
+  .guar-card { grid-template-columns: 1fr; gap: 26px; padding: 22px 22px 10px; }
+  .grow { grid-template-columns: 1fr; gap: 12px; }
+  .gart { order: 2; }
 }
 </style>
 </head>
@@ -681,11 +718,6 @@ body {
         <a class="btn btn-blue" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
         <a class="btn btn-ghost" href="#process">How it works</a>
       </div>
-      <ul class="hero-features">
-        <li><span class="fx" aria-hidden="true">✓</span><span><strong>Neither side sees the other's figure</strong> <span class="ft-sub">— only a shared colour signal when you're close.</span></span></li>
-        <li><span class="fx" aria-hidden="true">✓</span><span><strong>One sealed bid per round</strong> <span class="ft-sub">— no probing, no anchoring, no games.</span></span></li>
-        <li><span class="fx" aria-hidden="true">✓</span><span><strong>No settlement, no success fee</strong> <span class="ft-sub">— a modest fee to open a case, the rest only if it resolves.</span></span></li>
-      </ul>
     </div>
 
     <div class="scale" aria-label="Interactive settlement scale demo">
@@ -722,6 +754,41 @@ body {
       </div>
       <p class="scale-note">Demo shows both sides for clarity. On a live case each party sees only their own figure and a shared colour—never the counterpart’s number.</p>
       <p class="scale-rules"><strong>Settlement rules.</strong> A round settles when the claimant’s minimum is less than or equal to the respondent’s maximum—the figures meet. The settlement amount is the midpoint. Drag the handles to see how proximity is signalled.</p>
+    </div>
+  </section>
+
+  <section class="guar-sec" id="guarantees">
+    <div class="guar-card">
+      <div class="guar-thesis">
+        <div class="guar-eyebrow">Why it's fair</div>
+        <h2 class="guar-h">No tactics to learn, no leverage to lose. <span class="guar-soft">Three fixed guarantees do the negotiating for you.</span></h2>
+      </div>
+      <div class="guar-proof">
+        <div class="grow">
+          <svg class="gart" viewBox="0 0 104 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <line x1="12" y1="28" x2="92" y2="28" stroke="#ddd6c8" stroke-width="2"/>
+            <circle cx="42" cy="28" r="13" fill="#4d7c5a" opacity="0.14"/><circle cx="64" cy="28" r="13" fill="#4d7c5a" opacity="0.14"/>
+            <circle cx="42" cy="28" r="5.4" fill="#3d5a80"/><circle cx="64" cy="28" r="5.4" fill="#c27803"/>
+          </svg>
+          <div><div class="gkick">Privacy</div><p class="gtext">Neither side sees the other's figure — only a <strong>shared colour signal</strong> when you're close.</p></div>
+        </div>
+        <div class="grow">
+          <svg class="gart" viewBox="0 0 104 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="33" y="15" width="38" height="28" rx="5" fill="#faf8f4" stroke="#3d5a80" stroke-width="2"/>
+            <path d="M43 15v-2.4a9 9 0 0 1 18 0V15" stroke="#3d5a80" stroke-width="2" fill="none"/>
+            <circle cx="52" cy="29" r="3" fill="#c27803"/><rect x="50.6" y="30.6" width="2.8" height="7" rx="1.4" fill="#c27803"/>
+          </svg>
+          <div><div class="gkick">The bid</div><p class="gtext">One <strong>sealed bid</strong> per round — no probing, no anchoring, no games.</p></div>
+        </div>
+        <div class="grow">
+          <svg class="gart" viewBox="0 0 104 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="40" cy="28" r="12" fill="none" stroke="#b9b1a1" stroke-width="2" stroke-dasharray="3 4"/>
+            <circle cx="66" cy="28" r="12" fill="#c27803" opacity="0.12"/><circle cx="66" cy="28" r="12" fill="none" stroke="#c27803" stroke-width="2"/>
+            <text x="66" y="32.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#c27803">£</text>
+          </svg>
+          <div><div class="gkick">The fee</div><p class="gtext">No settlement, no success fee — a modest fee to open a case, the rest <strong>only if it resolves.</strong></p></div>
+        </div>
+      </div>
     </div>
   </section>
 
