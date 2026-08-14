@@ -1,7 +1,7 @@
 <%#
   MidBid homepage
   Usage (Express):  res.render('home', { title: 'MidBid — Bid blind. Settle on your terms.' })
-  Optional locals:  signupUrl, businessUrl, privacyUrl, termsUrl, cookiesUrl, contactEmail
+  Optional locals:  signupUrl, businessUrl, privacyUrl, termsUrl, cookiesUrl, contactEmail, helpUrl
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,22 +28,17 @@
   --green-soft: #e8f0ea;
   --line: #ddd6c8;
   --white: #faf8f4;
-
-  /* Type theme — 3 roles only */
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-
-  /* Type scale (root 16px). Minimum readable UI: 14px; body: 16px */
-  --text-xs: 0.75rem;    /* 12px — labels, uppercase only */
-  --text-sm: 0.875rem;   /* 14px — secondary UI */
-  --text-base: 1rem;     /* 16px — body */
-  --text-md: 1.125rem;   /* 18px — lead */
-  --text-lg: 1.25rem;    /* 20px — card titles */
-  --text-xl: 1.5rem;     /* 24px — section sub */
-  --text-2xl: clamp(1.75rem, 3vw, 2.25rem);  /* ~28–36 */
-  --text-3xl: clamp(2rem, 4vw, 2.5rem);      /* hero */
-
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: clamp(1.75rem, 3vw, 2.25rem);
+  --text-3xl: clamp(2rem, 4vw, 2.65rem);
   --leading-tight: 1.2;
   --leading-snug: 1.35;
   --leading-normal: 1.55;
@@ -58,11 +53,9 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;              /* the inner .scroll region scrolls, not the page */
+  overflow: hidden;
   --vb-h: 48px;
 }
-/* App shell: fixed nav, a scrolling content region, and the value bar as a real slot
-   that reorders between top and bottom — so it never overlaps the content. */
 .shell {
   height: 100vh; height: 100dvh;
   display: flex; flex-direction: column; overflow: hidden;
@@ -73,15 +66,12 @@ body {
   overflow-y: auto; overflow-x: hidden;
   scroll-behavior: smooth;
 }
-/* Value bar: a real flex slot (not an overlay). Docks bottom while scrolling down,
-   flips above the content while scrolling up. Never overlaps content. */
 .valuebar {
   flex: none; order: 3; height: var(--vb-h); z-index: 2;
   background: rgba(250,248,244,0.94);
   -webkit-backdrop-filter: saturate(1.1) blur(10px);
   backdrop-filter: saturate(1.1) blur(10px);
   transition: opacity 0.16s ease;
-  will-change: opacity;
 }
 .valuebar.dock-bottom {
   order: 3;
@@ -95,7 +85,7 @@ body {
 }
 .valuebar.swap { opacity: 0; }
 .vb-inner {
-  max-width: 1200px; height: 100%; margin: 0 auto; padding: 0 24px;
+  max-width: 1200px; height: 100%; margin: 0 auto; padding: 0 32px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
 .vb-item {
@@ -110,7 +100,7 @@ body {
 .vb-item:nth-child(4) .vb-dot { background: var(--gold2); }
 .vb-sep { width: 1px; height: 16px; background: var(--line); flex: none; }
 @media (max-width: 760px) {
-  body { --vb-h: 74px; }              /* taller band on mobile where items wrap to two rows */
+  body { --vb-h: 74px; }
   .valuebar { height: var(--vb-h); }
   .vb-sep { display: none; }
   .vb-inner { flex-wrap: wrap; justify-content: center; align-content: center; gap: 6px 18px; padding: 0 18px; }
@@ -125,7 +115,7 @@ body {
 .nav {
   order: 0; flex: none;
   position: relative; z-index: 20;
-  width: 100%; max-width: 1200px; margin: 0 auto; padding: 16px 24px;
+  width: 100%; max-width: 1200px; margin: 0 auto; padding: 16px 32px;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .logo {
@@ -150,12 +140,13 @@ body {
 }
 .nav-links a.cta:hover { background: var(--blue-deep); color: #fff; }
 
+/* Full-width content shell — not narrow */
 .app {
   position: relative; z-index: 1;
-  max-width: 1200px; margin: 0 auto; padding: 0 24px 80px;
-}
-.nav {
+  width: 100%;
   max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px 80px;
 }
 
 .btn {
@@ -176,60 +167,41 @@ body {
   background: var(--white); color: var(--ink2); border: 1.5px solid var(--line);
 }
 
-/* Split hero */
-.hero-split {
-  display: grid;
-  grid-template-columns: 1.02fr 0.98fr;
-  gap: 48px;
-  align-items: center;
-  margin: 40px 0 44px;
+/* ===== HERO — full width, centered text ===== */
+.hero-center {
+  text-align: center;
+  margin: 44px 0 40px;
   width: 100%;
 }
-.hero-copy .ey {
+.hero-center .ey {
   font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
-  font-weight: 700; color: var(--blue);
+  font-weight: 700; color: var(--blue); margin-bottom: 14px;
 }
-.hero-copy h1 {
+.hero-center h1 {
   font-family: var(--font-display); font-weight: 600;
   font-size: var(--text-3xl); letter-spacing: -0.03em; line-height: var(--leading-tight);
-  margin: 12px 0 14px;
+  margin: 0 0 16px;
 }
-.hero-copy .lead {
+.hero-center .lead {
   color: var(--mut); font-size: var(--text-md); line-height: var(--leading-relaxed);
-  margin-bottom: 22px; max-width: none;
+  margin-bottom: 10px; max-width: 52ch; margin-left: auto; margin-right: auto;
+}
+.hero-center .sub {
+  color: var(--ink2); font-size: var(--text-base); line-height: var(--leading-relaxed);
+  margin-bottom: 24px; max-width: 50ch; margin-left: auto; margin-right: auto;
 }
 .hero-actions {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
 }
-.pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.hero-features {
-  list-style: none; display: grid; gap: 12px; margin-top: 6px;
-}
-.hero-features li {
-  display: flex; align-items: flex-start; gap: 11px;
-  font-size: var(--text-base); color: var(--ink2); line-height: var(--leading-snug);
-}
-.hero-features .fx {
-  flex: none; width: 22px; height: 22px; border-radius: 7px; margin-top: 1px;
-  display: grid; place-items: center;
-  background: var(--blue-soft); color: var(--blue-deep);
-  font-size: 12px; font-weight: 800;
-}
-.hero-features li:nth-child(2) .fx { background: var(--gold-soft); color: #92400e; }
-.hero-features li:nth-child(3) .fx { background: #ece9e3; color: var(--ink2); }
-.hero-features li strong { font-weight: 700; }
-.hero-features li span.ft-sub { color: var(--mut); font-weight: 400; }
-.pill {
-  font-size: var(--text-xs); font-weight: 700; padding: 7px 12px; border-radius: 999px;
-}
-.pill.b { background: var(--blue-soft); color: var(--blue-deep); }
-.pill.g { background: var(--gold-soft); color: #92400e; }
-.pill.n { background: var(--green-soft); color: #2d4a34; }
-.pill.m { background: #f0eeeb; color: var(--mut); }
 
-/* Scale on right — interactive product surface */
+/* ===== ELABORATE INTERACTIVE SCALE — full width below hero ===== */
+.scale-full {
+  width: 100%;
+  margin: 0 0 56px;
+}
 .scale {
-  padding: 26px 24px 22px;
+  width: 100%;
+  padding: 28px 32px 26px;
   border-radius: 22px;
   background: var(--white);
   border: 1px solid var(--line);
@@ -260,17 +232,17 @@ body {
   content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: linear-gradient(90deg, var(--gold2), var(--green2), var(--blue));
   background-size: 200% 100%;
-  animation: flow 5s ease-in-out infinite;
+  animation: flowBar 5s ease-in-out infinite;
 }
 .scale.is-meet::before {
   background: linear-gradient(90deg, var(--green2), #86efac, var(--green2));
-  animation: flow 2.5s ease-in-out infinite;
+  animation: flowBar 2.5s ease-in-out infinite;
 }
-@keyframes flow {
+@keyframes flowBar {
   0%,100% { background-position: 0% 0; }
   50% { background-position: 100% 0; }
 }
-.scale-head { margin-bottom: 16px; }
+.scale-head { margin-bottom: 18px; text-align: left; }
 .scale-head h2 {
   font-family: var(--font-display); font-weight: 600;
   font-size: var(--text-lg); margin-bottom: 4px; letter-spacing: -0.02em;
@@ -279,10 +251,10 @@ body {
 .scale-head p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
 
 .scale-sides {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;
 }
 .side-box {
-  padding: 14px; border-radius: 14px;
+  padding: 16px 18px; border-radius: 14px;
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
 }
 .side-box.owed { background: #fef6e4; border: 1.5px solid #e8c878; }
@@ -303,14 +275,12 @@ body {
   font-size: var(--text-xl); font-weight: 600; margin-top: 6px;
   transition: color 0.25s, transform 0.15s;
 }
-.side-box .amount.tick {
-  transform: scale(1.04);
-}
+.side-box .amount.tick { transform: scale(1.04); }
 .side-box.owed .amount { color: var(--gold); }
 .side-box.owe .amount { color: var(--blue); }
 
 .track {
-  height: 16px; border-radius: 12px;
+  height: 18px; border-radius: 12px;
   background: linear-gradient(180deg, #e8e4dc, #f5f2eb);
   border: 1px solid var(--line);
   position: relative; margin-bottom: 6px;
@@ -345,7 +315,7 @@ body {
 .handle::after {
   content: ""; position: absolute; inset: -8px; border-radius: 50%;
   border: 2px solid transparent;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.2s;
 }
 .handle:hover { transform: translate(-50%, -50%) scale(1.1); }
 .handle:hover::after { border-color: rgba(40,35,25,0.12); }
@@ -379,11 +349,11 @@ body {
   margin-bottom: 14px;
 }
 .meter {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;
 }
 .meter span {
   text-align: center; font-size: var(--text-xs); font-weight: 600;
-  padding: 8px 4px; border-radius: 10px;
+  padding: 9px 4px; border-radius: 10px;
   color: var(--mut2); background: #f8f6f1; border: 1px solid var(--line);
 }
 .meter span.active-far {
@@ -401,9 +371,7 @@ body {
   font-size: var(--text-sm); font-weight: 600; line-height: var(--leading-snug);
   transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.25s;
 }
-.signal.meet {
-  transform: scale(1.01);
-}
+.signal.meet { transform: scale(1.01); }
 .signal .dot {
   width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 4px;
   animation: pulse 1.5s ease-in-out infinite;
@@ -418,15 +386,16 @@ body {
 .signal.meet { background: var(--green-soft); border: 1px solid #a3c9ae; color: #2d4a34; }
 .signal.meet .dot { background: var(--green2); box-shadow: 0 0 8px var(--green2); }
 .scale-note {
-  margin-top: 10px; font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal);
+  margin-top: 12px; font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal);
 }
 .scale-rules {
-  margin-top: 8px; padding: 10px 12px; border-radius: 10px;
+  margin-top: 10px; padding: 12px 14px; border-radius: 10px;
   background: #f5f2eb; border: 1px solid var(--line);
   font-size: var(--text-sm); line-height: var(--leading-normal);
 }
 
-.section { margin: 56px 0; }
+/* ===== SECTIONS ===== */
+.section { margin: 56px 0; width: 100%; }
 .section .ey {
   text-align: center; font-size: var(--text-xs); letter-spacing: var(--tracking-label);
   text-transform: uppercase; font-weight: 700; color: var(--blue);
@@ -438,11 +407,12 @@ body {
 }
 .section .lead {
   text-align: center; color: var(--mut); font-size: var(--text-md); line-height: var(--leading-relaxed);
-  max-width: 54ch; margin: 0 auto 28px;
+  max-width: 56ch; margin: 0 auto 28px;
 }
 
 .steps {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  width: 100%;
 }
 .step {
   padding: 20px 16px; border-radius: 18px;
@@ -463,7 +433,51 @@ body {
 .step h3 { font-size: var(--text-base); font-weight: 700; margin-bottom: 6px; line-height: var(--leading-snug); }
 .step p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
 
-.why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+/* Minimal animation — tight under the 4 steps */
+.meet-anim {
+  width: 100%;
+  max-width: 520px;
+  margin: 28px auto 0;
+  padding: 4px 0 0;
+}
+.conv {
+  position: relative;
+  height: 48px;
+}
+.conv .rail {
+  position: absolute;
+  left: 4%; right: 4%;
+  top: 50%;
+  height: 4px;
+  border-radius: 4px;
+  background: #e0d9cc;
+  transform: translateY(-50%);
+}
+.settle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px; height: 20px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: rgba(77,124,90,0.14);
+  border: 2px solid var(--green);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  box-shadow: 0 0 0 6px rgba(77,124,90,0.08);
+}
+.cdot {
+  position: absolute;
+  top: 50%;
+  width: 14px; height: 14px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  left: 10%;
+}
+.cdot.a { background: var(--blue); }
+.cdot.b { background: var(--gold2); left: 90%; }
+
+.why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
 .why .card {
   padding: 22px 18px; border-radius: 18px;
   background: var(--white); border: 1px solid var(--line);
@@ -471,7 +485,41 @@ body {
 .why h3 { font-size: var(--text-base); font-weight: 700; margin-bottom: 6px; line-height: var(--leading-snug); }
 .why p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
 
-.privacy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.guar-sec { margin: 44px 0 56px; width: 100%; }
+.guar-card {
+  display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: center;
+  padding: 18px 40px 24px; border-radius: 20px;
+  background: var(--white); border: 1px solid var(--line);
+  box-shadow: 0 8px 24px -12px rgba(40,35,25,0.06);
+  width: 100%;
+}
+.guar-thesis { padding: 24px 0; }
+.guar-eyebrow {
+  font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
+  font-weight: 700; color: var(--blue); margin-bottom: 14px;
+}
+.guar-h {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: var(--text-xl); line-height: var(--leading-snug); letter-spacing: -0.02em; margin: 0;
+}
+.guar-h .guar-soft { color: var(--mut); font-weight: 500; }
+.grow {
+  display: grid; grid-template-columns: 96px 1fr; gap: 22px; align-items: center;
+  padding: 20px 0; border-top: 1px solid var(--line);
+}
+.grow:last-child { border-bottom: 1px solid var(--line); }
+.gart { width: 96px; height: 52px; flex: none; }
+.gkick {
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--blue); font-weight: 600; margin-bottom: 6px;
+}
+.gtext {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: var(--text-base); line-height: var(--leading-snug); color: var(--ink2); margin: 0;
+}
+.gtext strong { font-weight: 700; color: var(--ink); }
+
+.privacy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
 .privacy-card {
   padding: 20px 18px; border-radius: 16px;
   background: var(--white); border: 1px solid var(--line);
@@ -489,7 +537,7 @@ body {
 }
 .privacy-foot a { color: var(--blue); font-weight: 600; }
 
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
 .split .card { padding: 26px 24px; border-radius: 20px; }
 .split .ind {
   background: linear-gradient(160deg, var(--blue-soft) 0%, var(--white) 60%);
@@ -522,9 +570,9 @@ body {
   background: rgba(255,255,255,0.85); border: 1px solid var(--line); color: var(--mut);
 }
 
-.industries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.industries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
 .ind-card {
-  padding: 20px 20px; border-radius: 14px;
+  padding: 20px; border-radius: 14px;
   background: var(--white); border: 1px solid var(--line);
   border-top: 3px solid var(--blue);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -535,7 +583,6 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 10px 24px -12px rgba(40,35,25,0.12);
 }
-
 .ind-card h4 { font-size: var(--text-sm); font-weight: 700; margin-bottom: 4px; }
 .ind-card p { font-size: var(--text-sm); color: var(--mut); line-height: var(--leading-normal); }
 .ind-note {
@@ -543,30 +590,19 @@ body {
   max-width: 56ch; margin-left: auto; margin-right: auto; line-height: var(--leading-normal);
 }
 
-.quotes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.quote {
-  padding: 22px 18px; border-radius: 18px;
-  background: var(--white); border: 1px solid var(--line);
-}
-.quote p {
-  font-size: var(--text-base); line-height: var(--leading-normal); color: var(--ink2); margin-bottom: 14px;
-  font-family: var(--font-display); font-weight: 500;
-}
-.quote .who { font-size: var(--text-sm); font-weight: 700; color: var(--ink); }
-.quote .role { font-size: var(--text-sm); color: var(--mut2); }
-
 .final {
-  text-align: center; padding: 40px 28px; border-radius: 24px; margin-top: 56px;
+  text-align: center; padding: 44px 32px; border-radius: 24px; margin-top: 56px;
   background: linear-gradient(145deg, #2c2620 0%, #3d5a80 55%, #4a6a8a 100%);
   color: #fff;
   box-shadow: 0 24px 48px -16px rgba(44,74,110,0.35);
   position: relative; overflow: hidden;
+  width: 100%;
 }
 .final::before {
   content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: linear-gradient(90deg, transparent, #e8a317, #5f9a6e, #93a8c0, transparent);
   background-size: 200% 100%;
-  animation: flow 5s ease-in-out infinite;
+  animation: flowBar 5s ease-in-out infinite;
 }
 .final-ey {
   font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
@@ -585,10 +621,11 @@ body {
 .site-foot {
   margin-top: 56px; padding-top: 36px; border-top: 1px solid var(--line);
   font-size: var(--text-sm); color: var(--mut2);
+  width: 100%;
 }
 .foot-grid {
   display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px;
-  margin-bottom: 28px;
+  margin-bottom: 28px; width: 100%;
 }
 .foot-logo {
   display: inline-flex; align-items: center; gap: 9px;
@@ -611,49 +648,23 @@ body {
   font-size: var(--text-xs); color: var(--mut2);
 }
 
-/* ===== Guarantees (thesis + proof) — replaces the hero tick-list ===== */
-.guar-sec { margin: 44px 0 56px; }
-.guar-card {
-  display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: center;
-  padding: 14px 40px 22px; border-radius: 20px;
-  background: var(--white); border: 1px solid var(--line);
-  box-shadow: 0 8px 24px -12px rgba(40,35,25,0.06);
-}
-.guar-thesis { padding: 24px 0; }
-.guar-eyebrow {
-  font-size: var(--text-xs); letter-spacing: var(--tracking-label); text-transform: uppercase;
-  font-weight: 700; color: var(--blue); margin-bottom: 14px;
-}
-.guar-h {
-  font-family: var(--font-display); font-weight: 600;
-  font-size: var(--text-xl); line-height: var(--leading-snug); letter-spacing: -0.02em; margin: 0;
-}
-.guar-h .guar-soft { color: var(--mut); font-weight: 500; }
-.grow {
-  display: grid; grid-template-columns: 96px 1fr; gap: 22px; align-items: center;
-  padding: 20px 0; border-top: 1px solid var(--line);
-}
-.grow:last-child { border-bottom: 1px solid var(--line); }
-.gart { width: 96px; height: 52px; flex: none; }
-.gkick {
-  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--blue); font-weight: 600; margin-bottom: 6px;
-}
-.gtext {
-  font-family: var(--font-display); font-weight: 500;
-  font-size: var(--text-base); line-height: var(--leading-snug); color: var(--ink2); margin: 0;
-}
-.gtext strong { font-weight: 700; color: var(--ink); }
-
 @media (max-width: 900px) {
-  .hero-split, .steps, .why, .privacy-grid, .split, .quotes, .scale-sides {
-    grid-template-columns: 1fr;
+  .steps, .why, .privacy-grid, .split, .industries, .scale-sides {
+    grid-template-columns: 1fr 1fr;
   }
-  .industries { grid-template-columns: 1fr 1fr; }
-  .foot-grid { grid-template-columns: 1fr 1fr; }
   .guar-card { grid-template-columns: 1fr; gap: 26px; padding: 22px 22px 10px; }
   .grow { grid-template-columns: 1fr; gap: 12px; }
   .gart { order: 2; }
+  .foot-grid { grid-template-columns: 1fr 1fr; }
+  .app { padding: 0 20px 80px; }
+  .nav { padding: 16px 20px; }
+}
+@media (max-width: 560px) {
+  .steps, .why, .industries, .scale-sides { grid-template-columns: 1fr; }
+  .privacy-grid, .split { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settle { transition: none; }
 }
 </style>
 </head>
@@ -670,15 +681,10 @@ body {
   <a class="logo" href="#" aria-label="MidBid home">
     <span class="logo-mark" aria-hidden="true">
       <svg viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <clipPath id="mb-lens-nav"><circle cx="18" cy="20" r="11"/></clipPath>
-        </defs>
-        <!-- settlement lens: green shows only within the true overlap -->
+        <defs><clipPath id="mb-lens-nav"><circle cx="18" cy="20" r="11"/></clipPath></defs>
         <g clip-path="url(#mb-lens-nav)"><circle cx="30" cy="20" r="11" fill="#15B877"/></g>
-        <!-- the two parties, drawn as clean outlined circles -->
         <circle cx="18" cy="20" r="11" fill="none" stroke="#2F6BFF" stroke-width="2.4"/>
         <circle cx="30" cy="20" r="11" fill="none" stroke="#F5B312" stroke-width="2.4"/>
-        <!-- accent dots -->
         <circle cx="24" cy="3.4" r="2.3" fill="#2F6BFF"/>
         <circle cx="24" cy="36.6" r="2.3" fill="#F5B312"/>
       </svg>
@@ -709,17 +715,20 @@ body {
 <div class="scroll" id="scroll">
 <div class="app">
 
-  <section class="hero-split">
-    <div class="hero-copy">
-      <div class="ey">Online mediation</div>
-      <h1>Bid blind.<br>Settle on your terms.</h1>
-      <p class="lead">Each party submits private figures the other never sees, round after round. The case settles the moment your figures meet — no lawyers, no courtroom, no showing your hand.</p>
-      <div class="hero-actions">
-        <a class="btn btn-blue" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
-        <a class="btn btn-ghost" href="#process">How it works</a>
-      </div>
+  <!-- HERO — full width -->
+  <section class="hero-center">
+    <div class="ey">Online mediation</div>
+    <h1>Disputes resolved<br>in the silence.</h1>
+    <p class="lead">A secure blind-bid platform for commercial disagreements.</p>
+    <p class="sub">Two parties submit their ranges in private. When the numbers overlap, the case settles instantly.</p>
+    <div class="hero-actions">
+      <a class="btn btn-blue" href="<%= typeof signupUrl !== 'undefined' && signupUrl ? signupUrl : '/signup' %>">Open a case</a>
+      <a class="btn btn-ghost" href="#process">How it works</a>
     </div>
+  </section>
 
+  <!-- ELABORATE INTERACTIVE SCALE — full width, below hero -->
+  <div class="scale-full">
     <div class="scale" aria-label="Interactive settlement scale demo">
       <div class="scale-head">
         <h2>The settlement scale</h2>
@@ -748,12 +757,85 @@ body {
         <span data-state="close">Getting close</span>
         <span data-state="meet">Settled</span>
       </div>
-      <div class="signal close" id="scale-signal">
+      <div class="signal far" id="scale-signal">
         <span class="dot"></span>
-        <span id="signal-text">Adjust the handles to explore proximity and settlement.</span>
+        <span id="signal-text">Far apart — gap £28,000. Nothing is disclosed.</span>
       </div>
       <p class="scale-note">Demo shows both sides for clarity. On a live case each party sees only their own figure and a shared colour—never the counterpart’s number.</p>
       <p class="scale-rules"><strong>Settlement rules.</strong> A round settles when the claimant’s minimum is less than or equal to the respondent’s maximum—the figures meet. The settlement amount is the midpoint. Drag the handles to see how proximity is signalled.</p>
+    </div>
+  </div>
+
+  <!-- PROCESS -->
+  <section class="section" id="process">
+    <div class="ey">The process</div>
+    <h2>From dispute to settlement in four steps</h2>
+    <p class="lead">A structured path to a signed outcome—without revealing either party’s position until settlement is possible.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="n">STEP 01</div>
+        <h3>Define the dispute</h3>
+        <p>Identify the parties and the amount in issue. Both confirm and agree to resolve the matter on MidBid.</p>
+      </div>
+      <div class="step">
+        <div class="n">STEP 02</div>
+        <h3>Submit private figures</h3>
+        <p>Enter, in private, the least you will accept or the most you will pay. You may revise before a round is locked.</p>
+      </div>
+      <div class="step">
+        <div class="n">STEP 03</div>
+        <h3>Read the signal</h3>
+        <p>While figures remain far apart, nothing is disclosed. As figures approach, the scale indicates proximity—still without revealing amounts.</p>
+      </div>
+      <div class="step">
+        <div class="n">STEP 04</div>
+        <h3>Settle</h3>
+        <p>When figures meet, the midpoint becomes a binding, e-signed settlement.</p>
+      </div>
+    </div>
+
+    <!-- Minimal animation — tight under the 4 steps -->
+    <div class="meet-anim" aria-hidden="true">
+      <div class="conv">
+        <div class="rail"></div>
+        <div class="settle" id="settle"></div>
+        <div class="cdot a" id="dotA"></div>
+        <div class="cdot b" id="dotB"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY MIDBID -->
+  <section class="section" id="why">
+    <div class="ey">Why MidBid</div>
+    <h2>Neither party is required to move first in the open</h2>
+    <p class="lead">Conventional negotiation rewards disclosure or delay. Blind bidding lets both sides move toward a fair number without exposing their hand.</p>
+    <div class="why">
+      <div class="card">
+        <h3>No settlement, no success fee</h3>
+        <p>A modest charge opens a case. A service fee applies only if the matter settles.</p>
+      </div>
+      <div class="card">
+        <h3>Blind by design</h3>
+        <p>Your figure is never shown to the other party—only a shared colour signal when proximity is reached.</p>
+      </div>
+      <div class="card">
+        <h3>One bid per round</h3>
+        <p>Figures lock when a round is submitted. There is no opportunity to probe or infer the other side’s number.</p>
+      </div>
+      <div class="card">
+        <h3>Binding settlements</h3>
+        <p>When the rules are met, the midpoint is recorded as an e-signed, enforceable settlement.</p>
+      </div>
+      <div class="card">
+        <h3>Transparent fees</h3>
+        <p>Opening fee and success-linked charge only. No escrow percentage on the settled sum.</p>
+      </div>
+      <div class="card">
+        <h3>Days, not years</h3>
+        <p>Most matters conclude in a small number of rounds—far shorter than litigation or prolonged correspondence.</p>
+      </div>
     </div>
   </section>
 
@@ -788,66 +870,6 @@ body {
           </svg>
           <div><div class="gkick">The fee</div><p class="gtext">No settlement, no success fee — a modest fee to open a case, the rest <strong>only if it resolves.</strong></p></div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="process">
-    <div class="ey">The process</div>
-    <h2>From dispute to settlement in four steps</h2>
-    <p class="lead">A structured path to a signed outcome—without revealing either party’s position until settlement is possible.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="n">STEP 01</div>
-        <h3>Define the dispute</h3>
-        <p>Identify the parties and the amount in issue. Both confirm and agree to resolve the matter on MidBid.</p>
-      </div>
-      <div class="step">
-        <div class="n">STEP 02</div>
-        <h3>Submit private figures</h3>
-        <p>Enter, in private, the least you will accept or the most you will pay. You may revise before a round is locked.</p>
-      </div>
-      <div class="step">
-        <div class="n">STEP 03</div>
-        <h3>Read the signal</h3>
-        <p>While figures remain far apart, nothing is disclosed. As figures approach, the scale indicates proximity—still without revealing amounts.</p>
-      </div>
-      <div class="step">
-        <div class="n">STEP 04</div>
-        <h3>Settle</h3>
-        <p>When figures meet, the midpoint becomes a binding, e-signed settlement.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="why">
-    <div class="ey">Why MidBid</div>
-    <h2>Neither party is required to move first in the open</h2>
-    <p class="lead">Conventional negotiation rewards disclosure or delay. Blind bidding lets both sides move toward a fair number without exposing their hand.</p>
-    <div class="why">
-      <div class="card">
-        <h3>No settlement, no success fee</h3>
-        <p>A modest charge opens a case. A service fee applies only if the matter settles.</p>
-      </div>
-      <div class="card">
-        <h3>Blind by design</h3>
-        <p>Your figure is never shown to the other party—only a shared colour signal when proximity is reached.</p>
-      </div>
-      <div class="card">
-        <h3>One bid per round</h3>
-        <p>Figures lock when a round is submitted. There is no opportunity to probe or infer the other side’s number.</p>
-      </div>
-      <div class="card">
-        <h3>Binding settlements</h3>
-        <p>When the rules are met, the midpoint is recorded as an e-signed, enforceable settlement.</p>
-      </div>
-      <div class="card">
-        <h3>Transparent fees</h3>
-        <p>Opening fee and success-linked charge only. No escrow percentage on the settled sum.</p>
-      </div>
-      <div class="card">
-        <h3>Days, not years</h3>
-        <p>Most matters conclude in a small number of rounds—far shorter than litigation or prolonged correspondence.</p>
       </div>
     </div>
   </section>
@@ -952,9 +974,7 @@ body {
         <div class="foot-logo">
           <span class="foot-logo-mark" aria-hidden="true">
             <svg viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <clipPath id="mb-lens-foot"><circle cx="18" cy="20" r="11"/></clipPath>
-              </defs>
+              <defs><clipPath id="mb-lens-foot"><circle cx="18" cy="20" r="11"/></clipPath></defs>
               <g clip-path="url(#mb-lens-foot)"><circle cx="30" cy="20" r="11" fill="#15B877"/></g>
               <circle cx="18" cy="20" r="11" fill="none" stroke="#2F6BFF" stroke-width="2.4"/>
               <circle cx="30" cy="20" r="11" fill="none" stroke="#F5B312" stroke-width="2.4"/>
@@ -1001,23 +1021,23 @@ body {
   var scroller = document.getElementById('scroll');
   if (!bar || !scroller) return;
   var lastY = scroller.scrollTop || 0;
-  var dock = 'bottom';         // start docked at the bottom
+  var dock = 'bottom';
   var ticking = false;
   function setDock(next) {
     if (next === dock) return;
     dock = next;
-    bar.classList.add('swap'); // fade out
+    bar.classList.add('swap');
     window.setTimeout(function () {
       bar.classList.toggle('dock-top', dock === 'top');
       bar.classList.toggle('dock-bottom', dock === 'bottom');
-      bar.classList.remove('swap'); // fade back in at the new edge
+      bar.classList.remove('swap');
     }, 150);
   }
   function onScroll() {
     var y = scroller.scrollTop;
     if (y < 0) y = 0;
-    if (Math.abs(y - lastY) > 6) {          // small threshold to avoid jitter
-      setDock(y > lastY ? 'bottom' : 'top'); // scrolling down -> bottom, up -> top
+    if (Math.abs(y - lastY) > 6) {
+      setDock(y > lastY ? 'bottom' : 'top');
       lastY = y;
     }
     ticking = false;
@@ -1029,6 +1049,7 @@ body {
 </script>
 
 <script>
+/* Elaborate interactive scale */
 (function () {
   var MAX = 80000, MIN = 0;
   var track = document.getElementById('scale-track');
@@ -1052,19 +1073,17 @@ body {
   }
   function analyse() {
     var accept = valOwed, pay = valOwe;
-    var gap = accept - pay; // positive when still apart
     var absGap = Math.abs(accept - pay);
     var mid = (accept + pay) / 2;
     var relativeGap = mid > 0 ? absGap / mid : 0;
-    var meets = accept <= pay; // figures meet / ranges overlap
-    var close = !meets && relativeGap <= 0.12; // UI proximity signal only
+    var meets = accept <= pay;
+    var close = !meets && relativeGap <= 0.12;
     var state = meets ? 'meet' : (close ? 'close' : 'far');
-    return { gap: absGap, relativeGap: relativeGap, midpoint: mid, meets: meets, state: state };
+    return { gap: absGap, midpoint: mid, meets: meets, state: state };
   }
   var scaleEl = document.querySelector('.scale');
   var boxOwed = document.querySelector('.side-box.owed');
   var boxOwe = document.querySelector('.side-box.owe');
-  var lastOwed = valOwed, lastOwe = valOwe;
 
   function render() {
     var a = analyse();
@@ -1158,6 +1177,44 @@ body {
     render();
   });
   render();
+})();
+</script>
+
+<script>
+/* Minimal rail + dots under the 4 steps */
+(function () {
+  var A = document.getElementById('dotA');
+  var B = document.getElementById('dotB');
+  var S = document.getElementById('settle');
+  if (!A) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) {
+    A.style.left = '48%'; B.style.left = '52%';
+    S.style.left = '50%'; S.style.opacity = 1;
+    return;
+  }
+  var targets = [38, 62, 47, 71, 55, 32];
+  var i = 0;
+  function cycle() {
+    var t = targets[i % targets.length]; i++;
+    A.style.transition = 'none';
+    B.style.transition = 'none';
+    S.style.opacity = 0;
+    A.style.left = '10%';
+    B.style.left = '90%';
+    void A.offsetWidth;
+    A.style.transition = B.style.transition = 'left 1.7s cubic-bezier(.45,0,.15,1)';
+    requestAnimationFrame(function () {
+      A.style.left = t + '%';
+      B.style.left = t + '%';
+    });
+    setTimeout(function () {
+      S.style.left = t + '%';
+      S.style.opacity = 1;
+    }, 1650);
+    setTimeout(cycle, 4400);
+  }
+  cycle();
 })();
 </script>
 </body>
